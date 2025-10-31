@@ -1,0 +1,63 @@
+# -------------------------
+# 1. ЗАГАЛЬНІ СИСТЕМНІ ФАЙЛИ ТА IDE
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# JetBrains Rider / Visual Studio Code
+.idea/
+.vs/
+.vscode/
+
+# -------------------------
+# 2. REACT / VITE (frontend/CloneNetflixUI)
+# -------------------------
+# Залежності Node (обов'язково ігнорувати!)
+/frontend/CloneNetflixUI/node_modules/
+
+# Результати збірки (Production build)
+/frontend/CloneNetflixUI/dist/
+/frontend/CloneNetflixUI/build/
+
+# Файли середовища (конфігурація, чутливі дані)
+/frontend/CloneNetflixUI/.env
+/frontend/CloneNetflixUI/.env.local
+/frontend/CloneNetflixUI/.env.*.local
+
+# Кеші та тимчасові файли Vite/npm
+/frontend/CloneNetflixUI/.vite/
+/frontend/CloneNetflixUI/.npm/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# -------------------------
+# 3. ASP.NET CORE / .NET (backend/CloneNetflixApi)
+# -------------------------
+# Вихідні папки компіляції (обов'язково ігнорувати!)
+/backend/CloneNetflixApi/[Bb]in/
+/backend/CloneNetflixApi/[Oo]bj/
+# Загальні вихідні папки (на випадок, якщо вони будуть на рівні backend)
+/[Bb]in/
+/[Oo]bj/
+
+# Файли NuGet
+*.nupkg
+*.snupkg
+# Закешовані пакети та конфігурація
+packages/
+
+# Налаштування користувача та IDE (унікальні для розробника)
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Файли символів та діагностики
+*.pdb
+*.bak
+
+# Журнали та дампи
+*.log
+*.zip
+*.tar
