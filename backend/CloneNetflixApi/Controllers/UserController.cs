@@ -37,6 +37,7 @@ namespace CloneNetflixApi.Controllers
         }
 
         [HttpGet("me")]
+        [Authorize]
         public async Task<IActionResult> GetMyProfile()
         {
             var allClaims = User.Claims.Select(c => new
@@ -45,7 +46,7 @@ namespace CloneNetflixApi.Controllers
                 Value = c.Value  
             }).ToList();
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue("userId");
 
             if (userId == null)
             {

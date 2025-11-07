@@ -71,21 +71,17 @@ namespace CloneNetflixApi.Services.AuthService
             var claims = new List<Claim>
             {
                 // Ідентифікатор користувача — лише один!
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-
-                // Email
-                new Claim(JwtRegisteredClaimNames.Sub, user.Email!),
+                new Claim("userId", user.Id),
 
                 // Відображуване ім'я
-                new Claim(ClaimTypes.Name, user.DisplayName ?? string.Empty),
+                new Claim("displayName", user.DisplayName ?? string.Empty),
 
-                // Унікальний ID токена
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                
             };
             // ✅ Додаємо ролі
             foreach (var role in roles)
             {
-                claims.Add(new Claim(ClaimTypes.Role, role));
+                claims.Add(new Claim("roles", role ?? string.Empty));
             }
 
             // Ключ для підпису
