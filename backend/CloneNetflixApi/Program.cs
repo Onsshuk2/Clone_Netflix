@@ -7,7 +7,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
-using System.Security.Claims; // 👈 ДОДАНО: Для налаштувань Swagger
+using System.Security.Claims;
+using CloneNetflixApi.Interfaces;
+using CloneNetflixApi.Services; // 👈 ДОДАНО: Для налаштувань Swagger
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -104,6 +106,7 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISmtpService, SmtpService>();
 
 var app = builder.Build();
 
