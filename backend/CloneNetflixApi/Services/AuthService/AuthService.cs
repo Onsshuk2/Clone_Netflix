@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using CloneNetflixApi.Helpers;
+using CloneNetflixApi.Interfaces;
+using CloneNetflixApi.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -12,10 +15,13 @@ namespace CloneNetflixApi.Services.AuthService
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
 
-        public AuthService(UserManager<ApplicationUser> userManager, IConfiguration configuration)
+        private readonly ISmtpService _smtpService;
+
+        public AuthService(UserManager<ApplicationUser> userManager, IConfiguration configuration, ISmtpService smtpService)
         {
             _userManager = userManager;
             _configuration = configuration;
+            _smtpService = smtpService;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto loginRequest)
@@ -76,7 +82,7 @@ namespace CloneNetflixApi.Services.AuthService
                 // Відображуване ім'я
                 new Claim("displayName", user.DisplayName ?? string.Empty),
 
-                
+
             };
             // ✅ Додаємо ролі
             foreach (var role in roles)
@@ -113,6 +119,28 @@ namespace CloneNetflixApi.Services.AuthService
                 TokenExpires = expires
             };
         }
+        public async Task<bool> ForgotPasswordAsync(ForgotPasswordModel model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
 
+            if (user == null)
+            {
+                return false;
+            }
+
+            string token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var resetLink = $"{_configuration["ClientUrl"]}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(model.Email)}";
+
+            var emailModel = new EmailMessage
+            {
+                To = model.Email,
+                Subject = "Password Reset",
+                Body = $"<p>Click the link below to reset your password:</p><a href='{resetLink}'>Reset Password</a>"
+            };
+
+            var result = await _smtpService.SendEmailAsync(emailModel);
+
+            return result;
+        }
     }
 }

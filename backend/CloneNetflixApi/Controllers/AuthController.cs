@@ -1,5 +1,6 @@
 ﻿using CloneNetflixApi.Helpers;
 using CloneNetflixApi.Interfaces;
+using CloneNetflixApi.Models;
 using CloneNetflixApi.Services.AuthService;
 using Microsoft.AspNetCore.Mvc;
 
@@ -84,5 +85,21 @@ public class AuthController : ControllerBase
         }
 
 
+
     }
+    
+    [HttpPost]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordModel model)
+        {
+            bool res = await _authService.ForgotPasswordAsync(model);
+            if (res)
+                return Ok();
+            else
+                return BadRequest(new
+                {
+                    Status = 400,
+                    IsValid = false,
+                    Errors = new { Email = "Користувача з такою поштою не існує" }
+                });
+        }
 }
