@@ -5,6 +5,9 @@ import "./App.css";
 import { Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import SubscriptionPlansPage from "./pages/SubscriptionPlansPage";
+import PasswordRecovery from "./pages/PasswordRecovery";
+import NewPassword from "./pages/NewPassword";
+import ConfirmationEmailSent from "./pages/ConfirmationEmailSent";
 
 function App() {
   return (
@@ -13,8 +16,14 @@ function App() {
         <Route path="/">
           <Route index element={<HomePage />} />
           <Route
-            path="/SubscriptionPlansPage"
+            path="/subscriptionPlansPage"
             element={<SubscriptionPlansPage />}
+          />
+          <Route path="/passwordRecovery" element={<PasswordRecovery />} />
+          <Route path="/newPassword" element={<NewPassword />} />
+          <Route
+            path="/confirmationEmailSent"
+            element={<ConfirmationEmailSent />}
           />
         </Route>
       </Routes>
