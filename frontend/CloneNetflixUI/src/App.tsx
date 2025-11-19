@@ -8,12 +8,15 @@ import SubscriptionPlansPage from "./pages/SubscriptionPlansPage";
 import PasswordRecovery from "./pages/PasswordRecovery";
 import NewPassword from "./pages/NewPassword";
 import ConfirmationEmailSent from "./pages/ConfirmationEmailSent";
+import UserLayout from "./common/UserLayout";
+import NotFound from "./pages/OtherPage/NotFound";
+
 
 function App() {
   return (
     <>
       <Routes>
-        <Route path="/">
+        <Route path="/" element={<UserLayout/>}>          
           <Route index element={<HomePage />} />
           <Route
             path="/subscriptionPlansPage"
@@ -25,7 +28,9 @@ function App() {
             path="/confirmationEmailSent"
             element={<ConfirmationEmailSent />}
           />
+          
         </Route>
+        <Route path="*" element={<NotFound/>}/>
       </Routes>
     </>
   );
