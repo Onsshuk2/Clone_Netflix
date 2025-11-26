@@ -10,13 +10,14 @@ import NewPassword from "./pages/NewPassword";
 import ConfirmationEmailSent from "./pages/ConfirmationEmailSent";
 import UserLayout from "./common/UserLayout";
 import NotFound from "./pages/OtherPage/NotFound";
-
+import Login from "./pages/RegisterAndLoginPage/Login";
+import Register from "./pages/RegisterAndLoginPage/Register";
 
 function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<UserLayout/>}>          
+        <Route path="/" element={<UserLayout />}>
           <Route index element={<HomePage />} />
           <Route
             path="/subscriptionPlansPage"
@@ -28,9 +29,10 @@ function App() {
             path="/confirmationEmailSent"
             element={<ConfirmationEmailSent />}
           />
-          
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
         </Route>
-        <Route path="*" element={<NotFound/>}/>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );
