@@ -1,5 +1,7 @@
+// src/pages/Login.tsx (або де в тебе лежить)
 import { useState } from "react";
-import { Eye, EyeOff, CheckCircle } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import { $t } from "../../lib/toast"; // ← наш глобальний тост (з попереднього кроку)
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -8,25 +10,22 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showToast, setShowToast] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
-      // 1. Логінимося
-      const loginResponse = await fetch(`${API_URL}/api/Auth/login`, {
+      // 1. Логін
+      const loginRes = await fetch(`${API_URL}/api/Auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
 
-      const loginData = await loginResponse.json();
+      const loginData = await loginRes.json();
 
-      if (!loginResponse.ok) {
+      if (!loginRes.ok) {
         throw new Error(
           loginData.message || loginData.error || "Помилка входу"
         );
@@ -35,29 +34,23 @@ export default function Login() {
       const token = loginData.token;
       if (!token) throw new Error("Токен не отримано");
 
-      // 2. Зберігаємо токен одразу (щоб наступний запит пройшов з авторизацією)
       localStorage.setItem("token", token);
 
-      // 3. Отримуємо дані користувача
-      const meResponse = await fetch(`${API_URL}/api/Auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      // 2. Отримуємо дані користувача
+      const meRes = await fetch(`${API_URL}/api/Auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       let userData: any = {};
 
-      if (meResponse.ok) {
-        userData = await meResponse.json();
+      if (meRes.ok) {
+        userData = await meRes.json();
       } else {
-        // Якщо /me не працює — пробуємо взяти з відповіді логіну (запасний варіант)
-        console.warn(
-          "/api/Auth/me не спрацював, беремо дані з login відповіді"
-        );
-        userData = loginData.user || loginData; // іноді бекенд кладе user в login-відповідь
+        console.warn("me не спрацював → беремо з login відповіді");
+        userData = loginData.user || loginData;
       }
 
-      // 4. Формуємо об’єкт користувача
+      // 3. Формуємо об'єкт користувача
       const userToSave = {
         name:
           userData.name ||
@@ -69,17 +62,20 @@ export default function Login() {
         email: userData.email || email,
       };
 
-      // 5. Зберігаємо в localStorage
       localStorage.setItem("user", JSON.stringify(userToSave));
 
-      // 6. Успіх!
-      setShowToast(true);
+      // Успішний тост
+      $t.success("Вітаємо! Ви успішно увійшли в акаунт");
+
+      // Перехід
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 1500);
+      }, 1300);
     } catch (err: any) {
-      setError(err.message || "Щось пішло не так");
-      // Якщо щось пішло не так — очищаємо токен, щоб не висів старий
+      const message = err.message || "Щось пішло не так. Спробуйте ще раз.";
+      $t.error(message);
+
+      // Чистимо, щоб не залишився старий токен
       localStorage.removeItem("token");
       localStorage.removeItem("user");
     } finally {
@@ -87,113 +83,98 @@ export default function Login() {
     }
   };
 
-  // решта компонента без змін (форма, тости і т.д.
   return (
-    <>
-      {/* Весь твій красивий JSX залишається 100% тим самим */}
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">
-              Увійти в акаунт
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Або{" "}
-              <a
-                href="/register"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                створити акаунт
-              </a>
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center py-12 px-4">
+      <div className="max-w-md w-full space-y-10">
+        {/* Заголовок */}
+        <div className="text-center">
+          <h2 className="text-4xl font-bold text-slate-900">Увійти в акаунт</h2>
+          <p className="mt-3 text-base text-slate-600">
+            Або{" "}
+            <a
+              href="/register"
+              className="font-medium text-indigo-600 hover:text-indigo-500 transition"
+            >
+              створити новий акаунт
+            </a>
+          </p>
+        </div>
 
-          <div className="bg-white shadow-xl rounded-2xl p-8">
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              {/* Email і Password поля — без змін */}
-              <div>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@gmail.com"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                />
-              </div>
+        {/* Форма */}
+        <div className="bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl p-8 border border-slate-200/50">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Email */}
+            <div>
+              <input
+                type="email"
+                required
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@gmail.com"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition"
+              />
+            </div>
 
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
-                  {error}
-                </div>
-              )}
-
+            {/* Пароль */}
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-5 py-4 pr-14 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition"
+              />
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-lg transition flex items-center justify-center gap-2"
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-5 text-slate-500 hover:text-slate-700 transition"
               >
-                {loading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Вхід...
-                  </>
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  "Увійти"
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
-            </form>
-          </div>
+            </div>
+
+            {/* Кнопка */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-indigo-400 disabled:to-indigo-500 text-white font-semibold text-lg rounded-xl shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 disabled:transform-none transition-all duration-200 flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                      className="opacity-25"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                      className="opacity-75"
+                    />
+                  </svg>
+                  Вхід...
+                </>
+              ) : (
+                "Увійти"
+              )}
+            </button>
+          </form>
         </div>
       </div>
-
-      {/* Тост успішного входу */}
-      {showToast && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
-          <div className="bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3">
-            <CheckCircle className="w-6 h-6 flex-shrink-0" />
-            <div>
-              <p className="font-semibold">Вітаємо!</p>
-              <p className="text-sm opacity-90">Ви успішно увійшли в акаунт</p>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

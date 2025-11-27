@@ -1,6 +1,12 @@
 // src/App.tsx
 import "./App.css";
-import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  BrowserRouter,
+} from "react-router-dom";
 
 import UserLayout from "./common/UserLayout";
 import AuthLayout from "./common/AuthLayout";
@@ -15,6 +21,8 @@ import PasswordRecovery from "./pages/auth/PasswordRecovery";
 import NewPassword from "./pages/auth/NewPassword";
 import ConfirmationEmailSent from "./pages/auth/EmailSent";
 import Dashboard from "./pages/dashboard/Dashboard";
+import Profile from "./pages/dashboard/Profile";
+import { GlobalToaster } from "./lib/toast";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
@@ -42,26 +50,33 @@ const GuestRoute = () => {
 
 function App() {
   return (
-    <Routes>
-      {/* Гостьові маршрути (з AuthLayout — красивий хедер) */}
-      <Route element={<GuestRoute />}>
-        <Route path="/" element={<PublicHomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/password-recovery" element={<PasswordRecovery />} />
-        <Route path="/new-password" element={<NewPassword />} />
-        <Route path="/confirmation-sent" element={<ConfirmationEmailSent />} />
-      </Route>
+    <>
+      <Routes>
+        {/* Гостьові маршрути (з AuthLayout — красивий хедер) */}
+        <Route element={<GuestRoute />}>
+          <Route path="/" element={<PublicHomePage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/password-recovery" element={<PasswordRecovery />} />
+          <Route path="/new-password" element={<NewPassword />} />
+          <Route
+            path="/confirmation-sent"
+            element={<ConfirmationEmailSent />}
+          />
+        </Route>
 
-      {/* Захищені маршрути (з UserLayout — дашбордний хедер/сайдбар) */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/plans" element={<SubscriptionPlansPage />} />
-      </Route>
+        {/* Захищені маршрути (з UserLayout — дашбордний хедер/сайдбар) */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/plans" element={<SubscriptionPlansPage />} />
+        </Route>
 
-      {/* 404 */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <GlobalToaster />
+    </>
   );
 }
 
