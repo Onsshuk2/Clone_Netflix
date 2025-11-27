@@ -11,12 +11,26 @@ export default function UserLayout() {
   const token = localStorage.getItem("token");
   const isAuthenticated = !!token;
 
-  const user = isAuthenticated
-    ? {
-        name: localStorage.getItem("userName") || "Користувач",
-        avatar: localStorage.getItem("userAvatar") || null,
+  let user = null;
+
+  if (isAuthenticated) {
+    const userJson = localStorage.getItem("user"); // або яка в тебе ключ, наприклад "userData"
+
+    if (userJson) {
+      try {
+        const parsedUser = JSON.parse(userJson);
+        user = {
+          name: parsedUser.name || "Користувач",
+          avatar:
+            parsedUser.avatar ||
+            "https://i.pinimg.com/736x/24/49/08/2449080f7429c683bc9cba619c237d01.jpg", // може бути null або URL
+          email: parsedUser.email || "",
+        };
+      } catch (e) {
+        console.error("Не вдалося розпарсити user з localStorage", e);
       }
-    : null;
+    }
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -76,14 +90,14 @@ export default function UserLayout() {
                   </div>
                   <div className="py-3">
                     <Link
-                      to="/dashboard/profile"
+                      to="/profile"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center cursor-pointer gap-3 px-5 py-3 hover:bg-gray-50 text-gray-800"
                     >
                       <User className="w-5 h-5" /> Профіль
                     </Link>
                     <Link
-                      to="/dashboard/orders"
+                      to="/orders"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center gap-3 cursor-pointer px-5 py-3 hover:bg-gray-50 text-gray-800"
                     >
