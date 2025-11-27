@@ -1,13 +1,13 @@
 import React from "react";
 
-const ConfirmationEmailSent: React.FC = () => {
+const EmailSent: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-6 text-center">
+        <h2 className="text-2xl font-bold mb-6 text-center text-black">
           Лист для підтвердження надіслано
         </h2>
-        <p className="text-center text-gray-700">
+        <p className="text-center text-gray-700 text-black">
           Будь ласка, перевірте свою пошту, щоб підтвердити обліковий запис.
         </p>
       </div>
@@ -15,4 +15,4 @@ const ConfirmationEmailSent: React.FC = () => {
   );
 };
 
-export default ConfirmationEmailSent;
+export default EmailSent;
