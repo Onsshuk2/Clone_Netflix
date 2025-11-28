@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { $t } from "../../lib/toast"; // ← наш глобальний тост (з попереднього кроку)
+import { jwtDecode } from 'jwt-decode';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -36,8 +37,13 @@ export default function Login() {
 
       localStorage.setItem("token", token);
 
+      const decoded: any = jwtDecode(token);
+
+      // console.log("token info", decoded);
+      console.log("token avatar", decoded.avatar);
+
       // 2. Отримуємо дані користувача
-      const meRes = await fetch(`${API_URL}/api/Auth/me`, {
+      const meRes = await fetch(`${API_URL}/api/User/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -45,6 +51,7 @@ export default function Login() {
 
       if (meRes.ok) {
         userData = await meRes.json();
+        console.log("Міша активні пошуки токена", userData);
       } else {
         console.warn("me не спрацював → беремо з login відповіді");
         userData = loginData.user || loginData;
@@ -69,7 +76,7 @@ export default function Login() {
 
       // Перехід
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        //window.location.href = "/dashboard";
       }, 1300);
     } catch (err: any) {
       const message = err.message || "Щось пішло не так. Спробуйте ще раз.";

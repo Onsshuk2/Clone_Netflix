@@ -108,7 +108,21 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISmtpService, SmtpService>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowVite5173", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
+
+app.UseCors("AllowVite5173");
 
 // --- КОНВЕЙЄР ЗАПИТІВ ---
 
@@ -124,8 +138,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // ВАЖЛИВО: Ці два рядки мають бути в цьому порядку
-app.UseAuthentication(); // 1. Хто ви? (Перевіряє JWT токен)
-app.UseAuthorization();  // 2. Що вам дозволено? (Перевіряє ролі [Authorize(Roles="Admin")])
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

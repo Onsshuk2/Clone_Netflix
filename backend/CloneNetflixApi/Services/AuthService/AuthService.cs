@@ -78,10 +78,9 @@ namespace CloneNetflixApi.Services.AuthService
             {
                 // Ідентифікатор користувача — лише один!
                 new Claim("userId", user.Id),
-
+                new Claim("avatar", user.ProfilePictureUrl ?? "default.jpg"),
                 // Відображуване ім'я
                 new Claim("displayName", user.DisplayName ?? string.Empty),
-
 
             };
             // ✅ Додаємо ролі
