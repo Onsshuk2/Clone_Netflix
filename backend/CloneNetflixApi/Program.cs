@@ -92,8 +92,6 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
-
-// Dependency Injection (DI)
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISmtpService, SmtpService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -125,11 +123,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Redirect HTTP to HTTPS only in production
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+
 
 // Enable CORS
 app.UseCors("AllowFrontend");

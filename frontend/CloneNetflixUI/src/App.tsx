@@ -1,12 +1,6 @@
 // src/App.tsx
 import "./App.css";
-import {
-  Routes,
-  Route,
-  Navigate,
-  Outlet,
-  BrowserRouter,
-} from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 import UserLayout from "./common/UserLayout";
 import AuthLayout from "./common/AuthLayout";
