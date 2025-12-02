@@ -22,6 +22,7 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
+      console.log(API_URL)
 
       const loginData = await loginRes.json();
 

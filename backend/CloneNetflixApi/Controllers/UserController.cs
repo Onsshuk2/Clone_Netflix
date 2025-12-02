@@ -7,7 +7,7 @@ namespace CloneNetflixApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize] // All routes require authentication
+    [Authorize] 
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -17,7 +17,6 @@ namespace CloneNetflixApi.Controllers
             _userService = userService;
         }
 
-        // ✅ 1. Get all users — TEMPORARILY public for testing
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -25,7 +24,6 @@ namespace CloneNetflixApi.Controllers
             return Ok(users);
         }
 
-        // ✅ 2. Get user by ID
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
@@ -46,7 +44,7 @@ namespace CloneNetflixApi.Controllers
                 Value = c.Value  
             }).ToList();
 
-            var userId = User.FindFirstValue("userId");
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (userId == null)
             {
@@ -78,7 +76,6 @@ namespace CloneNetflixApi.Controllers
             return Ok(response);
         }
 
-        // ✅ 4. Update current user's profile
         [HttpPut("me")]
         public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateUserDto dto)
         {
@@ -93,7 +90,6 @@ namespace CloneNetflixApi.Controllers
             return Ok(new { message = "Profile updated successfully" });
         }
 
-        // ✅ 5. Change password
         [HttpPut("me/password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
@@ -108,7 +104,6 @@ namespace CloneNetflixApi.Controllers
             return Ok(new { message = "Password changed successfully" });
         }
 
-        // ✅ 6. Delete current user's account
         [HttpDelete("me")]
         public async Task<IActionResult> DeleteMyAccount()
         {
@@ -123,7 +118,6 @@ namespace CloneNetflixApi.Controllers
             return Ok(new { message = "User deleted successfully" });
         }
 
-        // ✅ 7. Delete any user by ID (for testing only)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
