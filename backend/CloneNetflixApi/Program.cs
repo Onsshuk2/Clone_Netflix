@@ -101,6 +101,18 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+
 
 // 6. Реєстрація ваших сервісів
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -122,6 +134,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 
 // ВАЖЛИВО: Ці два рядки мають бути в цьому порядку
 app.UseAuthentication(); // 1. Хто ви? (Перевіряє JWT токен)
