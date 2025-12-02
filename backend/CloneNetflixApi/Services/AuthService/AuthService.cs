@@ -1,8 +1,7 @@
-﻿using CloneNetflixApi.Helpers;
-using CloneNetflixApi.Interfaces;
+﻿using CloneNetflixApi.Helpers.EmailHelpers;
 using CloneNetflixApi.Models;
+using CloneNetflixApi.Services.SmtpService;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -14,7 +13,6 @@ namespace CloneNetflixApi.Services.AuthService
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
-
         private readonly ISmtpService _smtpService;
 
         public AuthService(UserManager<ApplicationUser> userManager, IConfiguration configuration, ISmtpService smtpService)
@@ -44,6 +42,7 @@ namespace CloneNetflixApi.Services.AuthService
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto registerRequest)
         {
             var existingUser = await _userManager.FindByEmailAsync(registerRequest.Email);
+
             if (existingUser != null)
             {
                 throw new ArgumentException("User with this email already exists.");
@@ -69,6 +68,7 @@ namespace CloneNetflixApi.Services.AuthService
 
             return await GenerateTokenResponse(user);
         }
+
         private async Task<AuthResponseDto> GenerateTokenResponse(ApplicationUser user)
         {
             var roles = await _userManager.GetRolesAsync(user);
@@ -116,7 +116,6 @@ namespace CloneNetflixApi.Services.AuthService
                 TokenExpires = expires
             };
         }
-
 
         public async Task<bool> ForgotPasswordAsync(ForgotPasswordModel model)
         {

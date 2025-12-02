@@ -1,8 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-/// <summary>
-/// Фактична підписка, що належить користувачу.
-/// </summary>
+
 public class Subscription
 {
     [Key]
@@ -16,13 +14,11 @@ public class Subscription
 
     public bool IsActive { get; set; }
 
-    // --- Зв'язок "Один-до-Одного" з User ---
     [Required]
-    public string ApplicationUserId { get; set; } // Ключ з IdentityUser (string)
+    public string ApplicationUserId { get; set; }
     [ForeignKey("ApplicationUserId")]
     public ApplicationUser ApplicationUser { get; set; } = null!;
 
-    // --- Зв'язок "Багато-до-Одного" з Plan ---
     [Required]
     public Guid SubscriptionPlanId { get; set; }
     [ForeignKey("SubscriptionPlanId")]

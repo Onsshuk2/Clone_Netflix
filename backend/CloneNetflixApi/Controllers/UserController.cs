@@ -1,131 +1,173 @@
-﻿using CloneNetflixApi.Services.UserService;
+﻿using CloneNetflixApi.DTOs.User;
+using CloneNetflixApi.Services.UserService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace CloneNetflixApi.Controllers
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class UserController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize] 
-    public class UserController : ControllerBase
+    private readonly IUserService _userService;
+
+    public UserController(IUserService userService)
     {
-        private readonly IUserService _userService;
+        _userService = userService;
+    }
 
-        public UserController(IUserService userService)
+    private string GetUserId()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
         {
-            _userService = userService;
+            throw new UnauthorizedAccessException("User ID not found in token.");
         }
+        return userId;
+    }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
+    // GET endpoints
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var users = await _userService.GetAllAsync();
+        return Ok(users);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(string id)
+    {
+        var user = await _userService.GetByIdAsync(id);
+        if (user == null) return NotFound(new { message = "User not found" });
+        return Ok(user);
+    }
+
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMyProfile()
+    {
+        try
         {
-            var users = await _userService.GetAllAsync();
-            return Ok(users);
+            var userId = GetUserId();
+            var profile = await _userService.GetByIdAsync(userId);
+            return Ok(profile);
         }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(string id)
+        catch (UnauthorizedAccessException ex)
         {
-            var user = await _userService.GetByIdAsync(id);
-            if (user == null)
-                return NotFound(new { message = "User not found" });
-
-            return Ok(user);
+            return Unauthorized(new { message = ex.Message });
         }
-
-        [HttpGet("me")]
-        [Authorize]
-        public async Task<IActionResult> GetMyProfile()
+        catch (InvalidOperationException ex)
         {
-            var allClaims = User.Claims.Select(c => new
-            {
-                Type = c.Type,  
-                Value = c.Value  
-            }).ToList();
-
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (userId == null)
-            {
-                return Unauthorized(new
-                {
-                    message = "Unauthorized. Token does not contain a NameIdentifier claim (ClaimTypes.NameIdentifier).",
-                    claimsInToken = allClaims
-                });
-            }
-
-            var userFromDb = await _userService.GetByIdAsync(userId);
-
-            if (userFromDb == null)
-            {
-                return NotFound(new
-                {
-                    message = "User not found. The ID from the token was valid, but no user with this ID exists in the database.",
-                    userIdFromToken = userId,
-                    claimsInToken = allClaims
-                });
-            }
-
-            var response = new
-            {
-                tokenData = allClaims,
-                databaseData = userFromDb 
-            };
-
-            return Ok(response);
+            return NotFound(new { message = ex.Message });
         }
+    }
 
-        [HttpPut("me")]
-        public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateUserDto dto)
+    // POST endpoints
+
+    [HttpPost]
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
+    {
+        if (dto == null) return BadRequest(new { message = "Invalid user data" });
+
+        try
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
-                return Unauthorized();
+            var createdUser = await _userService.AddUserAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = createdUser.Id }, createdUser);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 
-            var result = await _userService.UpdateUserAsync(userId, dto);
-            if (!result)
-                return NotFound(new { message = "User not found or update failed" });
+    // PUT endpoints
 
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateUserDto dto)
+    {
+        try
+        {
+            var userId = GetUserId();
+            await _userService.UpdateUserAsync(userId, dto);
             return Ok(new { message = "Profile updated successfully" });
         }
-
-        [HttpPut("me/password")]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        catch (UnauthorizedAccessException)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
-                return Unauthorized();
+            return Unauthorized();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 
-            var result = await _userService.ChangePasswordAsync(userId, dto);
-            if (!result)
-                return BadRequest(new { message = "Password change failed. Check your current password." });
-
+    [HttpPut("me/password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        try
+        {
+            var userId = GetUserId();
+            await _userService.ChangePasswordAsync(userId, dto);
             return Ok(new { message = "Password changed successfully" });
         }
-
-        [HttpDelete("me")]
-        public async Task<IActionResult> DeleteMyAccount()
+        catch (UnauthorizedAccessException)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
-                return Unauthorized();
+            return Unauthorized();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 
-            var result = await _userService.DeleteUserAsync(userId);
-            if (!result)
-                return NotFound(new { message = "User not found" });
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateUserById(string id, [FromBody] UpdateUserDto dto)
+    {
+        if (dto == null) return BadRequest(new { message = "Invalid user data" });
 
+        try
+        {
+            await _userService.UpdateUserAsync(id, dto);
+            return Ok(new { message = "User updated successfully" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    // DELETE endpoints
+
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteMyAccount()
+    {
+        try
+        {
+            var userId = GetUserId();
+            await _userService.DeleteUserAsync(userId);
             return Ok(new { message = "User deleted successfully" });
         }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(string id)
+        catch (UnauthorizedAccessException)
         {
-            var result = await _userService.DeleteUserAsync(id);
-            if (!result)
-                return NotFound(new { message = "User not found" });
+            return Unauthorized();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        try
+        {
+            await _userService.DeleteUserAsync(id);
             return Ok(new { message = "User deleted successfully" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
     }
 }

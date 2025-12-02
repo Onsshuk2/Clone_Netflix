@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using CloneNetflixApi.Services.UserService;
 using CloneNetflixApi.Services.AuthService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,11 +7,12 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using System.Security.Claims;
-using CloneNetflixApi.Interfaces;
-using CloneNetflixApi.Services;
+using CloneNetflixApi.Services.SmtpService;
 
+// Build application
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
@@ -22,6 +22,7 @@ if (string.IsNullOrEmpty(connectionString))
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// Configure Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
@@ -33,7 +34,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-
+// Configure Authentication (JWT)
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -58,18 +59,18 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Add Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Netflix Clone API", Version = "v1" });
 
+    // JWT Authentication in Swagger UI
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
-        Description = "Будь ласка, введіть 'Bearer', пробіл, а потім ваш токен.\n\n" +
-                      "Приклад: 'Bearer eyJhbGciOiJIUzI1Ni...'",
+        Description = "Enter 'Bearer' followed by your token.\n\nExample: 'Bearer eyJhbGciOiJIUzI1Ni...'",
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
         BearerFormat = "JWT",
@@ -92,15 +93,29 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-
+// Dependency Injection (DI)
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISmtpService, SmtpService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:5173") // Frontend origin
+                   .AllowAnyHeader()
+                   .AllowAnyMethod()
+                   .AllowCredentials();
+        });
+});
+
+// Build app
 var app = builder.Build();
 
-
+// Middleware pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -110,14 +125,24 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// Redirect HTTP to HTTPS only in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
+// Enable CORS
+app.UseCors("AllowFrontend");
+
+// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Map controller endpoints
 app.MapControllers();
 
-
+// Seed initial data
 await DataSeeder.SeedAsync(app.Services);
 
+// Run the app
 app.Run();

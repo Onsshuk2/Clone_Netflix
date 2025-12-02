@@ -11,7 +11,7 @@ public static class UserSeeder
 
         await context.Database.MigrateAsync();
 
-        // Ролі
+        // Roles
         string[] roles = { "Admin", "User", "Moderator" };
 
         foreach (var role in roles)
@@ -20,7 +20,7 @@ public static class UserSeeder
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
 
-        // Адмін
+        // Admin
         var adminEmail = "admin@netflix.com";
         var admin = await userManager.FindByEmailAsync(adminEmail);
         if (admin == null)
@@ -38,7 +38,7 @@ public static class UserSeeder
                 await userManager.AddToRoleAsync(user, "Admin");
         }
 
-        // Звичайний користувач
+        // Average user
         var userEmail = "user@netflix.com";
         var existingUser = await userManager.FindByEmailAsync(userEmail);
         if (existingUser == null)
