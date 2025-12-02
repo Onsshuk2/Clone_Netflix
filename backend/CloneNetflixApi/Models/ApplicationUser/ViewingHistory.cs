@@ -13,14 +13,13 @@ public class ViewingHistory
     public ApplicationUser ApplicationUser { get; set; } = null!;
 
     [Required]
-    public Guid ContentId { get; set; } // Посилання на фільм / серіал / аніме
+    public Guid ContentId { get; set; }
     [ForeignKey("ContentId")]
-    public Content Content { get; set; } = null!; // Навігаційна властивість
+    public Content Content { get; set; } = null!;
 
     [Required]
-    public DateTime ViewedAt { get; set; } = DateTime.UtcNow; // коли переглянуто
+    public DateTime ViewedAt { get; set; } = DateTime.UtcNow;
 
-    // Опціональні поля
-    public TimeSpan? WatchedDuration { get; set; } // скільки часу переглянув
-    public double? ProgressPercentage { get; set; } // % переглянутого (0–100)
+    public TimeSpan? WatchedDuration { get; set; }
+    public double? ProgressPercentage { get; set; } 
 }

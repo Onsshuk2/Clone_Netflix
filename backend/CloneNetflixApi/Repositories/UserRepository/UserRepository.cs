@@ -14,19 +14,30 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .Include(u => u.Subscription)
             .ThenInclude(s => s.Plan)
+            .AsNoTracking()
             .ToListAsync();
     }
 
     public async Task<ApplicationUser?> GetByIdAsync(string id)
     {
         return await _context.Users
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == id);
+    }
 
+    public async Task<ApplicationUser?> GetByIdWithSubscriptionAsync(string id)
+    {
+        return await _context.Users
+            .Include(u => u.Subscription)
+            .ThenInclude(s => s.Plan)
+            .FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<ApplicationUser?> GetByEmailAsync(string email)
     {
-        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        return await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email == email);
     }
 
     public async Task AddAsync(ApplicationUser user)
@@ -34,16 +45,22 @@ public class UserRepository : IUserRepository
         await _context.Users.AddAsync(user);
     }
 
-    public async Task UpdateAsync(ApplicationUser user)
+    public async Task<bool> UpdateAsync(ApplicationUser user)
     {
+        var exists = await _context.Users.AnyAsync(u => u.Id == user.Id);
+        if (!exists) return false;
+
         _context.Users.Update(user);
-        await Task.CompletedTask;
+        return true;
     }
 
-    public async Task DeleteAsync(ApplicationUser user)
+    public async Task<bool> DeleteAsync(ApplicationUser user)
     {
+        var exists = await _context.Users.AnyAsync(u => u.Id == user.Id);
+        if (!exists) return false;
+
         _context.Users.Remove(user);
-        await Task.CompletedTask;
+        return true;
     }
 
     public async Task SaveAsync()

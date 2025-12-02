@@ -1,9 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-/// <summary>
-/// Тарифний план (Basic, Premium), яким керує адмін.
-/// </summary>
 public class SubscriptionPlan
 {
     [Key]
@@ -25,9 +22,7 @@ public class SubscriptionPlan
     [Required]
     public int MaxDevices { get; set; }
 
-    // Дозволяє адміну "вимкнути" план, не видаляючи його
     public bool IsAvailable { get; set; } = true;
 
-    // 1-до-багатьох: Один План має багато активних Підписок
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 }
