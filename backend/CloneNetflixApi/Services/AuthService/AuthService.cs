@@ -73,37 +73,34 @@ namespace CloneNetflixApi.Services.AuthService
         {
             var roles = await _userManager.GetRolesAsync(user);
 
-            // ✅ Створюємо список claims вручну
             var claims = new List<Claim>
             {
-                // Ідентифікатор користувача — лише один!
-                new Claim("userId", user.Id),
-
-                // Відображуване ім'я
-                new Claim("displayName", user.DisplayName ?? string.Empty),
-
-
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
+                new Claim("displayName", user.DisplayName ?? ""),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat,
+                new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString()),
             };
-            // ✅ Додаємо ролі
+
             foreach (var role in roles)
-            {
-                claims.Add(new Claim("roles", role ?? string.Empty));
-            }
+                claims.Add(new Claim(ClaimTypes.Role, role));
 
-            // Ключ для підпису
-            var keyString = _configuration["Jwt:Key"];
-            if (string.IsNullOrEmpty(keyString))
-                throw new InvalidOperationException("JWT Key is not configured in appsettings.json");
+            var key = _configuration["Jwt:Key"];
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            if (string.IsNullOrWhiteSpace(key) || key.Length < 32)
+                throw new InvalidOperationException("JWT key must be at least 32 characters long");
 
-            var expirationDays = _configuration.GetValue<int>("Jwt:ExpirationInDays", 7);
-            var expires = DateTime.UtcNow.AddDays(expirationDays);
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var creds = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var issuer = _configuration["Jwt:Issuer"];
+            var audience = _configuration["Jwt:Audience"];
+            var expires = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("Jwt:ExpirationInDays", 7));
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
+                issuer: issuer,
+                audience: audience,
                 claims: claims,
                 expires: expires,
                 signingCredentials: creds
@@ -113,12 +110,14 @@ namespace CloneNetflixApi.Services.AuthService
             {
                 UserId = user.Id,
                 Email = user.Email!,
-                DisplayName = user.DisplayName ?? string.Empty,
+                DisplayName = user.DisplayName ?? "",
                 Roles = roles,
                 Token = new JwtSecurityTokenHandler().WriteToken(token),
                 TokenExpires = expires
             };
         }
+
+
         public async Task<bool> ForgotPasswordAsync(ForgotPasswordModel model)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
