@@ -24,14 +24,9 @@ export default function Profile() {
     email: "",
   });
 
-  const [formData, setFormData] = useState({
-    displayName: "",
-    email: "",
-    profilePictureUrl: "" as string | null,
-  });
-
-  const [selectedFile, setSelectedFile] = useState<File | null>(null); // Новий файл
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null); // Прев’ю
+  const [displayName, setDisplayName] = useState(""); // Тепер тільки ім’я редагується
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,11 +37,7 @@ export default function Profile() {
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
       setUser(parsed);
-      setFormData({
-        displayName: parsed.name,
-        email: parsed.email || "",
-        profilePictureUrl: parsed.avatar || null,
-      });
+      setDisplayName(parsed.name);
       setPreviewUrl(parsed.avatar || null);
       return;
     }
@@ -65,11 +56,7 @@ export default function Profile() {
 
       const fallbackUser = { name, avatar, email };
       setUser(fallbackUser);
-      setFormData({
-        displayName: name,
-        email,
-        profilePictureUrl: avatar,
-      });
+      setDisplayName(name);
       setPreviewUrl(avatar);
 
       localStorage.setItem("user", JSON.stringify(fallbackUser));
@@ -78,10 +65,8 @@ export default function Profile() {
     }
   }, []);
 
-  // Відкриття вибору файлу
   const openFilePicker = () => fileInputRef.current?.click();
 
-  // Коли обрали файл — показуємо прев’ю
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -101,29 +86,26 @@ export default function Profile() {
     reader.onloadend = () => {
       const dataUrl = reader.result as string;
       setPreviewUrl(dataUrl);
-      setUser((prev) => ({ ...prev, avatar: dataUrl })); // миттєве прев’ю
+      setUser((prev) => ({ ...prev, avatar: dataUrl }));
     };
     reader.readAsDataURL(file);
 
     toast.success("Фото обрано! Натисніть «Зберегти зміни»");
   };
 
-  // Збереження профілю + аватару одним запитом на PUT /api/User/me
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      let avatarToSend = formData.profilePictureUrl;
+      let avatarToSend = user.avatar;
 
-      // Якщо є новий файл — конвертуємо в base64
       if (selectedFile) {
-        const base64 = await new Promise<string>((resolve) => {
+        avatarToSend = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
           reader.readAsDataURL(selectedFile);
         });
-        avatarToSend = base64;
       }
 
       const token = localStorage.getItem("token");
@@ -136,9 +118,8 @@ export default function Profile() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            displayName: formData.displayName,
-            email: formData.email,
-            profilePictureUrl: avatarToSend, // відправляємо base64 або старий URL
+            displayName: displayName.trim(),
+            profilePictureUrl: avatarToSend || null,
           }),
         }
       );
@@ -151,12 +132,12 @@ export default function Profile() {
       const result = await response.json();
 
       const finalAvatar = selectedFile
-        ? await fileToDataUrl(selectedFile) // залишаємо base64 локально
-        : result.profilePictureUrl || formData.profilePictureUrl;
+        ? avatarToSend
+        : result.profilePictureUrl || user.avatar;
 
       const updatedUser = {
-        name: formData.displayName,
-        email: formData.email,
+        name: displayName.trim(),
+        email: user.email, // email не змінюється
         avatar: finalAvatar,
       };
 
@@ -165,21 +146,12 @@ export default function Profile() {
       setSelectedFile(null);
       setPreviewUrl(finalAvatar);
 
-      toast.success("Профіль та аватар збережено!");
+      toast.success("Профіль оновлено!");
     } catch (err: any) {
-      toast.error(err.message || "Не вдалося зберегти");
+      toast.error(err.message || "Не вдалося зберегти зміни");
     } finally {
       setLoading(false);
     }
-  };
-
-  // Допоміжна функція
-  const fileToDataUrl = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(file);
-    });
   };
 
   return (
@@ -187,7 +159,7 @@ export default function Profile() {
       <h1 className="text-3xl font-bold mb-8">Мій профіль</h1>
 
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* Шапка */}
+        {/* Шапка з аватаром */}
         <div className="bg-gradient-to-r from-orange-500 to-red-600 p-12 text-center">
           <div className="relative inline-block">
             <img
@@ -225,7 +197,7 @@ export default function Profile() {
           </p>
         </div>
 
-        {/* Форма */}
+        {/* Форма — тільки ім’я */}
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">
@@ -233,25 +205,10 @@ export default function Profile() {
             </label>
             <input
               required
-              value={formData.displayName}
-              onChange={(e) =>
-                setFormData({ ...formData, displayName: e.target.value })
-              }
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
               className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
               placeholder="Іван Іванов"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
-              placeholder="ivan@example.com"
             />
           </div>
 
@@ -266,7 +223,7 @@ export default function Profile() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !displayName.trim()}
               className="px-8 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 flex items-center gap-3 disabled:opacity-70 shadow-lg"
             >
               {loading ? (

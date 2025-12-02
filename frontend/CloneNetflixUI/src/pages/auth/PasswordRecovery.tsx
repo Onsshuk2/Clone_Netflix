@@ -1,11 +1,13 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const PasswordRecovery: React.FC = () => {
   const [email, setEmail] = useState<string>("");
+  const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you can add logic to send the email for password recovery
+    navigate("/confirmation-sent");
     console.log("Email submitted:", email);
   };
 

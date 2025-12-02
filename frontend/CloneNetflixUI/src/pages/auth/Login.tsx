@@ -22,7 +22,7 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
-      console.log(API_URL)
+      console.log(API_URL);
 
       const loginData = await loginRes.json();
 
@@ -138,6 +138,14 @@ export default function Login() {
                   <Eye className="w-5 h-5" />
                 )}
               </button>
+            </div>
+            <div>
+              <a
+                href="/password-recovery"
+                className="text-sm text-indigo-600 hover:text-indigo-500 font-medium transition"
+              >
+                Забули пароль?
+              </a>
             </div>
 
             {/* Кнопка */}
