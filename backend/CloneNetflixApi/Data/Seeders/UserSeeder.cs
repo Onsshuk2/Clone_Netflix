@@ -12,7 +12,7 @@ public static class UserSeeder
         await context.Database.MigrateAsync();
 
         // Ролі
-        string[] roles = { "Admin", "User" };
+        string[] roles = { "Admin", "User", "Moderator" };
 
         foreach (var role in roles)
         {
