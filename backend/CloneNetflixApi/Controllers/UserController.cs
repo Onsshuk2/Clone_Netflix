@@ -28,14 +28,14 @@ public class UserController : ControllerBase
 
     // GET endpoints
 
-    [HttpGet]
+    [HttpGet("all")]
     public async Task<IActionResult> GetAll()
     {
         var users = await _userService.GetAllAsync();
         return Ok(users);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("by-id/{id}")]
     public async Task<IActionResult> GetById(string id)
     {
         var user = await _userService.GetByIdAsync(id);
@@ -43,7 +43,7 @@ public class UserController : ControllerBase
         return Ok(user);
     }
 
-    [HttpGet("me")]
+    [HttpGet("my-profile")]
     public async Task<IActionResult> GetMyProfile()
     {
         try
@@ -64,7 +64,7 @@ public class UserController : ControllerBase
 
     // POST endpoints
 
-    [HttpPost]
+    [HttpPost("create")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
     {
         if (dto == null) return BadRequest(new { message = "Invalid user data" });
@@ -82,7 +82,7 @@ public class UserController : ControllerBase
 
     // PUT endpoints
 
-    [HttpPut("me")]
+    [HttpPut("update-my-profile")]
     public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateUserDto dto)
     {
         try
@@ -101,7 +101,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpPut("me/password")]
+    [HttpPut("change-my-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
         try
@@ -120,7 +120,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("update/{id}")]
     public async Task<IActionResult> UpdateUserById(string id, [FromBody] UpdateUserDto dto)
     {
         if (dto == null) return BadRequest(new { message = "Invalid user data" });
@@ -138,7 +138,7 @@ public class UserController : ControllerBase
 
     // DELETE endpoints
 
-    [HttpDelete("me")]
+    [HttpDelete("delete-my-account")]
     public async Task<IActionResult> DeleteMyAccount()
     {
         try
@@ -157,7 +157,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("delete/{id}")]
     public async Task<IActionResult> DeleteUser(string id)
     {
         try
