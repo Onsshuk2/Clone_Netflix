@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Camera, Check, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
+import { updateMyProfile } from "../../api/user"; // Новий імпорт
 
 interface UserFromStorage {
   name: string;
@@ -24,14 +25,13 @@ export default function Profile() {
     email: "",
   });
 
-  const [displayName, setDisplayName] = useState(""); // Тепер тільки ім’я редагується
+  const [displayName, setDisplayName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Завантаження даних при старті
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
@@ -58,7 +58,6 @@ export default function Profile() {
       setUser(fallbackUser);
       setDisplayName(name);
       setPreviewUrl(avatar);
-
       localStorage.setItem("user", JSON.stringify(fallbackUser));
     } catch (err) {
       toast.error("Помилка читання даних");
@@ -95,49 +94,35 @@ export default function Profile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!displayName.trim()) return;
+
     setLoading(true);
 
     try {
-      let avatarToSend = user.avatar;
+      // Якщо є новий файл — конвертуємо в base64
+      let profilePictureUrl: string | null = user.avatar;
 
       if (selectedFile) {
-        avatarToSend = await new Promise<string>((resolve) => {
+        profilePictureUrl = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
           reader.readAsDataURL(selectedFile);
         });
       }
 
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/User/me`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            displayName: displayName.trim(),
-            profilePictureUrl: avatarToSend || null,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || "Помилка збереження");
-      }
-
-      const result = await response.json();
+      // Відправляємо через наш API-сервіс
+      const result = await updateMyProfile({
+        displayName: displayName.trim(),
+        profilePictureUrl: profilePictureUrl || null,
+      });
 
       const finalAvatar = selectedFile
-        ? avatarToSend
+        ? profilePictureUrl
         : result.profilePictureUrl || user.avatar;
 
       const updatedUser = {
         name: displayName.trim(),
-        email: user.email, // email не змінюється
+        email: user.email,
         avatar: finalAvatar,
       };
 
@@ -146,9 +131,10 @@ export default function Profile() {
       setSelectedFile(null);
       setPreviewUrl(finalAvatar);
 
-      toast.success("Профіль оновлено!");
-    } catch (err: any) {
-      toast.error(err.message || "Не вдалося зберегти зміни");
+      toast.success("Профіль успішно оновлено!");
+    } catch (err) {
+      // Помилки вже оброблені в user.ts (через toast)
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -159,7 +145,6 @@ export default function Profile() {
       <h1 className="text-3xl font-bold mb-8">Мій профіль</h1>
 
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* Шапка з аватаром */}
         <div className="bg-gradient-to-r from-orange-500 to-red-600 p-12 text-center">
           <div className="relative inline-block">
             <img
@@ -197,7 +182,6 @@ export default function Profile() {
           </p>
         </div>
 
-        {/* Форма — тільки ім’я */}
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">

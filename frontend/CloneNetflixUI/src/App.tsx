@@ -17,6 +17,7 @@ import ConfirmationEmailSent from "./pages/auth/EmailSent";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Profile from "./pages/dashboard/Profile";
 import { GlobalToaster } from "./lib/toast";
+import AdminUsers from "./pages/admin/Admin";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
@@ -61,6 +62,7 @@ function App() {
 
         {/* Захищені маршрути (з UserLayout — дашбордний хедер/сайдбар) */}
         <Route element={<ProtectedRoute />}>
+          <Route path="/admin" element={<AdminUsers />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/plans" element={<SubscriptionPlansPage />} />
