@@ -1,41 +1,37 @@
 // src/api/admin.ts
-import axios from "axios";
-
-// Використовуємо ТІЛЬКИ ОДИН глобальний api з токеном (з твого src/api/api.ts)
-// import Api from "../api/Api"; // ← ЦЕ САМЕ ГОЛОВНЕ!
-
-// Якщо дуже хочеш окремий інстанс — то хоча б з правильною базою і токеном:
-const adminApiInstance = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL}/api/User`,
-});
-
-// Додаємо токен (обов’язково!)
-adminApiInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import api from "../api/Api"; // головне — використовуй глобальний api з токеном!
 
 export const adminApi = {
-  // Повертаємо ТІЛЬКИ МАСИВ користувачів (це найголовніше!)
   getAllUsers: async () => {
-    const res = await adminApiInstance.get("/all");
-    // Твій бекенд може повертати або масив, або { data: [...] }
-    const raw = res.data;
-    return Array.isArray(raw) ? raw : raw?.data || raw?.users || [];
+    const res = await api.get("/User/all");
+    return Array.isArray(res.data) ? res.data : res.data?.data || [];
   },
 
-  getUserById: async (id: string | number) => {
-    const res = await adminApiInstance.get(`/by-id/${id}`);
-    return res.data?.data || res.data;
+  getUserById: (id: string) => api.get(`/User/by-id/${id}`),
+
+  createUser: (data: any) => {
+    const { email, displayName, password, profilePictureUrl } = data;
+    const payload = {
+      email: email.trim(),
+      displayName: displayName.trim(),
+      password,
+      ...(profilePictureUrl &&
+        profilePictureUrl.trim() && { profilePictureUrl }),
+    };
+    return api.post("/User/create", payload);
   },
 
-  createUser: (data: any) => adminApiInstance.post("/create", data),
+  updateUser: (id: string, data: any) => {
+    const { email, displayName, profilePictureUrl } = data;
+    const payload = {
+      ...(email && { email: email.trim() }),
+      ...(displayName && { displayName: displayName.trim() }),
+      ...(profilePictureUrl !== undefined && {
+        profilePictureUrl: profilePictureUrl || null,
+      }),
+    };
+    return api.put(`/User/update/${id}`, payload);
+  },
 
-  updateUser: (id: string | number, data: any) =>
-    adminApiInstance.put(`/update/${id}`, data),
-
-  deleteUser: (id: string | number) => adminApiInstance.delete(`/delete/${id}`),
+  deleteUser: (id: string) => api.delete(`/User/delete/${id}`),
 };

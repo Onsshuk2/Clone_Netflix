@@ -2,81 +2,86 @@ import React, { useState, useEffect } from "react";
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
-
 const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
 
-const WelcomeDashboardMovies: React.FC = () => {
-  const [displayMovies, setDisplayMovies] = useState<any[]>([]);
-  const [allMovies, setAllMovies] = useState<any[]>([]);
+const DashboardSeries: React.FC = () => {
+  const [displaySeries, setDisplaySeries] = useState<any[]>([]);
+  const [allSeries, setAllSeries] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
   const [loading, setLoading] = useState(true);
   const [searchMode, setSearchMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [displaySearchTerm, setDisplaySearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [top100Movies, setTop100Movies] = useState<any[]>([]); // Зберігаємо оригінальний топ-100
+  const [topSeries, setTopSeries] = useState<any[]>([]);
 
   const authHeaders = {
     Authorization: `Bearer ${TMDB_TOKEN}`,
     "Content-Type": "application/json;charset=utf-8",
   };
 
-  // Завантаження топ‑100 фільмів при першому відкритті
+  // Завантаження топ-100 серіалів (без аніме)
   useEffect(() => {
-    const loadTop100 = async () => {
+    const loadTopSeries = async () => {
       setLoading(true);
       setError(null);
       setSearchMode(false);
 
       try {
-        const pagesToLoad = 5;
+        const pagesToLoad = 5; // 5 × 20 = 100
         const results: any[] = [];
 
         for (let page = 1; page <= pagesToLoad; page++) {
           const response = await fetch(
-            `${TMDB_API_URL}/movie/top_rated?language=uk-UA&page=${page}`,
+            `${TMDB_API_URL}/tv/top_rated?language=uk-UA&page=${page}`,
             { headers: authHeaders }
           );
 
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            console.error("TMDB top_rated error:", response.status, errData);
-            throw new Error("TMDB top_rated error " + response.status);
-          }
+          if (!response.ok) throw new Error("TMDB error " + response.status);
 
           const data = await response.json();
           if (data.results) {
-            results.push(...data.results);
+            // Виключаємо аніме: жанр 16 (Animation) + оригінальна мова ja (японська)
+            const filtered = data.results.filter(
+              (item: any) =>
+                !(
+                  item.genre_ids.includes(16) && item.original_language === "ja"
+                )
+            );
+            results.push(...filtered);
           }
         }
 
-        setTop100Movies(results); // Зберігаємо оригінал
-        setAllMovies(results);
+        // Беремо топ-100 після фільтрації
+        const top100 = results.slice(0, 100);
+
+        setTopSeries(top100);
+        setAllSeries(top100);
         setVisibleCount(20);
-        setDisplayMovies(results.slice(0, 20));
+        setDisplaySeries(top100.slice(0, 20));
       } catch (err) {
         setError(
-          "Помилка завантаження топ‑100 фільмів. Перевірте інтернет або токен TMDB."
+          "Помилка завантаження топ серіалів. Перевірте токен або інтернет."
         );
-        setAllMovies([]);
-        setDisplayMovies([]);
+        setAllSeries([]);
+        setDisplaySeries([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadTop100();
+    loadTopSeries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Пошук фільмів
-  const searchMovies = async (e: React.FormEvent) => {
+  // Пошук серіалів (без аніме)
+  const searchSeries = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
 
     const term = searchTerm.trim();
     if (term.length < 2) {
-      setError("Введіть хоча б 2 символи для пошуку.");
+      setError("Введіть хоча б 2 символи.");
       return;
     }
 
@@ -88,100 +93,107 @@ const WelcomeDashboardMovies: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${TMDB_API_URL}/search/movie?language=uk-UA&query=${encodeURIComponent(
+        `${TMDB_API_URL}/search/tv?language=uk-UA&query=${encodeURIComponent(
           term
-        )}&page=1`,
+        )}&include_adult=false`,
         { headers: authHeaders }
       );
 
-      if (!response.ok) {
-        throw new Error("TMDB search error " + response.status);
-      }
+      if (!response.ok) throw new Error("TMDB search error");
 
       const data = await response.json();
 
-      if (data.results && data.results.length > 0) {
-        const results = data.results.slice(0, 100);
-        setAllMovies(results);
-        setDisplayMovies(results.slice(0, 20));
+      // Виключаємо аніме
+      const filteredResults = (data.results || [])
+        .filter(
+          (item: any) =>
+            !(item.genre_ids?.includes(16) && item.original_language === "ja")
+        )
+        .slice(0, 100);
+
+      if (filteredResults.length > 0) {
+        setAllSeries(filteredResults);
+        setDisplaySeries(filteredResults.slice(0, 20));
       } else {
-        setError("Нічого не знайдено. Спробуйте іншу назву або частину назви.");
-        setAllMovies([]);
-        setDisplayMovies([]);
+        setError(
+          "Серіали не знайдено. Спробуйте: Гра престолів, Пуститися берега, Друзі, Офіс, Чорнобиль..."
+        );
+        setAllSeries([]);
+        setDisplaySeries([]);
       }
     } catch (err) {
-      setError("Помилка з'єднання з TMDB. Перевірте токен і інтернет.");
-      setAllMovies([]);
-      setDisplayMovies([]);
+      setError("Помилка пошуку. Перевірте інтернет або токен.");
+      setAllSeries([]);
+      setDisplaySeries([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Повернення до топ-100
-  const resetToTop100 = () => {
+  // Повернення до топ
+  const resetToTop = () => {
     setSearchMode(false);
     setSearchTerm("");
     setDisplaySearchTerm("");
     setError(null);
-    setAllMovies(top100Movies);
+    setAllSeries(topSeries);
     setVisibleCount(20);
-    setDisplayMovies(top100Movies.slice(0, 20));
+    setDisplaySeries(topSeries.slice(0, 20));
   };
 
-  // Кнопка "Показати ще"
+  // Показати ще
   const loadMore = () => {
     if (loading) return;
-    const nextCount = Math.min(visibleCount + 20, allMovies.length);
+    const nextCount = Math.min(visibleCount + 20, allSeries.length);
     setVisibleCount(nextCount);
-    setDisplayMovies(allMovies.slice(0, nextCount));
+    setDisplaySeries(allSeries.slice(0, nextCount));
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12 max-w-7xl">
         <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
-          Ласкаво просимо до FoodDelivery!
+          Серіали
         </h1>
         <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
           {searchMode
             ? `Результати пошуку: "${displaySearchTerm}"`
-            : "Топ‑100 фільмів зараз"}
+            : "Топ-100 серіалів усіх часів"}
         </p>
 
-        {/* Кнопка повернення до топ-100 (тільки в режимі пошуку) */}
+        {/* Кнопка повернення */}
         {searchMode && (
           <div className="text-center mb-8">
             <button
-              onClick={resetToTop100}
-              className="px-8 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold text-lg transition shadow"
+              onClick={resetToTop}
+              className="px-8 py-3 bg-blue-700 hover:bg-blue-600 rounded-xl font-semibold text-lg transition shadow"
             >
-              ← Повернутись до топ-100 фільмів
+              ← Повернутись до топ серіалів
             </button>
           </div>
         )}
 
         {/* Форма пошуку */}
-        <form onSubmit={searchMovies} className="max-w-3xl mx-auto mb-16">
+        <form onSubmit={searchSeries} className="max-w-3xl mx-auto mb-16">
           <div className="flex flex-col sm:flex-row gap-4">
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Шукати українською: Ілюзія обману, Титанік, Гаррі Поттер, Оппенгеймер..."
+              placeholder="Шукати серіали: Гра престолів, Пуститися берега, Друзі, ВандаВіжн, Чорне дзеркало..."
               className="flex-1 px-6 py-5 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-lg placeholder-gray-500 transition"
             />
             <button
               type="submit"
               disabled={loading}
-              className="px-12 py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-xl font-bold text-lg transition shadow-lg"
+              className="px-12 py-5 bg-green-600 hover:bg-green-700 disabled:bg-green-800 rounded-xl font-bold text-lg transition shadow-lg"
             >
               {loading && searchMode ? "Шукаємо..." : "Знайти"}
             </button>
           </div>
         </form>
 
-        {/* Повідомлення про помилку */}
+        {/* Помилка */}
         {error && !loading && (
           <div className="text-center text-red-400 text-xl bg-red-900/20 py-6 rounded-lg mb-12">
             {error}
@@ -189,27 +201,25 @@ const WelcomeDashboardMovies: React.FC = () => {
         )}
 
         {/* Завантаження */}
-        {loading && displayMovies.length === 0 && (
+        {loading && displaySeries.length === 0 && (
           <div className="text-center text-2xl py-20">
-            {searchMode
-              ? "Шукаємо фільми..."
-              : "Завантажуємо топ‑100 фільмів..."}
+            {searchMode ? "Шукаємо серіали..." : "Завантажуємо топ серіалів..."}
           </div>
         )}
 
-        {/* Сітка фільмів */}
-        {!loading && displayMovies.length > 0 && (
+        {/* Сітка серіалів */}
+        {!loading && displaySeries.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-              {displayMovies.map((movie) => (
+              {displaySeries.map((series) => (
                 <div
-                  key={movie.id}
+                  key={series.id}
                   className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
                 >
-                  {movie.poster_path ? (
+                  {series.poster_path ? (
                     <img
-                      src={`${TMDB_IMG_BASE}${movie.poster_path}`}
-                      alt={movie.title}
+                      src={`${TMDB_IMG_BASE}${series.poster_path}`}
+                      alt={series.name}
                       className="w-full h-80 object-cover"
                       loading="lazy"
                     />
@@ -221,18 +231,23 @@ const WelcomeDashboardMovies: React.FC = () => {
                     </div>
                   )}
                   <div className="p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs bg-blue-600 px-2 py-1 rounded">
+                        Серіал
+                      </span>
+                    </div>
                     <h3
                       className="text-lg font-semibold line-clamp-2"
-                      title={movie.title}
+                      title={series.name}
                     >
-                      {movie.title || movie.original_title}
+                      {series.name}
                     </h3>
                     <p className="text-gray-400 mt-2 text-sm">
-                      {movie.release_date?.slice(0, 4) || "Невідомо"} рік
+                      {series.first_air_date?.slice(0, 4) || "Невідомо"} рік
                     </p>
-                    {movie.vote_average > 0 && (
-                      <p className="text-yellow-400 mt-2 font-bold">
-                        ⭐ {movie.vote_average.toFixed(1)}
+                    {series.vote_average > 0 && (
+                      <p className="text-blue-400 mt-2 font-bold">
+                        ⭐ {series.vote_average.toFixed(1)}
                       </p>
                     )}
                   </div>
@@ -241,7 +256,7 @@ const WelcomeDashboardMovies: React.FC = () => {
             </div>
 
             {/* Кнопка "Показати ще" */}
-            {visibleCount < allMovies.length && (
+            {visibleCount < allSeries.length && (
               <div className="text-center mt-12">
                 <button
                   onClick={loadMore}
@@ -255,10 +270,10 @@ const WelcomeDashboardMovies: React.FC = () => {
           </>
         )}
 
-        {/* Початковий стан без результатів */}
-        {!loading && displayMovies.length === 0 && !error && (
+        {/* Початковий стан */}
+        {!loading && displaySeries.length === 0 && !error && (
           <div className="text-center mt-32 text-3xl text-gray-500">
-            Введіть назву фільму для пошуку
+            Введіть назву серіалу для пошуку
           </div>
         )}
       </div>
@@ -266,4 +281,4 @@ const WelcomeDashboardMovies: React.FC = () => {
   );
 };
 
-export default WelcomeDashboardMovies;
+export default DashboardSeries;

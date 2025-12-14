@@ -83,19 +83,25 @@ const AdminUsers: React.FC = () => {
   const handleSubmit = async (values: any) => {
     try {
       if (editingUser) {
-        await adminApi.updateUser(editingUser.id, values);
-        message.success("Зміни збережено");
+        await adminApi.updateUser(editingUser.id, {
+          email: values.email,
+          displayName: values.displayName,
+          profilePictureUrl: values.profilePictureUrl || null,
+        });
+        message.success("Оновлено");
       } else {
         await adminApi.createUser({
-          ...values,
-          password: values.password || "12345678", // тимчасовий пароль
+          email: values.email.trim(),
+          displayName: values.displayName.trim(),
+          password: values.password,
+          profilePictureUrl: values.profilePictureUrl || null,
         });
-        message.success("Користувача створено");
+        message.success("Користувача створено!");
       }
       setModalOpen(false);
       fetchUsers();
     } catch (err: any) {
-      message.error(err.response?.data?.message || "Помилка збереження");
+      message.error(err.response?.data?.message || "Перевірте введені дані");
     }
   };
 
