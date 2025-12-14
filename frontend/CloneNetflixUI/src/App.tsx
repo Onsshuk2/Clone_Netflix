@@ -14,10 +14,12 @@ import Register from "./pages/auth/Register";
 import PasswordRecovery from "./pages/auth/PasswordRecovery";
 import NewPassword from "./pages/auth/NewPassword";
 import ConfirmationEmailSent from "./pages/auth/EmailSent";
-import Dashboard from "./pages/dashboard/Dashboard";
+import WelcomeDashboardMovies from "./pages/dashboard/Dashboard";
+import DashboardAnime from "./pages/dashboard/DashboardAnime";
 import Profile from "./pages/dashboard/Profile";
 import { GlobalToaster } from "./lib/toast";
 import AdminUsers from "./pages/admin/Admin";
+import DashboardSeries from "./pages/dashboard/DashboardSeries";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
@@ -63,7 +65,9 @@ function App() {
         {/* Захищені маршрути (з UserLayout — дашбордний хедер/сайдбар) */}
         <Route element={<ProtectedRoute />}>
           <Route path="/admin" element={<AdminUsers />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<WelcomeDashboardMovies />} />
+          <Route path="/dashboard-anime" element={<DashboardAnime />} />
+          <Route path="/dashboard-series" element={<DashboardSeries />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/plans" element={<SubscriptionPlansPage />} />
         </Route>
