@@ -16,6 +16,7 @@ import NewPassword from "./pages/auth/NewPassword";
 import ConfirmationEmailSent from "./pages/auth/EmailSent";
 import WelcomeDashboardMovies from "./pages/dashboard/Dashboard";
 import DashboardAnime from "./pages/dashboard/DashboardAnime";
+import DashboardCartoons from "./pages/dashboard/DashboardCartoons";
 import Profile from "./pages/dashboard/Profile";
 import { GlobalToaster } from "./lib/toast";
 import AdminUsers from "./pages/admin/Admin";
@@ -68,6 +69,7 @@ function App() {
           <Route path="/dashboard" element={<WelcomeDashboardMovies />} />
           <Route path="/dashboard-anime" element={<DashboardAnime />} />
           <Route path="/dashboard-series" element={<DashboardSeries />} />
+          <Route path="/dashboard-cartoons" element={<DashboardCartoons />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/plans" element={<SubscriptionPlansPage />} />
         </Route>

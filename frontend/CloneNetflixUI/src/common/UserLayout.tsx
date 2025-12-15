@@ -82,6 +82,9 @@ export default function UserLayout() {
   const isSeriesActive =
     location.pathname === "/dashboard-series" ||
     location.pathname.startsWith("/dashboard-series/");
+  const isCartoonsActive =
+    location.pathname === "/dashboard-cartoons" ||
+    location.pathname.startsWith("/dashboard-cartoons/");
 
   const baseButtonClasses =
     "inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white rounded-full shadow-xl transition-all duration-300 border-2 border-white/20 backdrop-blur-sm";
@@ -126,6 +129,15 @@ export default function UserLayout() {
               }`}
             >
               Series
+            </Link>
+
+            <Link
+              to="/dashboard-cartoons"
+              className={`${baseButtonClasses} ${
+                isCartoonsActive ? activeButtonClasses : inactiveButtonClasses
+              }`}
+            >
+              Cartoons
             </Link>
           </div>
 
