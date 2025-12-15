@@ -1,6 +1,7 @@
 ﻿using CloneNetflixApi.Helpers.EmailHelpers;
 using CloneNetflixApi.Models;
 using CloneNetflixApi.Services.SmtpService;
+using Core.Models.Account;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -20,6 +21,7 @@ namespace CloneNetflixApi.Services.AuthService
             _userManager = userManager;
             _configuration = configuration;
             _smtpService = smtpService;
+
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto loginRequest)
@@ -139,6 +141,14 @@ namespace CloneNetflixApi.Services.AuthService
             var result = await _smtpService.SendEmailAsync(emailModel);
 
             return result;
+        }
+
+        public async Task ResetPasswordAsync(ResetPasswordModel model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            if (user != null)
+                await _userManager.ResetPasswordAsync(user, model.Token, model.NewPassword);
         }
     }
 }
