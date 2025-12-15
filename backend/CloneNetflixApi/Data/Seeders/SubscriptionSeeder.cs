@@ -8,7 +8,6 @@ public static class SubscriptionSeeder
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        // Завантажуємо всі плани і користувачів
         var freePlan = await context.SubscriptionPlans.FirstOrDefaultAsync(p => p.Name == "Free");
         var users = await context.Users.Include(u => u.Subscription).ToListAsync();
 
@@ -20,7 +19,6 @@ public static class SubscriptionSeeder
 
         foreach (var user in users)
         {
-            // Якщо підписка вже існує — пропускаємо
             if (user.Subscription != null)
                 continue;
 
@@ -29,7 +27,7 @@ public static class SubscriptionSeeder
                 ApplicationUserId = user.Id,
                 SubscriptionPlanId = freePlan.Id,
                 StartDate = DateTime.UtcNow,
-                EndDate = DateTime.UtcNow.AddYears(10), // Free без обмеження або велика дата
+                EndDate = DateTime.UtcNow.AddYears(10),
                 IsActive = true
             };
 

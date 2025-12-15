@@ -8,7 +8,7 @@ public class ResetPasswordRequestDto
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    public string Token { get; set; } = string.Empty; // Токен, який ви надіслали на пошту
+    public string Token { get; set; } = string.Empty;
 
     [Required]
     [DataType(DataType.Password)]

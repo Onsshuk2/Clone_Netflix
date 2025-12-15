@@ -7,7 +7,6 @@ public static class DataSeeder
         using var scope = services.CreateScope();
         var scopedServices = scope.ServiceProvider;
 
-        // Виконуємо сидери в правильному порядку
         await SubscriptionPlanSeeder.SeedAsync(scopedServices);
         await UserSeeder.SeedAsync(scopedServices);
         await SubscriptionSeeder.SeedAsync(scopedServices);

@@ -1,7 +1,7 @@
-﻿using CloneNetflixApi.Helpers;
-using CloneNetflixApi.Interfaces;
+﻿using CloneNetflixApi.Helpers.EmailHelpers;
 using CloneNetflixApi.Models;
 using CloneNetflixApi.Services.AuthService;
+using CloneNetflixApi.Services.SmtpService;
 using Core.Models.Account;
 using Microsoft.AspNetCore.Mvc;
 
