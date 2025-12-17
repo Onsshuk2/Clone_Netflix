@@ -11,7 +11,7 @@ export default function AuthLayout() {
             to="/"
             className="text-3xl font-black text-orange-600 cursor-pointer"
           >
-            FoodDelivery
+            Nexo Cinema
           </Link>
           <div className="flex items-center gap-4">
             <Link

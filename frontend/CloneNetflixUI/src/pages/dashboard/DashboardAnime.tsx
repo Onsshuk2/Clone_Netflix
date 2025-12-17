@@ -168,7 +168,7 @@ const DashboardAnime: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12 max-w-7xl">
         <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
-          Ласкаво просимо до Аніме!
+          Ласкаво просимо до Nexo - Anime!
         </h1>
         <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
           {searchMode
