@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Camera, Check, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
-import { updateMyProfile } from "../../api/user"; // Новий імпорт
+import { updateMyProfile } from "../../api/User";
 
 interface UserFromStorage {
   name: string;
@@ -99,7 +99,6 @@ export default function Profile() {
     setLoading(true);
 
     try {
-      // Якщо є новий файл — конвертуємо в base64
       let profilePictureUrl: string | null = user.avatar;
 
       if (selectedFile) {
@@ -110,7 +109,6 @@ export default function Profile() {
         });
       }
 
-      // Відправляємо через наш API-сервіс
       const result = await updateMyProfile({
         displayName: displayName.trim(),
         profilePictureUrl: profilePictureUrl || null,
@@ -133,7 +131,6 @@ export default function Profile() {
 
       toast.success("Профіль успішно оновлено!");
     } catch (err) {
-      // Помилки вже оброблені в user.ts (через toast)
       console.error(err);
     } finally {
       setLoading(false);
@@ -141,84 +138,92 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">Мій профіль</h1>
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl md:text-5xl font-black mb-10 text-center bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          Мій профіль
+        </h1>
 
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-orange-500 to-red-600 p-12 text-center">
-          <div className="relative inline-block">
-            <img
-              src={
-                previewUrl ||
-                user.avatar ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  user.name
-                )}&background=fff&color=ea580c&size=128&bold=true`
-              }
-              alt="Аватар"
-              className="w-32 h-32 rounded-full object-cover ring-8 ring-white/30 shadow-2xl cursor-pointer transition-transform hover:scale-105"
-              onClick={openFilePicker}
-            />
+        {/* Картка профілю */}
+        <div className="bg-gray-900/70 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-800 overflow-hidden">
+          {/* Шапка з аватаром */}
+          <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 p-12 text-center">
+            <div className="relative inline-block">
+              <img
+                src={
+                  previewUrl ||
+                  user.avatar ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=6366f1&color=fff&size=256&bold=true`
+                }
+                alt="Аватар"
+                className="w-40 h-40 rounded-full object-cover ring-8 ring-white/20 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 hover:ring-indigo-500/50"
+                onClick={openFilePicker}
+              />
 
-            <div
-              onClick={openFilePicker}
-              className="absolute bottom-0 right-0 bg-white rounded-full p-3 shadow-lg cursor-pointer hover:bg-gray-100 transition"
-            >
-              <Camera className="w-6 h-6 text-orange-600" />
+              <div
+                onClick={openFilePicker}
+                className="absolute bottom-2 right-2 bg-gray-900/80 backdrop-blur-md rounded-full p-4 shadow-xl cursor-pointer hover:bg-gray-800 transition-all duration-300 hover:scale-110 border border-indigo-500/30"
+              >
+                <Camera className="w-7 h-7 text-indigo-400" />
+              </div>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
             </div>
 
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              className="hidden"
-            />
+            <h2 className="text-3xl font-bold text-white mt-8">{user.name}</h2>
+            <p className="text-xl text-gray-300 mt-2">
+              {user.email || "Email не вказано"}
+            </p>
+            <p className="text-sm text-indigo-300 mt-4">Преміум користувач</p>
           </div>
 
-          <h2 className="text-2xl font-bold text-white mt-6">{user.name}</h2>
-          <p className="text-white/80 text-lg">
-            {user.email || "Email не вказано"}
-          </p>
+          {/* Форма редагування */}
+          <form onSubmit={handleSubmit} className="p-10 space-y-8">
+            <div>
+              <label className="block text-lg font-medium text-gray-300 mb-3">
+                Ім'я та прізвище
+              </label>
+              <input
+                required
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="w-full px-6 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition"
+                placeholder="Введіть ваше ім'я"
+              />
+            </div>
+
+            {/* Кнопки */}
+            <div className="flex justify-end gap-6 pt-8">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="px-8 py-4 border border-gray-700 rounded-2xl font-medium text-gray-300 hover:bg-gray-800/50 hover:border-gray-600 transition flex items-center gap-3"
+              >
+                <X className="w-5 h-5" />
+                Скасувати
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading || !displayName.trim()}
+                className="px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-900/50 transition-all duration-300 transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-3"
+              >
+                {loading ? (
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Check className="w-6 h-6" />
+                )}
+                Зберегти зміни
+              </button>
+            </div>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Прізвище та ім’я
-            </label>
-            <input
-              required
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
-              placeholder="Іван Іванов"
-            />
-          </div>
-
-          <div className="flex justify-end gap-4 pt-6">
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 border rounded-xl hover:bg-gray-50 flex items-center gap-2"
-            >
-              <X className="w-5 h-5" /> Скасувати
-            </button>
-
-            <button
-              type="submit"
-              disabled={loading || !displayName.trim()}
-              className="px-8 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 flex items-center gap-3 disabled:opacity-70 shadow-lg"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Check className="w-5 h-5" />
-              )}
-              Зберегти зміни
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );

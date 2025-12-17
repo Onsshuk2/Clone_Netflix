@@ -5,7 +5,7 @@ const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
 
 const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
 
-const WelcomeDashboardMovies: React.FC = () => {
+const DashboardMovies: React.FC = () => {
   const [displayMovies, setDisplayMovies] = useState<any[]>([]);
   const [allMovies, setAllMovies] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
@@ -266,4 +266,4 @@ const WelcomeDashboardMovies: React.FC = () => {
   );
 };
 
-export default WelcomeDashboardMovies;
+export default DashboardMovies;
