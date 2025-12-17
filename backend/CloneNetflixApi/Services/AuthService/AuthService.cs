@@ -129,7 +129,7 @@ namespace CloneNetflixApi.Services.AuthService
             }
 
             string token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var resetLink = $"{_configuration["ClientUrl"]}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(model.Email)}";
+            var resetLink = $"{_configuration["ClientUrl"]}reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(model.Email)}";
 
             var emailModel = new EmailMessage
             {
