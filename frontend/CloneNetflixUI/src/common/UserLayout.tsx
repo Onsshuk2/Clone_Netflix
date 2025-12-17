@@ -100,7 +100,7 @@ export default function UserLayout() {
       <header className="bg-orange-600 text-white shadow-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link to="/dashboard" className="text-2xl font-black cursor-pointer">
-            FoodDelivery
+            Nexo Cinema
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
