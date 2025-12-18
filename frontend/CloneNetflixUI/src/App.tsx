@@ -14,13 +14,14 @@ import Register from "./pages/auth/Register";
 import PasswordRecovery from "./pages/auth/PasswordRecovery";
 import NewPassword from "./pages/auth/NewPassword";
 import ConfirmationEmailSent from "./pages/auth/EmailSent";
-import WelcomeDashboardMovies from "./pages/dashboard/Dashboard";
+import DashboardMovies from "./pages/dashboard/DashboardFilms";
 import DashboardAnime from "./pages/dashboard/DashboardAnime";
 import DashboardCartoons from "./pages/dashboard/DashboardCartoons";
 import Profile from "./pages/dashboard/Profile";
 import { GlobalToaster } from "./lib/toast";
 import AdminUsers from "./pages/admin/Admin";
 import DashboardSeries from "./pages/dashboard/DashboardSeries";
+import WelcomeDashboard from "./pages/dashboard/DashboardMain";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
@@ -66,12 +67,13 @@ function App() {
         {/* Захищені маршрути (з UserLayout — дашбордний хедер/сайдбар) */}
         <Route element={<ProtectedRoute />}>
           <Route path="/admin" element={<AdminUsers />} />
-          <Route path="/dashboard" element={<WelcomeDashboardMovies />} />
+          <Route path="/dashboard-films" element={<DashboardMovies />} />
+          <Route path="/dashboard" element={<WelcomeDashboard />} />
           <Route path="/dashboard-anime" element={<DashboardAnime />} />
           <Route path="/dashboard-series" element={<DashboardSeries />} />
           <Route path="/dashboard-cartoons" element={<DashboardCartoons />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/plans" element={<SubscriptionPlansPage />} />
+          <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
         </Route>
 
         {/* 404 */}
