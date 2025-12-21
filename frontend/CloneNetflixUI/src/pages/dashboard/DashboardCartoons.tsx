@@ -1,4 +1,6 @@
+// src/pages/DashboardCartoons.tsx
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
@@ -20,7 +22,7 @@ const DashboardCartoons: React.FC = () => {
     "Content-Type": "application/json;charset=utf-8",
   };
 
-  // Завантаження топ мультфільмів (анімаційних фільмів, без аніме)
+  // Завантаження топ мультфільмів при першому вході
   useEffect(() => {
     const loadTopCartoons = async () => {
       setLoading(true);
@@ -28,7 +30,7 @@ const DashboardCartoons: React.FC = () => {
       setSearchMode(false);
 
       try {
-        const pagesToLoad = 5; // 5 сторінок по 20 = 100
+        const pagesToLoad = 5;
         const results: any[] = [];
 
         for (let page = 1; page <= pagesToLoad; page++) {
@@ -41,7 +43,6 @@ const DashboardCartoons: React.FC = () => {
 
           const data = await response.json();
 
-          // Додатково фільтруємо: виключаємо японську мову (аніме)
           const filtered = (data.results || []).filter(
             (item: any) => item.original_language !== "ja"
           );
@@ -49,7 +50,6 @@ const DashboardCartoons: React.FC = () => {
           results.push(...filtered);
         }
 
-        // Сортуємо та беремо топ-100
         const sorted = results
           .sort((a: any, b: any) => b.vote_average - a.vote_average)
           .slice(0, 100);
@@ -70,8 +70,12 @@ const DashboardCartoons: React.FC = () => {
     };
 
     loadTopCartoons();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // === ПРОСТА ЛОГІКА: ЗАВЖДИ ПРОКРУЧУВАТИ ВГОРУ ПРИ МОНТУВАННІ СТОРІНКИ ===
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []); // Виконується один раз при першому рендері
 
   // Пошук мультфільмів
   const searchCartoons = async (e: React.FormEvent) => {
@@ -102,7 +106,6 @@ const DashboardCartoons: React.FC = () => {
 
       const data = await response.json();
 
-      // Фільтруємо: тільки анімаційні фільми + не аніме
       const cartoonResults = (data.results || [])
         .filter((item: any) => {
           const isAnimation = item.genre_ids?.includes(16);
@@ -139,6 +142,7 @@ const DashboardCartoons: React.FC = () => {
     setAllItems(topCartoons);
     setVisibleCount(20);
     setDisplayItems(topCartoons.slice(0, 20));
+    window.scrollTo(0, 0); // При поверненні до топу — теж вгору
   };
 
   // Показати ще
@@ -161,7 +165,6 @@ const DashboardCartoons: React.FC = () => {
             : "Топ-100 найкращих мультфільмів"}
         </p>
 
-        {/* Кнопка повернення */}
         {searchMode && (
           <div className="text-center mb-8">
             <button
@@ -173,7 +176,6 @@ const DashboardCartoons: React.FC = () => {
           </div>
         )}
 
-        {/* Форма пошуку */}
         <form onSubmit={searchCartoons} className="max-w-3xl mx-auto mb-16">
           <div className="flex flex-col sm:flex-row gap-4">
             <input
@@ -193,14 +195,12 @@ const DashboardCartoons: React.FC = () => {
           </div>
         </form>
 
-        {/* Помилка */}
         {error && !loading && (
           <div className="text-center text-red-400 text-xl bg-red-900/20 py-6 rounded-lg mb-12">
             {error}
           </div>
         )}
 
-        {/* Завантаження */}
         {loading && displayItems.length === 0 && (
           <div className="text-center text-2xl py-20">
             {searchMode
@@ -209,14 +209,14 @@ const DashboardCartoons: React.FC = () => {
           </div>
         )}
 
-        {/* Сітка мультфільмів */}
         {!loading && displayItems.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
               {displayItems.map((item) => (
-                <div
+                <Link
                   key={item.id}
-                  className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                  to={`/details/movie/${item.id}`}
+                  className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
                 >
                   {item.poster_path ? (
                     <img
@@ -253,11 +253,10 @@ const DashboardCartoons: React.FC = () => {
                       </p>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 
-            {/* Кнопка "Показати ще" */}
             {visibleCount < allItems.length && (
               <div className="text-center mt-12">
                 <button
@@ -272,7 +271,6 @@ const DashboardCartoons: React.FC = () => {
           </>
         )}
 
-        {/* Початковий стан */}
         {!loading && displayItems.length === 0 && !error && (
           <div className="text-center mt-32 text-3xl text-gray-500">
             Введіть назву мультфільму для пошуку

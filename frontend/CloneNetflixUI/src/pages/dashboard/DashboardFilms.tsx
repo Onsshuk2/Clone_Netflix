@@ -1,8 +1,9 @@
+// src/pages/DashboardMovies.tsx
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
-
 const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
 
 const DashboardMovies: React.FC = () => {
@@ -14,14 +15,14 @@ const DashboardMovies: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [displaySearchTerm, setDisplaySearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [top100Movies, setTop100Movies] = useState<any[]>([]); // Зберігаємо оригінальний топ-100
+  const [top100Movies, setTop100Movies] = useState<any[]>([]);
 
   const authHeaders = {
     Authorization: `Bearer ${TMDB_TOKEN}`,
     "Content-Type": "application/json;charset=utf-8",
   };
 
-  // Завантаження топ‑100 фільмів при першому відкритті
+  // Завантаження топ-100 при першому вході
   useEffect(() => {
     const loadTop100 = async () => {
       setLoading(true);
@@ -39,8 +40,6 @@ const DashboardMovies: React.FC = () => {
           );
 
           if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            console.error("TMDB top_rated error:", response.status, errData);
             throw new Error("TMDB top_rated error " + response.status);
           }
 
@@ -50,14 +49,12 @@ const DashboardMovies: React.FC = () => {
           }
         }
 
-        setTop100Movies(results); // Зберігаємо оригінал
+        setTop100Movies(results);
         setAllMovies(results);
         setVisibleCount(20);
         setDisplayMovies(results.slice(0, 20));
       } catch (err) {
-        setError(
-          "Помилка завантаження топ‑100 фільмів. Перевірте інтернет або токен TMDB."
-        );
+        setError("Помилка завантаження топ‑100 фільмів. Перевірте інтернет або токен TMDB.");
         setAllMovies([]);
         setDisplayMovies([]);
       } finally {
@@ -66,10 +63,13 @@ const DashboardMovies: React.FC = () => {
     };
 
     loadTop100();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Пошук фільмів
+  // === ПРОСТА ЛОГІКА: ЗАВЖДИ ПРОКРУЧУВАТИ ВГОРУ ПРИ МОНТУВАННІ СТОРІНКИ ===
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []); // Виконується один раз при першому рендері
+
   const searchMovies = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
@@ -88,9 +88,7 @@ const DashboardMovies: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${TMDB_API_URL}/search/movie?language=uk-UA&query=${encodeURIComponent(
-          term
-        )}&page=1`,
+        `${TMDB_API_URL}/search/movie?language=uk-UA&query=${encodeURIComponent(term)}&page=1`,
         { headers: authHeaders }
       );
 
@@ -118,7 +116,6 @@ const DashboardMovies: React.FC = () => {
     }
   };
 
-  // Повернення до топ-100
   const resetToTop100 = () => {
     setSearchMode(false);
     setSearchTerm("");
@@ -127,9 +124,9 @@ const DashboardMovies: React.FC = () => {
     setAllMovies(top100Movies);
     setVisibleCount(20);
     setDisplayMovies(top100Movies.slice(0, 20));
+    window.scrollTo(0, 0); // При поверненні до топ-100 — теж вгору
   };
 
-  // Кнопка "Показати ще"
   const loadMore = () => {
     if (loading) return;
     const nextCount = Math.min(visibleCount + 20, allMovies.length);
@@ -144,12 +141,9 @@ const DashboardMovies: React.FC = () => {
           Ласкаво просимо до Nexo Cinema!
         </h1>
         <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
-          {searchMode
-            ? `Результати пошуку: "${displaySearchTerm}"`
-            : "Топ‑100 фільмів зараз"}
+          {searchMode ? `Результати пошуку: "${displaySearchTerm}"` : "Топ‑100 фільмів зараз"}
         </p>
 
-        {/* Кнопка повернення до топ-100 (тільки в режимі пошуку) */}
         {searchMode && (
           <div className="text-center mb-8">
             <button
@@ -161,7 +155,6 @@ const DashboardMovies: React.FC = () => {
           </div>
         )}
 
-        {/* Форма пошуку */}
         <form onSubmit={searchMovies} className="max-w-3xl mx-auto mb-16">
           <div className="flex flex-col sm:flex-row gap-4">
             <input
@@ -181,30 +174,26 @@ const DashboardMovies: React.FC = () => {
           </div>
         </form>
 
-        {/* Повідомлення про помилку */}
         {error && !loading && (
           <div className="text-center text-red-400 text-xl bg-red-900/20 py-6 rounded-lg mb-12">
             {error}
           </div>
         )}
 
-        {/* Завантаження */}
         {loading && displayMovies.length === 0 && (
           <div className="text-center text-2xl py-20">
-            {searchMode
-              ? "Шукаємо фільми..."
-              : "Завантажуємо топ‑100 фільмів..."}
+            {searchMode ? "Шукаємо фільми..." : "Завантажуємо топ‑100 фільмів..."}
           </div>
         )}
 
-        {/* Сітка фільмів */}
         {!loading && displayMovies.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
               {displayMovies.map((movie) => (
-                <div
+                <Link
                   key={movie.id}
-                  className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                  to={`/details/movie/${movie.id}`}
+                  className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
                 >
                   {movie.poster_path ? (
                     <img
@@ -236,11 +225,10 @@ const DashboardMovies: React.FC = () => {
                       </p>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 
-            {/* Кнопка "Показати ще" */}
             {visibleCount < allMovies.length && (
               <div className="text-center mt-12">
                 <button
@@ -255,7 +243,6 @@ const DashboardMovies: React.FC = () => {
           </>
         )}
 
-        {/* Початковий стан без результатів */}
         {!loading && displayMovies.length === 0 && !error && (
           <div className="text-center mt-32 text-3xl text-gray-500">
             Введіть назву фільму для пошуку

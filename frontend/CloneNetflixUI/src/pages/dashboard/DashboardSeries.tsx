@@ -1,4 +1,6 @@
+// src/pages/DashboardSeries.tsx
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
@@ -28,7 +30,7 @@ const DashboardSeries: React.FC = () => {
       setSearchMode(false);
 
       try {
-        const pagesToLoad = 5; // 5 × 20 = 100
+        const pagesToLoad = 5;
         const results: any[] = [];
 
         for (let page = 1; page <= pagesToLoad; page++) {
@@ -41,7 +43,6 @@ const DashboardSeries: React.FC = () => {
 
           const data = await response.json();
           if (data.results) {
-            // Виключаємо аніме: жанр 16 (Animation) + оригінальна мова ja (японська)
             const filtered = data.results.filter(
               (item: any) =>
                 !(
@@ -52,7 +53,6 @@ const DashboardSeries: React.FC = () => {
           }
         }
 
-        // Беремо топ-100 після фільтрації
         const top100 = results.slice(0, 100);
 
         setTopSeries(top100);
@@ -60,9 +60,7 @@ const DashboardSeries: React.FC = () => {
         setVisibleCount(20);
         setDisplaySeries(top100.slice(0, 20));
       } catch (err) {
-        setError(
-          "Помилка завантаження топ серіалів. Перевірте токен або інтернет."
-        );
+        setError("Помилка завантаження топ серіалів. Перевірте токен або інтернет.");
         setAllSeries([]);
         setDisplaySeries([]);
       } finally {
@@ -71,10 +69,14 @@ const DashboardSeries: React.FC = () => {
     };
 
     loadTopSeries();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Пошук серіалів (без аніме)
+  // === ПРОСТА ЛОГІКА: ЗАВЖДИ ПРОКРУЧУВАТИ ВГОРУ ПРИ МОНТУВАННІ СТОРІНКИ ===
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []); // Виконується один раз при першому рендері
+
+  // Пошук серіалів
   const searchSeries = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
@@ -93,9 +95,7 @@ const DashboardSeries: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${TMDB_API_URL}/search/tv?language=uk-UA&query=${encodeURIComponent(
-          term
-        )}&include_adult=false`,
+        `${TMDB_API_URL}/search/tv?language=uk-UA&query=${encodeURIComponent(term)}&include_adult=false`,
         { headers: authHeaders }
       );
 
@@ -103,7 +103,6 @@ const DashboardSeries: React.FC = () => {
 
       const data = await response.json();
 
-      // Виключаємо аніме
       const filteredResults = (data.results || [])
         .filter(
           (item: any) =>
@@ -116,7 +115,7 @@ const DashboardSeries: React.FC = () => {
         setDisplaySeries(filteredResults.slice(0, 20));
       } else {
         setError(
-          "Серіали не знайдено. Спробуйте: Гра престолів, Пуститися берега, Друзі, Офіс, Чорнобиль..."
+          "Серіали не знайдено. Спробуйте: Гра престолів, Пуститися берега, Друзі, ВандаВіжн, Чорне дзеркало..."
         );
         setAllSeries([]);
         setDisplaySeries([]);
@@ -130,7 +129,7 @@ const DashboardSeries: React.FC = () => {
     }
   };
 
-  // Повернення до топ
+  // Повернення до топ-списку
   const resetToTop = () => {
     setSearchMode(false);
     setSearchTerm("");
@@ -139,6 +138,7 @@ const DashboardSeries: React.FC = () => {
     setAllSeries(topSeries);
     setVisibleCount(20);
     setDisplaySeries(topSeries.slice(0, 20));
+    window.scrollTo(0, 0); // При поверненні до топу — теж вгору
   };
 
   // Показати ще
@@ -161,7 +161,6 @@ const DashboardSeries: React.FC = () => {
             : "Топ-100 серіалів усіх часів"}
         </p>
 
-        {/* Кнопка повернення */}
         {searchMode && (
           <div className="text-center mb-8">
             <button
@@ -173,7 +172,6 @@ const DashboardSeries: React.FC = () => {
           </div>
         )}
 
-        {/* Форма пошуку */}
         <form onSubmit={searchSeries} className="max-w-3xl mx-auto mb-16">
           <div className="flex flex-col sm:flex-row gap-4">
             <input
@@ -193,28 +191,26 @@ const DashboardSeries: React.FC = () => {
           </div>
         </form>
 
-        {/* Помилка */}
         {error && !loading && (
           <div className="text-center text-red-400 text-xl bg-red-900/20 py-6 rounded-lg mb-12">
             {error}
           </div>
         )}
 
-        {/* Завантаження */}
         {loading && displaySeries.length === 0 && (
           <div className="text-center text-2xl py-20">
             {searchMode ? "Шукаємо серіали..." : "Завантажуємо топ серіалів..."}
           </div>
         )}
 
-        {/* Сітка серіалів */}
         {!loading && displaySeries.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
               {displaySeries.map((series) => (
-                <div
+                <Link
                   key={series.id}
-                  className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                  to={`/details/tv/${series.id}`}
+                  className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
                 >
                   {series.poster_path ? (
                     <img
@@ -251,11 +247,10 @@ const DashboardSeries: React.FC = () => {
                       </p>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 
-            {/* Кнопка "Показати ще" */}
             {visibleCount < allSeries.length && (
               <div className="text-center mt-12">
                 <button
@@ -270,7 +265,6 @@ const DashboardSeries: React.FC = () => {
           </>
         )}
 
-        {/* Початковий стан */}
         {!loading && displaySeries.length === 0 && !error && (
           <div className="text-center mt-32 text-3xl text-gray-500">
             Введіть назву серіалу для пошуку

@@ -1,7 +1,7 @@
 // src/pages/Login.tsx (або де в тебе лежить)
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { $t } from "../../lib/toast"; // ← наш глобальний тост (з попереднього кроку)
+import { $t } from "../../lib/Toast"; // ← наш глобальний тост (з попереднього кроку)
 
 const API_URL = import.meta.env.VITE_API_URL;
 

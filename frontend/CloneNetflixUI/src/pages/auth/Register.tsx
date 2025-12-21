@@ -2,11 +2,13 @@
 import { useState } from "react";
 import axios from "axios";
 import { Eye, EyeOff } from "lucide-react";
-import { $t } from "../../lib/toast"; // ← наш глобальний тост
+import { $t } from "../../lib/Toast"; // ← наш глобальний тост
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Register() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     displayName: "",
     email: "",
@@ -35,8 +37,8 @@ export default function Register() {
       newErrors.email = "Невірний формат email";
 
     if (!formData.password) newErrors.password = "Введіть пароль";
-    else if (formData.password.length < 6)
-      newErrors.password = "Пароль має бути не менше 6 символів";
+    else if (formData.password.length < 8)
+      newErrors.password = "Пароль має бути не менше 8 символів";
 
     if (formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = "Паролі не співпадають";
@@ -77,7 +79,7 @@ export default function Register() {
 
       // Опціонально: перенаправлення через 2 секунди
       setTimeout(() => {
-        window.location.href = "/login";
+        navigate("/login");
       }, 2000);
     } catch (err: any) {
       if (err.response?.data?.errors) {
@@ -126,9 +128,8 @@ export default function Register() {
                 placeholder="Михайло Іванович"
                 value={formData.displayName}
                 onChange={handleChange}
-                className={`w-full px-5 py-4 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${
-                  errors.displayName ? "border-red-500" : "border-slate-300"
-                }`}
+                className={`w-full px-5 py-4 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.displayName ? "border-red-500" : "border-slate-300"
+                  }`}
               />
               {errors.displayName && (
                 <p className="mt-1 text-sm text-red-600">
@@ -145,9 +146,8 @@ export default function Register() {
                 placeholder="example@gmail.com"
                 value={formData.email}
                 onChange={handleChange}
-                className={`w-full px-5 py-4 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${
-                  errors.email ? "border-red-500" : "border-slate-300"
-                }`}
+                className={`w-full px-5 py-4 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.email ? "border-red-500" : "border-slate-300"
+                  }`}
               />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>
@@ -162,9 +162,8 @@ export default function Register() {
                 placeholder="Пароль (мін. 6 символів)"
                 value={formData.password}
                 onChange={handleChange}
-                className={`w-full px-5 py-4 pr-14 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${
-                  errors.password ? "border-red-500" : "border-slate-300"
-                }`}
+                className={`w-full px-5 py-4 pr-14 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.password ? "border-red-500" : "border-slate-300"
+                  }`}
               />
               <button
                 type="button"
@@ -190,9 +189,8 @@ export default function Register() {
                 placeholder="Повторіть пароль"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`w-full px-5 py-4 pr-14 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${
-                  errors.confirmPassword ? "border-red-500" : "border-slate-300"
-                }`}
+                className={`w-full px-5 py-4 pr-14 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.confirmPassword ? "border-red-500" : "border-slate-300"
+                  }`}
               />
               <button
                 type="button"
@@ -223,9 +221,9 @@ export default function Register() {
               />
               <label htmlFor="agree" className="ml-3 text-sm text-gray-700">
                 Я згоден з{" "}
-                <span className="text-indigo-600 hover:underline cursor-pointer">
+                <a href="/terms" className="text-indigo-600 hover:underline cursor-pointer">
                   умовами використання
-                </span>
+                </a>
               </label>
             </div>
             {errors.agree && (
