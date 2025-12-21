@@ -1,7 +1,7 @@
 // src/layouts/UserLayout.tsx
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { LogOut, User, CreditCard, ArrowUp } from "lucide-react"; // Замінено ShoppingBag на CreditCard
+import { LogOut, User, CreditCard, ArrowUp } from "lucide-react";
 
 export default function UserLayout() {
   const navigate = useNavigate();
@@ -62,7 +62,12 @@ export default function UserLayout() {
   const handleLogout = () => {
     localStorage.clear();
     setIsOpen(false);
-    navigate("/login", { replace: true });
+    navigate("/", { replace: true });
+  };
+
+  // Функція для прокрутки вгору при переході по навігації
+  const handleNavClick = () => {
+    scrollToTop();
   };
 
   const isMoviesActive = location.pathname.startsWith("/dashboard-films");
@@ -80,37 +85,46 @@ export default function UserLayout() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-950 via-black to-gray-950 text-gray-100 relative">
       <header className="bg-gray-900/70 backdrop-blur-2xl shadow-2xl sticky top-0 z-50 border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-          <Link to="/dashboard" className="text-3xl font-black tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          <Link
+            to="/dashboard"
+            onClick={handleNavClick}
+            className="text-3xl font-black tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
+          >
             Nexo Cinema
           </Link>
 
           <nav className="hidden md:flex items-center gap-4">
             <Link
               to="/dashboard"
+              onClick={handleNavClick}
               className={`${navButtonClasses} ${isDashboardActive ? activeNavButtonClasses : ""}`}
             >
               Головна
             </Link>
             <Link
               to="/dashboard-films"
+              onClick={handleNavClick}
               className={`${navButtonClasses} ${isMoviesActive ? activeNavButtonClasses : ""}`}
             >
               Фільми
             </Link>
             <Link
               to="/dashboard-anime"
+              onClick={handleNavClick}
               className={`${navButtonClasses} ${isAnimeActive ? activeNavButtonClasses : ""}`}
             >
               Аніме
             </Link>
             <Link
               to="/dashboard-series"
+              onClick={handleNavClick}
               className={`${navButtonClasses} ${isSeriesActive ? activeNavButtonClasses : ""}`}
             >
               Серіали
             </Link>
             <Link
               to="/dashboard-cartoons"
+              onClick={handleNavClick}
               className={`${navButtonClasses} ${isCartoonsActive ? activeNavButtonClasses : ""}`}
             >
               Мультфільми
@@ -137,7 +151,6 @@ export default function UserLayout() {
                 <span className="hidden md:block font-medium text-gray-200">{user?.name}</span>
               </button>
 
-              {/* Дропдаун профілю — Замовлення → Підписки */}
               {isOpen && (
                 <div className="absolute right-0 mt-4 w-80 bg-gray-900/96 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-800/60 overflow-hidden">
                   <div className="p-6 bg-gradient-to-r from-indigo-900/70 to-purple-900/70 border-b border-gray-800">
@@ -154,7 +167,7 @@ export default function UserLayout() {
                       <span className="font-medium">Профіль</span>
                     </Link>
                     <Link
-                      to="/subscriptions"  // Новий маршрут — змініть на свій, якщо потрібно
+                      to="/subscriptions"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
                     >
@@ -164,7 +177,7 @@ export default function UserLayout() {
                     <div className="h-px bg-gray-800/60 my-2 mx-6" />
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left flex items-center gap-4 px-6 py-4 hover:bg-red-950/50 text-red-400 font-medium transition"
+                      className="w-full cursor-pointer text-left flex items-center gap-4 px-6 py-4 hover:bg-red-950/50 text-red-400 font-medium transition"
                     >
                       <LogOut className="w-5 h-5" />
                       Вийти з акаунту

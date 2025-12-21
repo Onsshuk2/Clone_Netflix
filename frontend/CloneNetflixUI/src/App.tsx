@@ -1,6 +1,6 @@
 // src/App.tsx
 import "./App.css";
-import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import UserLayout from "./common/UserLayout";
 import AuthLayout from "./common/AuthLayout";
@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 
 import PublicHomePage from "./pages/public/LandingPage";
 import SubscriptionPlansPage from "./pages/dashboard/SubscriptionPlansPage";
+import TermsOfService from "./pages/public/TermsOfService";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -18,32 +19,29 @@ import DashboardMovies from "./pages/dashboard/DashboardFilms";
 import DashboardAnime from "./pages/dashboard/DashboardAnime";
 import DashboardCartoons from "./pages/dashboard/DashboardCartoons";
 import Profile from "./pages/dashboard/Profile";
-import { GlobalToaster } from "./lib/toast";
+import { GlobalToaster } from "./lib/Toast";
 import AdminUsers from "./pages/admin/Admin";
 import DashboardSeries from "./pages/dashboard/DashboardSeries";
 import WelcomeDashboard from "./pages/dashboard/DashboardMain";
+import MovieDetails from "./pages/dashboard/MovieDetails";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
-// Захищений маршрут: тільки залогінені + UserLayout
+
 const ProtectedRoute = () => {
   return isAuthenticated() ? (
-    <UserLayout>
-      <Outlet /> {/* Тут будуть Dashboard, Plans тощо */}
-    </UserLayout>
+    <UserLayout />
   ) : (
     <Navigate to="/login" replace />
   );
 };
 
-// Гостьовий маршрут: тільки незалогінені + AuthLayout (з красивим хедером)
+
 const GuestRoute = () => {
   return isAuthenticated() ? (
     <Navigate to="/dashboard" replace />
   ) : (
-    <AuthLayout>
-      <Outlet /> {/* Тут будуть LandingPage, Login, Register тощо */}
-    </AuthLayout>
+    <AuthLayout />
   );
 };
 
@@ -58,6 +56,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/password-recovery" element={<PasswordRecovery />} />
           <Route path="/reset-password" element={<NewPassword />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route
             path="/confirmation-sent"
             element={<ConfirmationEmailSent />}
@@ -72,6 +71,7 @@ function App() {
           <Route path="/dashboard-anime" element={<DashboardAnime />} />
           <Route path="/dashboard-series" element={<DashboardSeries />} />
           <Route path="/dashboard-cartoons" element={<DashboardCartoons />} />
+          <Route path="/details/:type/:id" element={<MovieDetails />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
         </Route>

@@ -4,6 +4,7 @@ import { Camera, Check, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
 import { updateMyProfile } from "../../api/User";
+import { useNavigate } from "react-router-dom";
 
 interface UserFromStorage {
   name: string;
@@ -25,6 +26,7 @@ export default function Profile() {
     email: "",
   });
 
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -202,7 +204,7 @@ export default function Profile() {
             <div className="flex justify-end gap-6 pt-8">
               <button
                 type="button"
-                onClick={() => window.location.reload()}
+                onClick={() => navigate(-1)}
                 className="px-8 py-4 border border-gray-700 rounded-2xl font-medium text-gray-300 hover:bg-gray-800/50 hover:border-gray-600 transition flex items-center gap-3"
               >
                 <X className="w-5 h-5" />

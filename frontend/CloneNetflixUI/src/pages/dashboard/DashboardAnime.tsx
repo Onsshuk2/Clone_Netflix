@@ -1,4 +1,6 @@
+// src/pages/DashboardAnime.tsx
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
@@ -20,11 +22,10 @@ const DashboardAnime: React.FC = () => {
     "Content-Type": "application/json;charset=utf-8",
   };
 
-  // Фільтри для аніме
   const animeFilters =
     "with_keywords=210024&with_genres=16&with_original_language=ja&vote_count.gte=50";
 
-  // Завантаження топ аніме (фільми + серіали)
+  // Завантаження топ аніме при першому вході
   useEffect(() => {
     const loadTopAnime = async () => {
       setLoading(true);
@@ -34,7 +35,7 @@ const DashboardAnime: React.FC = () => {
       try {
         const results: any[] = [];
 
-        // Топ аніме-фільми (3 сторінки ~60)
+        // Топ аніме-фільми
         for (let page = 1; page <= 3; page++) {
           const res = await fetch(
             `${TMDB_API_URL}/discover/movie?language=uk-UA&sort_by=vote_average.desc&page=${page}&${animeFilters}`,
@@ -45,7 +46,7 @@ const DashboardAnime: React.FC = () => {
           results.push(...(data.results || []));
         }
 
-        // Топ аніме-серіали (3 сторінки ~60)
+        // Топ аніме-серіали
         for (let page = 1; page <= 3; page++) {
           const res = await fetch(
             `${TMDB_API_URL}/discover/tv?language=uk-UA&sort_by=vote_average.desc&page=${page}&${animeFilters}`,
@@ -56,13 +57,12 @@ const DashboardAnime: React.FC = () => {
           results.push(...(data.results || []));
         }
 
-        // Сортуємо за рейтингом і беремо топ-100
         const sorted = results
           .sort((a: any, b: any) => b.vote_average - a.vote_average)
           .slice(0, 100)
           .map((item: any) => ({
             ...item,
-            media_type: item.first_air_date ? "tv" : "movie", // Додаємо тип
+            media_type: item.first_air_date ? "tv" : "movie",
           }));
 
         setTopAnime(sorted);
@@ -81,10 +81,14 @@ const DashboardAnime: React.FC = () => {
     };
 
     loadTopAnime();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Пошук аніме (фільми + серіали)
+  // === ПРОСТА ЛОГІКА: ЗАВЖДИ ПРОКРУЧУВАТИ ВГОРУ ПРИ МОНТУВАННІ СТОРІНКИ ===
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []); // Виконується один раз при першому рендері
+
+  // Пошук аніме
   const searchAnime = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
@@ -113,7 +117,6 @@ const DashboardAnime: React.FC = () => {
 
       const data = await response.json();
 
-      // Фільтруємо тільки аніме (movie або tv)
       const animeResults = (data.results || [])
         .filter((item: any) => {
           const isAnimeKeyword = item.keyword_ids?.includes(210024);
@@ -145,7 +148,7 @@ const DashboardAnime: React.FC = () => {
     }
   };
 
-  // Повернення до топ
+  // Повернення до топ-списку
   const resetToTopAnime = () => {
     setSearchMode(false);
     setSearchTerm("");
@@ -154,6 +157,7 @@ const DashboardAnime: React.FC = () => {
     setAllItems(topAnime);
     setVisibleCount(20);
     setDisplayItems(topAnime.slice(0, 20));
+    window.scrollTo(0, 0); // При поверненні до топу — теж вгору
   };
 
   // Показати ще
@@ -222,9 +226,10 @@ const DashboardAnime: React.FC = () => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
               {displayItems.map((item) => (
-                <div
+                <Link
                   key={item.id + item.media_type}
-                  className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                  to={`/details/${item.media_type}/${item.id}`}
+                  className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
                 >
                   {item.poster_path ? (
                     <img
@@ -243,7 +248,7 @@ const DashboardAnime: React.FC = () => {
                   <div className="p-5">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs bg-purple-600 px-2 py-1 rounded">
-                        {item.media_type === "tv" ? "Серіал" : "Фільм"}
+                        {item.media_type === "tv" ? "Аніме-серіал" : "Аніме-фільм"}
                       </span>
                     </div>
                     <h3
@@ -264,7 +269,7 @@ const DashboardAnime: React.FC = () => {
                       </p>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 
