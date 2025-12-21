@@ -108,7 +108,7 @@ const MovieDetails: React.FC = () => {
     return (
         <div className="min-h-screen bg-black text-white relative">
             {/* КНОПКА "НАЗАД" — тепер у потоці сторінки, не фіксована зверху */}
-            <div className="absolute top-8 left-8 z-50"> {/* Контейнер для відступів */}
+            <div className="absolute top-8 left-8 z-30"> {/* Контейнер для відступів */}
                 <button
                     onClick={() => navigate(-1)}
                     className="inline-flex cursor-pointer items-center gap-3 bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white px-6 py-3 rounded-full transition-all shadow-2xl border border-gray-800 hover:border-gray-600"
