@@ -1,7 +1,11 @@
 // src/layouts/AuthLayout.tsx
 import { Link, Outlet } from "react-router-dom";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function AuthLayout() {
+  const { t } = useLanguage();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 text-gray-100">
       {/* Хедер для авторизації — темний стиль */}
@@ -13,18 +17,19 @@ export default function AuthLayout() {
           </Link>
 
           {/* Кнопки Вхід / Реєстрація */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             <Link
               to="/login"
               className="text-gray-300 font-medium hover:text-white transition duration-300"
             >
-              Вхід
+              {t('auth.login')}
             </Link>
             <Link
               to="/register"
               className="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-900/50 transition-all duration-300 transform hover:scale-105"
             >
-              Реєстрація
+              {t('auth.register')}
             </Link>
           </div>
         </div>

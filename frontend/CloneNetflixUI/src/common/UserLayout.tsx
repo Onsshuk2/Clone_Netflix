@@ -1,11 +1,14 @@
 // src/layouts/UserLayout.tsx
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { LogOut, User, CreditCard, ArrowUp } from "lucide-react";
+import { LogOut, User, CreditCard, ArrowUp, Heart } from "lucide-react";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function UserLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { language, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -42,7 +45,7 @@ export default function UserLayout() {
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [isOpen]);
+  }, [isOpen, language]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -74,6 +77,7 @@ export default function UserLayout() {
   const isAnimeActive = location.pathname.startsWith("/dashboard-anime");
   const isSeriesActive = location.pathname.startsWith("/dashboard-series");
   const isCartoonsActive = location.pathname.startsWith("/dashboard-cartoons");
+  const isFavoritesActive = location.pathname === "/favorites";
   const isDashboardActive = location.pathname === "/dashboard" || location.pathname.startsWith("/dashboard/");
 
   const navButtonClasses =
@@ -99,39 +103,48 @@ export default function UserLayout() {
               onClick={handleNavClick}
               className={`${navButtonClasses} ${isDashboardActive ? activeNavButtonClasses : ""}`}
             >
-              Головна
+              {t('nav.dashboard')}
             </Link>
             <Link
               to="/dashboard-films"
               onClick={handleNavClick}
               className={`${navButtonClasses} ${isMoviesActive ? activeNavButtonClasses : ""}`}
             >
-              Фільми
+              {t('nav.movies')}
             </Link>
             <Link
               to="/dashboard-anime"
               onClick={handleNavClick}
               className={`${navButtonClasses} ${isAnimeActive ? activeNavButtonClasses : ""}`}
             >
-              Аніме
+              {t('nav.anime')}
             </Link>
             <Link
               to="/dashboard-series"
               onClick={handleNavClick}
               className={`${navButtonClasses} ${isSeriesActive ? activeNavButtonClasses : ""}`}
             >
-              Серіали
+              {t('nav.series')}
             </Link>
             <Link
               to="/dashboard-cartoons"
               onClick={handleNavClick}
               className={`${navButtonClasses} ${isCartoonsActive ? activeNavButtonClasses : ""}`}
             >
-              Мультфільми
+              {t('nav.cartoons')}
+            </Link>
+            <Link
+              to="/favorites"
+              onClick={handleNavClick}
+              className={`${navButtonClasses} ${isFavoritesActive ? activeNavButtonClasses : ""} flex items-center gap-2 mr-6`}
+            >
+              <Heart size={20} />
+              {t('favorites.title')}
             </Link>
           </nav>
 
-          <div className="flex items-center">
+          <div className="flex items-center gap-6">
+            <LanguageSwitcher />
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -155,7 +168,7 @@ export default function UserLayout() {
                 <div className="absolute right-0 mt-4 w-80 bg-gray-900/96 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-800/60 overflow-hidden">
                   <div className="p-6 bg-gradient-to-r from-indigo-900/70 to-purple-900/70 border-b border-gray-800">
                     <p className="font-bold text-xl text-white">{user?.name}</p>
-                    <p className="text-sm text-indigo-200 mt-1">Преміум користувач</p>
+                    <p className="text-sm text-indigo-200 mt-1">{t('user.premium')}</p>
                   </div>
                   <div className="py-3">
                     <Link
@@ -164,7 +177,15 @@ export default function UserLayout() {
                       className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
                     >
                       <User className="w-5 h-5 text-indigo-400" />
-                      <span className="font-medium">Профіль</span>
+                      <span className="font-medium">{t('user.profile')}</span>
+                    </Link>
+                    <Link
+                      to="/favorites"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
+                    >
+                      <Heart className="w-5 h-5 text-red-400" />
+                      <span className="font-medium">{t('favorites.title')}</span>
                     </Link>
                     <Link
                       to="/subscriptions"
@@ -172,7 +193,7 @@ export default function UserLayout() {
                       className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
                     >
                       <CreditCard className="w-5 h-5 text-indigo-400" />
-                      <span className="font-medium">Підписки</span>
+                      <span className="font-medium">{t('user.subscriptions')}</span>
                     </Link>
                     <div className="h-px bg-gray-800/60 my-2 mx-6" />
                     <button
@@ -180,7 +201,7 @@ export default function UserLayout() {
                       className="w-full cursor-pointer text-left flex items-center gap-4 px-6 py-4 hover:bg-red-950/50 text-red-400 font-medium transition"
                     >
                       <LogOut className="w-5 h-5" />
-                      Вийти з акаунту
+                      {t('user.exit_account')}
                     </button>
                   </div>
                 </div>
@@ -195,7 +216,7 @@ export default function UserLayout() {
       </main>
 
       <footer className="bg-black/60 backdrop-blur-md border-t border-gray-800 py-10 text-center">
-        <p className="text-gray-500 text-sm">© 2025 Nexo Cinema. Всі права захищені.</p>
+        <p className="text-gray-500 text-sm">{t('footer.copyright')}</p>
       </footer>
 
       {showScrollTop && (

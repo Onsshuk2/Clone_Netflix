@@ -4,6 +4,7 @@ import axios from "axios";
 import { Eye, EyeOff } from "lucide-react";
 import { $t } from "../../lib/Toast"; // ← наш глобальний тост
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -21,6 +22,18 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [agree, setAgree] = useState(false);
+  const { t } = useLanguage();
+
+  const mapError = (raw: any) => {
+    if (!raw) return t('auth.error_generic');
+    const text = String(raw).toLowerCase();
+    if (text.includes('invalid') && text.includes('email')) return t('validation.invalid_email');
+    if (text.includes('password') && text.includes('length')) return t('validation.password_min');
+    if (text.includes('password') && text.includes('match')) return t('validation.passwords_mismatch');
+    if (text.includes('accept') || text.includes('terms')) return t('validation.accept_terms');
+    if (text.includes('email') && text.includes('taken')) return t('auth.error_generic');
+    return raw;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -31,19 +44,19 @@ export default function Register() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.displayName.trim()) newErrors.displayName = "Введіть ім'я";
-    if (!formData.email.trim()) newErrors.email = "Введіть email";
+    if (!formData.displayName.trim()) newErrors.displayName = t('profile.enter_name');
+    if (!formData.email.trim()) newErrors.email = t('auth.email_placeholder');
     else if (!/\S+@\S+\.\S+/.test(formData.email))
-      newErrors.email = "Невірний формат email";
+      newErrors.email = t('auth.email_placeholder');
 
-    if (!formData.password) newErrors.password = "Введіть пароль";
+    if (!formData.password) newErrors.password = t('validation.enter_password');
     else if (formData.password.length < 8)
-      newErrors.password = "Пароль має бути не менше 8 символів";
+      newErrors.password = t('validation.password_min');
 
     if (formData.password !== formData.confirmPassword)
-      newErrors.confirmPassword = "Паролі не співпадають";
+      newErrors.confirmPassword = t('validation.passwords_mismatch');
 
-    if (!agree) newErrors.agree = "Потрібно прийняти умови";
+    if (!agree) newErrors.agree = t('validation.accept_terms');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -66,7 +79,7 @@ export default function Register() {
       // Успішно — зберігаємо ім'я і показуємо тост
       localStorage.setItem("fullname", formData.displayName.trim());
 
-      $t.success("Реєстрація успішна! Тепер ви можете увійти в акаунт");
+      $t.success(t('auth.register_success'));
 
       // Очищаємо форму
       setFormData({
@@ -86,17 +99,13 @@ export default function Register() {
         const formattedErrors: Record<string, string> = {};
         Object.keys(err.response.data.errors).forEach((key) => {
           const field = key.toLowerCase();
-          formattedErrors[field] = err.response.data.errors[key][0];
+          formattedErrors[field] = mapError(err.response.data.errors[key][0]);
         });
         setErrors(formattedErrors);
       }
 
-      const errorMessage =
-        err.response?.data?.message ||
-        err.response?.data?.title ||
-        "Щось пішло не так. Спробуйте ще раз.";
-
-      $t.error(errorMessage);
+      const raw = err.response?.data?.message || err.response?.data?.title || err.message || '';
+      $t.error(mapError(raw));
     } finally {
       setIsLoading(false);
     }
@@ -106,14 +115,14 @@ export default function Register() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full space-y-10">
         <div className="text-center">
-          <h2 className="text-4xl font-bold text-slate-900">Створити акаунт</h2>
+          <h2 className="text-4xl font-bold text-slate-900">{t('auth.create_account')}</h2>
           <p className="mt-3 text-base text-slate-600">
-            Або{" "}
+            {t('auth.login')} {" "}
             <a
               href="/login"
               className="font-medium text-indigo-600 hover:text-indigo-500 transition"
             >
-              увійти в існуючий
+              {t('auth.login')}
             </a>
           </p>
         </div>
@@ -143,7 +152,7 @@ export default function Register() {
               <input
                 type="email"
                 name="email"
-                placeholder="example@gmail.com"
+                placeholder={t('auth.email_placeholder')}
                 value={formData.email}
                 onChange={handleChange}
                 className={`w-full px-5 py-4 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.email ? "border-red-500" : "border-slate-300"
@@ -159,7 +168,7 @@ export default function Register() {
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder="Пароль (мін. 6 символів)"
+                placeholder={t('auth.password_placeholder')}
                 value={formData.password}
                 onChange={handleChange}
                 className={`w-full px-5 py-4 pr-14 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.password ? "border-red-500" : "border-slate-300"
@@ -186,7 +195,7 @@ export default function Register() {
               <input
                 type={showConfirm ? "text" : "password"}
                 name="confirmPassword"
-                placeholder="Повторіть пароль"
+                placeholder={t('auth.password_placeholder')}
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 className={`w-full px-5 py-4 pr-14 bg-slate-50 border rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.confirmPassword ? "border-red-500" : "border-slate-300"
@@ -220,11 +229,11 @@ export default function Register() {
                 className="h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
               />
               <label htmlFor="agree" className="ml-3 text-sm text-gray-700">
-                Я згоден з{" "}
-                <a href="/terms" className="text-indigo-600 hover:underline cursor-pointer">
-                  умовами використання
-                </a>
-              </label>
+                  {t('auth.agree_prefix')} {" "}
+                  <a href="/terms" className="text-indigo-600 hover:underline cursor-pointer">
+                    {t('auth.terms')}
+                  </a>
+                </label>
             </div>
             {errors.agree && (
               <p className="text-sm text-red-600 -mt-3">{errors.agree}</p>
@@ -257,10 +266,10 @@ export default function Register() {
                       className="opacity-75"
                     />
                   </svg>
-                  Реєстрація...
+                  {t('auth.registering')}
                 </>
               ) : (
-                "Зареєструватися"
+                t('auth.register_button')
               )}
             </button>
           </form>

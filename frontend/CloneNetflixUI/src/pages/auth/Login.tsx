@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { $t } from "../../lib/Toast"; // ← наш глобальний тост (з попереднього кроку)
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -10,6 +11,18 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
+
+  const mapError = (raw: any) => {
+    if (!raw) return t('auth.error_generic');
+    const text = String(raw).toLowerCase();
+    if (text.includes('invalid') && text.includes('credential')) return t('auth.invalid_credentials');
+    if (text.includes('invalid') && text.includes('email')) return t('validation.invalid_email');
+    if (text.includes('password') && text.includes('incorrect')) return t('auth.invalid_credentials');
+    if (text.includes('unauthor') || text.includes('token') || text.includes('not authorized')) return t('auth.invalid_credentials');
+    if (text.includes('network') || text.includes('failed') || text.includes('timeout')) return t('auth.error_generic');
+    return raw;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,14 +79,15 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(userToSave));
 
       // Успішний тост
-      $t.success("Вітаємо! Ви успішно увійшли в акаунт");
+      $t.success(t('auth.login_success'));
 
       // Перехід
       setTimeout(() => {
         window.location.href = "/dashboard";
       }, 1300);
     } catch (err: any) {
-      const message = err.message || "Щось пішло не так. Спробуйте ще раз.";
+      const raw = err?.message || err?.response?.data?.message || err?.response?.data || '';
+      const message = mapError(raw);
       $t.error(message);
 
       // Чистимо, щоб не залишився старий токен
@@ -89,14 +103,14 @@ export default function Login() {
       <div className="max-w-md w-full space-y-10">
         {/* Заголовок */}
         <div className="text-center">
-          <h2 className="text-4xl font-bold text-slate-900">Увійти в акаунт</h2>
+          <h2 className="text-4xl font-bold text-slate-900">{t('auth.login')}</h2>
           <p className="mt-3 text-base text-slate-600">
-            Або{" "}
+            {t('auth.create_account')} {" "}
             <a
               href="/register"
               className="font-medium text-indigo-600 hover:text-indigo-500 transition"
             >
-              створити новий акаунт
+              {t('auth.register')}
             </a>
           </p>
         </div>
@@ -112,7 +126,7 @@ export default function Login() {
                 name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@gmail.com"
+                placeholder={t('auth.email_placeholder')}
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition"
               />
             </div>
@@ -124,7 +138,7 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder={t('auth.password_placeholder')}
                 className="w-full px-5 py-4 pr-14 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition"
               />
               <button
@@ -144,7 +158,7 @@ export default function Login() {
                 href="/password-recovery"
                 className="text-sm text-indigo-600 hover:text-indigo-500 font-medium transition"
               >
-                Забули пароль?
+                {t('auth.forgot_password')}
               </a>
             </div>
 
@@ -175,10 +189,10 @@ export default function Login() {
                       className="opacity-75"
                     />
                   </svg>
-                  Вхід...
+                  {t('auth.logging_in')}
                 </>
               ) : (
-                "Увійти"
+                t('auth.login_button')
               )}
             </button>
           </form>

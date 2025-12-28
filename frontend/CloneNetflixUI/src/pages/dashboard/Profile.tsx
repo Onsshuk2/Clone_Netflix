@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
 import { updateMyProfile } from "../../api/User";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 interface UserFromStorage {
   name: string;
@@ -20,6 +21,7 @@ interface JwtPayload {
 }
 
 export default function Profile() {
+  const { t } = useLanguage();
   const [user, setUser] = useState<UserFromStorage>({
     name: "Користувач",
     avatar: null,
@@ -46,7 +48,7 @@ export default function Profile() {
 
     const token = localStorage.getItem("token");
     if (!token) {
-      toast.error("Ви не авторизовані");
+      toast.error(t('profile.not_authorized'));
       return;
     }
 
@@ -62,7 +64,7 @@ export default function Profile() {
       setPreviewUrl(avatar);
       localStorage.setItem("user", JSON.stringify(fallbackUser));
     } catch (err) {
-      toast.error("Помилка читання даних");
+      toast.error(t('profile.read_error'));
     }
   }, []);
 
@@ -73,11 +75,11 @@ export default function Profile() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Зображення занадто велике (макс. 5 МБ)");
+      toast.error(t('profile.image_too_large'));
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast.error("Оберіть зображення");
+      toast.error(t('profile.select_image'));
       return;
     }
 
@@ -91,7 +93,7 @@ export default function Profile() {
     };
     reader.readAsDataURL(file);
 
-    toast.success("Фото обрано! Натисніть «Зберегти зміни»");
+    toast.success(t('profile.image_selected'));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,7 +133,7 @@ export default function Profile() {
       setSelectedFile(null);
       setPreviewUrl(finalAvatar);
 
-      toast.success("Профіль успішно оновлено!");
+      toast.success(t('profile.profile_updated'));
     } catch (err) {
       console.error(err);
     } finally {
@@ -143,7 +145,7 @@ export default function Profile() {
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl md:text-5xl font-black mb-10 text-center bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-          Мій профіль
+          {t('profile.my_profile')}
         </h1>
 
         {/* Картка профілю */}
@@ -180,23 +182,23 @@ export default function Profile() {
 
             <h2 className="text-3xl font-bold text-white mt-8">{user.name}</h2>
             <p className="text-xl text-gray-300 mt-2">
-              {user.email || "Email не вказано"}
+              {user.email || t('profile.email_not_specified')}
             </p>
-            <p className="text-sm text-indigo-300 mt-4">Преміум користувач</p>
+            <p className="text-sm text-indigo-300 mt-4">{t('profile.premium_user')}</p>
           </div>
 
           {/* Форма редагування */}
           <form onSubmit={handleSubmit} className="p-10 space-y-8">
             <div>
               <label className="block text-lg font-medium text-gray-300 mb-3">
-                Ім'я та прізвище
+                {t('profile.full_name')}
               </label>
               <input
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="w-full px-6 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition"
-                placeholder="Введіть ваше ім'я"
+                placeholder={t('profile.enter_name')}
               />
             </div>
 
@@ -208,7 +210,7 @@ export default function Profile() {
                 className="px-8 py-4 border border-gray-700 rounded-2xl font-medium text-gray-300 hover:bg-gray-800/50 hover:border-gray-600 transition flex items-center gap-3"
               >
                 <X className="w-5 h-5" />
-                Скасувати
+                {t('profile.cancel_btn')}
               </button>
 
               <button
@@ -221,7 +223,7 @@ export default function Profile() {
                 ) : (
                   <Check className="w-6 h-6" />
                 )}
-                Зберегти зміни
+                {t('profile.save_btn')}
               </button>
             </div>
           </form>
