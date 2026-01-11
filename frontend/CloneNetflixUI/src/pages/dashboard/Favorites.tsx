@@ -89,7 +89,7 @@ const Favorites: React.FC = () => {
                         {item.title}
                       </h3>
                       <p className="text-gray-400 mt-2 text-sm">
-                        {item.releaseDate?.slice(0, 4) || "Невідомо"} рік
+                        {item.releaseDate?.slice(0, 4) || t('common.unknown')} {t('common.year')}
                       </p>
                       {item.voteAverage > 0 && (
                         <p className="text-yellow-400 mt-2 font-bold">

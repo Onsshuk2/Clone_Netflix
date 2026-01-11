@@ -6,6 +6,9 @@ import { useFavorites } from "../../lib/useFavorites";
 import { Heart } from "lucide-react";
 import toast from "react-hot-toast";
 
+
+
+
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
 const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;

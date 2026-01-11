@@ -6,6 +6,7 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
+  getTMDBLanguage: () => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -26,11 +27,18 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const t = (key: string): string => {
+    if (!key) return '';
+    if (!translations[language]) return key;
     return translations[language][key] || key;
   };
 
+  // Функція для отримання мови у форматі TMDB (uk-UA або en-US)
+  const getTMDBLanguage = (): string => {
+    return language === 'uk' ? 'uk-UA' : 'en-US';
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, getTMDBLanguage }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -165,6 +173,55 @@ export const translations: Record<Language, Record<string, string>> = {
     'profile.cancel_btn': 'Скасувати',
     'profile.save_btn': 'Зберегти зміни',
     'profile.profile_updated': 'Профіль успішно оновлено!',
+    'common.year': 'рік',
+    'landing.tagline': 'Тисячі фільмів, серіалів, мультфільмів та аніме — українською, в один клік.',
+    'landing.login': 'Увійти',
+    'landing.register_free': 'Зареєструватися безкоштовно',
+    'landing.features': 'Без реклами • Висока якість • Доступ з будь-якого пристрою',
+    'landing.popular_movies': 'Популярні фільми зараз',
+    'landing.top_series': 'Топ серіалів, які дивляться всі',
+    'landing.loading': 'Завантажуємо найкращий контент для вас...',
+    'landing.cta_title': 'Почни дивитися вже сьогодні',
+    'landing.cta_description': 'Реєстрація займає 30 секунд. Доступ до всього каталогу — одразу після входу.',
+    'landing.movie': 'Фільм',
+    'landing.series': 'Серіал',
+    'landing.login_required': 'Залогіньтесь, щоб переглядати деталі фільмів та серіалів!',
+    'common.unknown': 'Невідомо',
+    'common.user': 'Користувач',
+    'common.poster_missing': 'Постер відсутній',
+    'common.cartoon': 'Мультфільм',
+    'common.series': 'Серіал',
+    'common.anime_series': 'Аніме-серіал',
+    'common.anime_movie': 'Аніме-фільм',
+    'subscription.choose_plan': 'Оберіть свій план',
+    'subscription.choose_plan_desc': 'Дивіться фільми, серіали, аніме та мультфільми без обмежень. Оберіть ідеальний план для себе чи всієї родини.',
+    'subscription.basic': 'Базовий',
+    'subscription.basic_free': 'Безкоштовно',
+    'subscription.basic_with_ads': 'З рекламою',
+    'subscription.basic_access': 'Доступ до тисяч фільмів',
+    'subscription.basic_access_desc': 'Класика та хіти',
+    'subscription.basic_recommendations': 'Персональні рекомендації',
+    'subscription.basic_no_features': 'HD, без реклами, офлайн, 4K',
+    'subscription.basic_continue': 'Продовжити з Базовим',
+    'subscription.standard': 'Стандарт',
+    'subscription.standard_price': 'грн/міс',
+    'subscription.standard_features': 'Full HD + без реклами',
+    'subscription.most_popular': 'Найпопулярніший',
+    'subscription.standard_all_basic': 'Все з Базового',
+    'subscription.standard_full_hd': 'Full HD 1080p',
+    'subscription.standard_no_ads': 'Без реклами',
+    'subscription.standard_offline': 'Офлайн завантаження',
+    'subscription.standard_devices': 'До 2 пристроїв одночасно',
+    'subscription.standard_parental': 'Батьківський контроль',
+    'subscription.standard_subscribe': 'Оформити Стандарт',
+    'subscription.premium': 'Преміум',
+    'subscription.premium_features': '4K + вся родина',
+    'subscription.premium_all_standard': 'Все зі Стандарту',
+    'subscription.premium_4k': '4K Ultra HD + HDR',
+    'subscription.premium_devices': 'До 4 пристроїв одночасно',
+    'subscription.premium_exclusive': 'Ексклюзивні прем\'єри',
+    'subscription.premium_subscribe': 'Оформити Преміум',
+    'subscription.footer': 'Безпечна оплата через Google Pay • Скасувати можна будь-коли • Без зобов\'язань',
   },
   en: {
     'nav.dashboard': 'Main',
@@ -286,5 +343,54 @@ export const translations: Record<Language, Record<string, string>> = {
     'profile.cancel_btn': 'Cancel',
     'profile.save_btn': 'Save Changes',
     'profile.profile_updated': 'Profile updated successfully!',
+    'common.year': 'year',
+    'landing.tagline': 'Thousands of movies, series, cartoons and anime — in Ukrainian, in one click.',
+    'landing.login': 'Login',
+    'landing.register_free': 'Sign up for free',
+    'landing.features': 'Ad-free • High quality • Access from any device',
+    'landing.popular_movies': 'Popular Movies Now',
+    'landing.top_series': 'Top Series Everyone is Watching',
+    'landing.loading': 'Loading the best content for you...',
+    'landing.cta_title': 'Start Watching Today',
+    'landing.cta_description': 'Registration takes 30 seconds. Access to the entire catalog — immediately after login.',
+    'landing.movie': 'Movie',
+    'landing.series': 'Series',
+    'landing.login_required': 'Please log in to view movie and series details!',
+    'common.unknown': 'Unknown',
+    'common.user': 'User',
+    'common.poster_missing': 'Poster missing',
+    'common.cartoon': 'Cartoon',
+    'common.series': 'Series',
+    'common.anime_series': 'Anime Series',
+    'common.anime_movie': 'Anime Movie',
+    'subscription.choose_plan': 'Choose Your Plan',
+    'subscription.choose_plan_desc': 'Watch movies, series, anime and cartoons without limits. Choose the perfect plan for you or your whole family.',
+    'subscription.basic': 'Basic',
+    'subscription.basic_free': 'Free',
+    'subscription.basic_with_ads': 'With ads',
+    'subscription.basic_access': 'Access to thousands of movies',
+    'subscription.basic_access_desc': 'Classics and hits',
+    'subscription.basic_recommendations': 'Personal recommendations',
+    'subscription.basic_no_features': 'HD, ad-free, offline, 4K',
+    'subscription.basic_continue': 'Continue with Basic',
+    'subscription.standard': 'Standard',
+    'subscription.standard_price': 'UAH/month',
+    'subscription.standard_features': 'Full HD + ad-free',
+    'subscription.most_popular': 'Most Popular',
+    'subscription.standard_all_basic': 'Everything from Basic',
+    'subscription.standard_full_hd': 'Full HD 1080p',
+    'subscription.standard_no_ads': 'Ad-free',
+    'subscription.standard_offline': 'Offline downloads',
+    'subscription.standard_devices': 'Up to 2 devices simultaneously',
+    'subscription.standard_parental': 'Parental controls',
+    'subscription.standard_subscribe': 'Subscribe to Standard',
+    'subscription.premium': 'Premium',
+    'subscription.premium_features': '4K + whole family',
+    'subscription.premium_all_standard': 'Everything from Standard',
+    'subscription.premium_4k': '4K Ultra HD + HDR',
+    'subscription.premium_devices': 'Up to 4 devices simultaneously',
+    'subscription.premium_exclusive': 'Exclusive premieres',
+    'subscription.premium_subscribe': 'Subscribe to Premium',
+    'subscription.footer': 'Secure payment via Google Pay • Cancel anytime • No commitments',
   },
 };

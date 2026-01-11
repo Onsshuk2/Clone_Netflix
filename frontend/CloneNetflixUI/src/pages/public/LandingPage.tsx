@@ -1,8 +1,9 @@
 // src/pages/LandingPage.tsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { $t } from "../../lib/Toast";
+import { $t } from "../../lib/toast";
 import SimpleHeroSlider from "../../lib/Slider";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
@@ -22,6 +23,7 @@ interface Item {
 }
 
 const LandingPage: React.FC = () => {
+  const { t, getTMDBLanguage, language } = useLanguage();
   const [trending, setTrending] = useState<Item[]>([]);
   const [popularMovies, setPopularMovies] = useState<Item[]>([]);
   const [popularSeries, setPopularSeries] = useState<Item[]>([]);
@@ -35,11 +37,12 @@ const LandingPage: React.FC = () => {
   useEffect(() => {
     const loadContent = async () => {
       setLoading(true);
+      const tmdbLanguage = getTMDBLanguage();
       try {
         const [trendingRes, moviesRes, seriesRes] = await Promise.all([
-          fetch(`${TMDB_API_URL}/trending/all/week?language=uk-UA`, { headers: authHeaders }),
-          fetch(`${TMDB_API_URL}/movie/popular?language=uk-UA&page=1`, { headers: authHeaders }),
-          fetch(`${TMDB_API_URL}/tv/popular?language=uk-UA&page=1`, { headers: authHeaders }),
+          fetch(`${TMDB_API_URL}/trending/all/week?language=${tmdbLanguage}`, { headers: authHeaders }),
+          fetch(`${TMDB_API_URL}/movie/popular?language=${tmdbLanguage}&page=1`, { headers: authHeaders }),
+          fetch(`${TMDB_API_URL}/tv/popular?language=${tmdbLanguage}&page=1`, { headers: authHeaders }),
         ]);
 
         if (trendingRes.ok) {
@@ -69,11 +72,12 @@ const LandingPage: React.FC = () => {
     };
 
     loadContent();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    $t.error("Залогіньтесь, щоб переглядати деталі фільмів та серіалів!", {
+    $t.error(t('landing.login_required'), {
       duration: 5000,
     });
   };
@@ -99,7 +103,7 @@ const LandingPage: React.FC = () => {
               />
             ) : (
               <div className="w-full aspect-[2/3] bg-gray-800 flex items-center justify-center">
-                <span className="text-gray-600 text-sm">Постер відсутній</span>
+                <span className="text-gray-600 text-sm">{t('common.poster_missing')}</span>
               </div>
             )}
 
@@ -111,7 +115,7 @@ const LandingPage: React.FC = () => {
                 {item.vote_average > 0 && `⭐ ${item.vote_average.toFixed(1)}`}
               </p>
               <span className="text-xs mt-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full inline-block">
-                {item.media_type === "movie" ? "Фільм" : "Серіал"}
+                {item.media_type === "movie" ? t('landing.movie') : t('landing.series')}
               </span>
             </div>
           </button>
@@ -144,7 +148,7 @@ const LandingPage: React.FC = () => {
           </h1>
 
           <p className="text-xl md:text-3xl lg:text-4xl text-gray-200 mb-12 max-w-4xl mx-auto font-light drop-shadow-lg">
-            Тисячі фільмів, серіалів, мультфільмів та аніме — українською, в один клік.
+            {t('landing.tagline')}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-10">
@@ -152,18 +156,18 @@ const LandingPage: React.FC = () => {
               to="/login"
               className="px-12 py-5 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 rounded-2xl font-bold text-xl shadow-2xl transition-all duration-300 transform hover:scale-105"
             >
-              Увійти
+              {t('landing.login')}
             </Link>
             <Link
               to="/register"
               className="px-12 py-5 bg-white/10 hover:bg-white/20 backdrop-blur-lg border border-white/30 rounded-2xl font-bold text-xl transition-all duration-300 transform hover:scale-105"
             >
-              Зареєструватися безкоштовно
+              {t('landing.register_free')}
             </Link>
           </div>
 
           <p className="text-gray-400 text-lg">
-            Без реклами • Висока якість • Доступ з будь-якого пристрою
+            {t('landing.features')}
           </p>
         </div>
 
@@ -180,28 +184,28 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto max-w-7xl">
           {loading ? (
             <div className="text-center py-40 text-3xl text-gray-500">
-              Завантажуємо найкращий контент для вас...
+              {t('landing.loading')}
             </div>
           ) : (
             <>
-              {renderGrid(popularMovies, "Популярні фільми зараз")}
-              {renderGrid(popularSeries, "Топ серіалів, які дивляться всі")}
+              {renderGrid(popularMovies, t('landing.popular_movies'))}
+              {renderGrid(popularSeries, t('landing.top_series'))}
             </>
           )}
 
           {/* Фінальний заклик до дії */}
           <div className="mt-20 py-20 bg-gradient-to-r from-purple-900/40 via-pink-900/30 to-cyan-900/40 rounded-3xl border border-white/10 backdrop-blur-md text-center">
             <h2 className="text-4xl md:text-6xl font-black mb-8 bg-gradient-to-r from-cyan-300 to-purple-400 bg-clip-text text-transparent">
-              Почни дивитися вже сьогодні
+              {t('landing.cta_title')}
             </h2>
             <p className="text-xl md:text-2xl text-gray-200 mb-10 max-w-3xl mx-auto">
-              Реєстрація займає 30 секунд. Доступ до всього каталогу — одразу після входу.
+              {t('landing.cta_description')}
             </p>
             <Link
               to="/register"
               className="inline-block px-14 py-6 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 hover:from-purple-700 hover:via-pink-700 hover:to-cyan-700 rounded-2xl font-bold text-2xl shadow-2xl transition-all duration-500 transform hover:scale-110"
             >
-              Зареєструватися безкоштовно
+              {t('landing.register_free')}
             </Link>
           </div>
         </div>
