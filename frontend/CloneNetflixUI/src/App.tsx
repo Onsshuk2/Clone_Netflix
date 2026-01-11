@@ -19,6 +19,7 @@ import DashboardMovies from "./pages/dashboard/DashboardFilms";
 import DashboardAnime from "./pages/dashboard/DashboardAnime";
 import DashboardCartoons from "./pages/dashboard/DashboardCartoons";
 import Profile from "./pages/dashboard/Profile";
+import Favorites from "./pages/dashboard/Favorites";
 import { GlobalToaster } from "./lib/Toast";
 import AdminUsers from "./pages/admin/Admin";
 import DashboardSeries from "./pages/dashboard/DashboardSeries";
@@ -73,6 +74,7 @@ function App() {
           <Route path="/dashboard-cartoons" element={<DashboardCartoons />} />
           <Route path="/details/:type/:id" element={<MovieDetails />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/favorites" element={<Favorites />} />
           <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
         </Route>
 

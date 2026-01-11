@@ -1,12 +1,18 @@
 // src/pages/DashboardSeries.tsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { useFavorites } from "../../lib/useFavorites";
+import { Heart } from "lucide-react";
+import toast from "react-hot-toast";
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
 const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
 
 const DashboardSeries: React.FC = () => {
+  const { t } = useLanguage();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [displaySeries, setDisplaySeries] = useState<any[]>([]);
   const [allSeries, setAllSeries] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
@@ -60,7 +66,7 @@ const DashboardSeries: React.FC = () => {
         setVisibleCount(20);
         setDisplaySeries(top100.slice(0, 20));
       } catch (err) {
-        setError("Помилка завантаження топ серіалів. Перевірте токен або інтернет.");
+        setError(t('series.loading_error'));
         setAllSeries([]);
         setDisplaySeries([]);
       } finally {
@@ -83,7 +89,7 @@ const DashboardSeries: React.FC = () => {
 
     const term = searchTerm.trim();
     if (term.length < 2) {
-      setError("Введіть хоча б 2 символи.");
+      setError(t('series.search_min_chars'));
       return;
     }
 
@@ -114,9 +120,7 @@ const DashboardSeries: React.FC = () => {
         setAllSeries(filteredResults);
         setDisplaySeries(filteredResults.slice(0, 20));
       } else {
-        setError(
-          "Серіали не знайдено. Спробуйте: Гра престолів, Пуститися берега, Друзі, ВандаВіжн, Чорне дзеркало..."
-        );
+        setError(t('series.search_error'));
         setAllSeries([]);
         setDisplaySeries([]);
       }
@@ -153,12 +157,10 @@ const DashboardSeries: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12 max-w-7xl">
         <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
-          Ласкаво просимо до Nexo - Series!
+          {t('series.welcome')}
         </h1>
         <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
-          {searchMode
-            ? `Результати пошуку: "${displaySearchTerm}"`
-            : "Топ-100 серіалів усіх часів"}
+          {searchMode ? `${t('dashboard.search_results')} "${displaySearchTerm}"` : t('series.top_100')}
         </p>
 
         {searchMode && (
@@ -167,7 +169,7 @@ const DashboardSeries: React.FC = () => {
               onClick={resetToTop}
               className="px-8 py-3 bg-blue-700 hover:bg-blue-600 rounded-xl font-semibold text-lg transition shadow"
             >
-              ← Повернутись до топ серіалів
+              {t('dashboard.back')}
             </button>
           </div>
         )}
@@ -178,7 +180,7 @@ const DashboardSeries: React.FC = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Шукати серіали: Гра престолів, Пуститися берега, Друзі, ВандаВіжн, Чорне дзеркало..."
+              placeholder={t('series.search_placeholder')}
               className="flex-1 px-6 py-5 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-lg placeholder-gray-500 transition"
             />
             <button
@@ -186,7 +188,7 @@ const DashboardSeries: React.FC = () => {
               disabled={loading}
               className="px-12 py-5 bg-green-600 hover:bg-green-700 disabled:bg-green-800 rounded-xl font-bold text-lg transition shadow-lg"
             >
-              {loading && searchMode ? "Шукаємо..." : "Знайти"}
+              {loading && searchMode ? t('common.searching') : t('common.find_button')}
             </button>
           </div>
         </form>
@@ -199,7 +201,7 @@ const DashboardSeries: React.FC = () => {
 
         {loading && displaySeries.length === 0 && (
           <div className="text-center text-2xl py-20">
-            {searchMode ? "Шукаємо серіали..." : "Завантажуємо топ серіалів..."}
+            {searchMode ? t('series.searching') : t('series.loading')}
           </div>
         )}
 
@@ -207,47 +209,73 @@ const DashboardSeries: React.FC = () => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
               {displaySeries.map((series) => (
-                <Link
-                  key={series.id}
-                  to={`/details/tv/${series.id}`}
-                  className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
-                >
-                  {series.poster_path ? (
-                    <img
-                      src={`${TMDB_IMG_BASE}${series.poster_path}`}
-                      alt={series.name}
-                      className="w-full h-80 object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                      <span className="text-gray-500 text-center px-4">
-                        Постер відсутній
-                      </span>
-                    </div>
-                  )}
-                  <div className="p-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs bg-blue-600 px-2 py-1 rounded">
-                        Серіал
-                      </span>
-                    </div>
-                    <h3
-                      className="text-lg font-semibold line-clamp-2"
-                      title={series.name}
-                    >
-                      {series.name}
-                    </h3>
-                    <p className="text-gray-400 mt-2 text-sm">
-                      {series.first_air_date?.slice(0, 4) || "Невідомо"} рік
-                    </p>
-                    {series.vote_average > 0 && (
-                      <p className="text-blue-400 mt-2 font-bold">
-                        ⭐ {series.vote_average.toFixed(1)}
-                      </p>
+                <div key={series.id} className="group relative">
+                  <Link
+                    to={`/details/tv/${series.id}`}
+                    className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
+                  >
+                    {series.poster_path ? (
+                      <img
+                        src={`${TMDB_IMG_BASE}${series.poster_path}`}
+                        alt={series.name}
+                        className="w-full h-80 object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
+                        <span className="text-gray-500 text-center px-4">
+                          {t('common.no_image')}
+                        </span>
+                      </div>
                     )}
-                  </div>
-                </Link>
+                    <div className="p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs bg-blue-600 px-2 py-1 rounded">
+                          Серіал
+                        </span>
+                      </div>
+                      <h3
+                        className="text-lg font-semibold line-clamp-2"
+                        title={series.name}
+                      >
+                        {series.name}
+                      </h3>
+                      <p className="text-gray-400 mt-2 text-sm">
+                        {series.first_air_date?.slice(0, 4) || "Невідомо"} рік
+                      </p>
+                      {series.vote_average > 0 && (
+                        <p className="text-blue-400 mt-2 font-bold">
+                          ⭐ {series.vote_average.toFixed(1)}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleFavorite({
+                        id: series.id,
+                        mediaType: 'tv',
+                        title: series.name,
+                        posterPath: series.poster_path,
+                        voteAverage: series.vote_average,
+                        releaseDate: series.first_air_date,
+                      });
+                      const isFav = isFavorite(series.id, 'tv');
+                      if (isFav) {
+                        toast.success(t('favorites.removed'));
+                      } else {
+                        toast.success(t('favorites.added'));
+                      }
+                    }}
+                    className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                  >
+                    <Heart
+                      size={24}
+                      className={isFavorite(series.id, 'tv') ? 'fill-red-500 text-red-500' : 'text-white'}
+                    />
+                  </button>
+                </div>
               ))}
             </div>
 
@@ -258,7 +286,7 @@ const DashboardSeries: React.FC = () => {
                   disabled={loading}
                   className="px-10 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 rounded-xl font-bold text-xl transition shadow-lg"
                 >
-                  Показати ще
+                  {t('common.load_more')}
                 </button>
               </div>
             )}

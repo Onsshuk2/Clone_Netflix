@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import SimpleHeroSlider from "../../lib/Slider";
 
+import { useLanguage } from "../../contexts/LanguageContext";
+
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
 const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
@@ -20,6 +22,7 @@ interface Movie {
 }
 
 const WelcomeDashboard: React.FC = () => {
+  const { t } = useLanguage();
   const [nowPlaying, setNowPlaying] = useState<Movie[]>([]);
   const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
   const [popularTv, setPopularTv] = useState<Movie[]>([]);
@@ -158,6 +161,7 @@ const WelcomeDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+       
         {/* Слайдер з новинками */}
         {!loading && <SimpleHeroSlider movies={nowPlaying} />}
 
@@ -168,7 +172,7 @@ const WelcomeDashboard: React.FC = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Пошук: Пуститися берега, Декстер, Наруто, Оппенгеймер..."
+              placeholder={t('dashboard.search')}
               className="flex-1 px-8 py-6 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-xl placeholder-gray-500 transition"
             />
             <button
@@ -176,7 +180,7 @@ const WelcomeDashboard: React.FC = () => {
               disabled={loading}
               className="px-16 py-6 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-xl font-bold text-xl transition shadow-lg"
             >
-              Знайти
+              {t('dashboard.find')}
             </button>
           </div>
         </form>
@@ -187,7 +191,7 @@ const WelcomeDashboard: React.FC = () => {
               onClick={resetSearch}
               className="px-8 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold text-lg transition shadow"
             >
-              ← Повернутись до головної
+              {t('dashboard.back')}
             </button>
           </div>
         )}
@@ -199,14 +203,14 @@ const WelcomeDashboard: React.FC = () => {
         )}
 
         {loading && (
-          <div className="text-center text-2xl py-20">Завантажуємо контент...</div>
+          <div className="text-center text-2xl py-20">{t('dashboard.loading')}</div>
         )}
 
         {/* Результати пошуку */}
         {!loading && searchMode && searchResults.length > 0 && (
           <div className="mb-20">
             <h2 className="text-4xl font-bold text-center mb-12">
-              Результати пошуку: "{searchTerm}"
+              {t('dashboard.search_results')} "{searchTerm}"
             </h2>
             {renderGrid(searchResults, searchResults[0]?.media_type === "tv" ? "tv" : "movie")}
           </div>
@@ -216,12 +220,12 @@ const WelcomeDashboard: React.FC = () => {
         {!loading && !searchMode && (
           <>
             <section className="mt-12 mb-24">
-              <h2 className="text-4xl font-bold text-center mb-12">Топ 20 популярних фільмів</h2>
+              <h2 className="text-4xl font-bold text-center mb-12">{t('dashboard.top_movies')}</h2>
               {renderGrid(popularMovies, "movie")}
             </section>
 
             <section className="mb-20">
-              <h2 className="text-4xl font-bold text-center mb-12">Топ 20 популярних серіалів</h2>
+              <h2 className="text-4xl font-bold text-center mb-12">{t('dashboard.top_series')}</h2>
               {renderGrid(popularTv, "tv")}
             </section>
           </>
