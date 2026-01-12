@@ -2,8 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import SimpleHeroSlider from "../../lib/Slider";
+import { Heart } from "lucide-react";
+import toast from "react-hot-toast";
 
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useFavorites } from "../../lib/useFavorites";
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
@@ -22,7 +25,8 @@ interface Movie {
 }
 
 const WelcomeDashboard: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, getTMDBLanguage } = useLanguage();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [nowPlaying, setNowPlaying] = useState<Movie[]>([]);
   const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
   const [popularTv, setPopularTv] = useState<Movie[]>([]);
@@ -37,15 +41,16 @@ const WelcomeDashboard: React.FC = () => {
     "Content-Type": "application/json;charset=utf-8",
   };
 
-  // Завантаження контенту
+  // Завантаження контенту з урахуванням мови
   useEffect(() => {
     const loadContent = async () => {
       setLoading(true);
+      const language = getTMDBLanguage();
       try {
         const [nowRes, popMoviesRes, popTvRes] = await Promise.all([
-          fetch(`${TMDB_API_URL}/movie/now_playing?language=uk-UA&page=1`, { headers: authHeaders }),
-          fetch(`${TMDB_API_URL}/movie/popular?language=uk-UA&page=1`, { headers: authHeaders }),
-          fetch(`${TMDB_API_URL}/tv/popular?language=uk-UA&page=1`, { headers: authHeaders }),
+          fetch(`${TMDB_API_URL}/movie/now_playing?language=${language}&page=1`, { headers: authHeaders }),
+          fetch(`${TMDB_API_URL}/movie/popular?language=${language}&page=1`, { headers: authHeaders }),
+          fetch(`${TMDB_API_URL}/tv/popular?language=${language}&page=1`, { headers: authHeaders }),
         ]);
 
         if (nowRes.ok) {
@@ -69,7 +74,7 @@ const WelcomeDashboard: React.FC = () => {
     };
 
     loadContent();
-  }, []);
+  }, [getTMDBLanguage]);
 
   // === ПРОСТА ЛОГІКА: ЗАВЖДИ ПРОКРУЧУВАТИ ВГОРУ ПРИ МОНТУВАННІ СТОРІНКИ ===
   useEffect(() => {
@@ -82,10 +87,11 @@ const WelcomeDashboard: React.FC = () => {
 
     setLoading(true);
     setSearchMode(true);
+    const language = getTMDBLanguage();
 
     try {
       const response = await fetch(
-        `${TMDB_API_URL}/search/multi?language=uk-UA&query=${encodeURIComponent(searchTerm.trim())}&include_adult=false`,
+        `${TMDB_API_URL}/search/multi?language=${language}&query=${encodeURIComponent(searchTerm.trim())}&include_adult=false`,
         { headers: authHeaders }
       );
       if (response.ok) {
@@ -117,42 +123,70 @@ const WelcomeDashboard: React.FC = () => {
         const type = (item.media_type as "movie" | "tv") || mediaType;
 
         return (
-          <Link
-            key={item.id}
-            to={`/details/${type}/${item.id}`}
-            className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
-          >
-            {item.poster_path ? (
-              <img
-                src={`${TMDB_IMG_BASE}${item.poster_path}`}
-                alt={item.title || item.name}
-                className="w-full h-80 object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                <span className="text-gray-500 text-center px-4">
-                  Постер відсутній
-                </span>
-              </div>
-            )}
-
-            <div className="p-5">
-              <h3 className="text-lg font-semibold line-clamp-2">
-                {item.title || item.name}
-              </h3>
-              <p className="text-gray-400 text-sm mt-2">
-                {(item.release_date || item.first_air_date || "").slice(0, 4) ||
-                  "Невідомо"}{" "}
-                рік
-              </p>
-              {item.vote_average > 0 && (
-                <p className="text-yellow-400 mt-2 font-bold">
-                  ⭐ {item.vote_average.toFixed(1)}
-                </p>
+          <div key={item.id} className="group relative">
+            <Link
+              to={`/details/${type}/${item.id}`}
+              className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
+            >
+              {item.poster_path ? (
+                <img
+                  src={`${TMDB_IMG_BASE}${item.poster_path}`}
+                  alt={item.title || item.name}
+                  className="w-full h-80 object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
+                  <span className="text-gray-500 text-center px-4">
+                    {t('common.poster_missing')}
+                  </span>
+                </div>
               )}
-            </div>
-          </Link>
+
+              <div className="p-5 min-h-[120px] flex flex-col justify-between">
+                <h3 className="text-lg font-semibold break-words">
+                  {item.title || item.name}
+                </h3>
+                <div>
+                  <p className="text-gray-400 text-sm">
+                    {(item.release_date || item.first_air_date || "").slice(0, 4) ||
+                      t('common.unknown')}{" "}
+                    {t('common.year')}
+                  </p>
+                  {item.vote_average > 0 && (
+                    <p className="text-yellow-400 mt-1 font-bold">
+                      ⭐ {item.vote_average.toFixed(1)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Link>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                toggleFavorite({
+                  id: item.id,
+                  mediaType: type,
+                  title: item.title || item.name || 'Unknown',
+                  posterPath: item.poster_path,
+                  voteAverage: item.vote_average,
+                  releaseDate: item.release_date || item.first_air_date,
+                });
+                const isFav = isFavorite(item.id, type);
+                if (isFav) {
+                  toast.success(t('favorites.removed'));
+                } else {
+                  toast.success(t('favorites.added'));
+                }
+              }}
+              className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
+            >
+              <Heart
+                size={24}
+                className={isFavorite(item.id, type) ? 'fill-red-500 text-red-500' : 'text-white'}
+              />
+            </button>
+          </div>
         );
       })}
     </div>

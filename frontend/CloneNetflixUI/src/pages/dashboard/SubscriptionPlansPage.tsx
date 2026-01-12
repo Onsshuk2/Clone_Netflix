@@ -12,11 +12,13 @@ import {
   Zap,
   Lock,
 } from "lucide-react";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const SubscriptionPlansPage: React.FC = () => {
+  const { t, language } = useLanguage();
   const googlePayBaseConfig = {
     environment: "TEST" as const, // Змініть на "PRODUCTION" після налаштування
-    buttonLocale: "uk",
+    buttonLocale: language === 'uk' ? "uk" : "en",
     buttonType: "subscribe" as const,
     buttonSizeMode: "fill" as const,
   };
@@ -27,11 +29,10 @@ const SubscriptionPlansPage: React.FC = () => {
         {/* Заголовок сторінки */}
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-black mb-6 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            Оберіть свій план
+            {t('subscription.choose_plan')}
           </h1>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            Дивіться фільми, серіали, аніме та мультфільми без обмежень. 
-            Оберіть ідеальний план для себе чи всієї родини.
+            {t('subscription.choose_plan_desc')}
           </p>
         </div>
 
@@ -40,33 +41,33 @@ const SubscriptionPlansPage: React.FC = () => {
           {/* ========== БАЗОВИЙ ========== */}
           <div className="relative bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 hover:border-gray-700 transition-all duration-300">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold mb-2">Базовий</h2>
-              <p className="text-4xl font-black text-gray-100">Безкоштовно</p>
-              <p className="text-gray-500 mt-2">З рекламою</p>
+              <h2 className="text-2xl font-bold mb-2">{t('subscription.basic')}</h2>
+              <p className="text-4xl font-black text-gray-100">{t('subscription.basic_free')}</p>
+              <p className="text-gray-500 mt-2">{t('subscription.basic_with_ads')}</p>
             </div>
 
             <ul className="space-y-5 mb-10">
               <li className="flex items-start gap-4">
                 <Check className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">Доступ до тисяч фільмів</p>
-                  <p className="text-sm text-gray-500">Класика та хіти</p>
+                  <p className="font-medium">{t('subscription.basic_access')}</p>
+                  <p className="text-sm text-gray-500">{t('subscription.basic_access_desc')}</p>
                 </div>
               </li>
               <li className="flex items-start gap-4">
                 <Check className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">Персональні рекомендації</p>
+                  <p className="font-medium">{t('subscription.basic_recommendations')}</p>
                 </div>
               </li>
               <li className="flex items-start gap-4">
                 <X className="w-6 h-6 text-gray-600 flex-shrink-0 mt-0.5" />
-                <p className="text-gray-500">HD, без реклами, офлайн, 4K</p>
+                <p className="text-gray-500">{t('subscription.basic_no_features')}</p>
               </li>
             </ul>
 
             <button className="w-full py-4 rounded-2xl font-bold text-lg bg-gray-800 hover:bg-gray-700 transition">
-              Продовжити з Базовим
+              {t('subscription.basic_continue')}
             </button>
           </div>
 
@@ -76,42 +77,42 @@ const SubscriptionPlansPage: React.FC = () => {
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
               <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-sm font-bold text-white rounded-full shadow-2xl whitespace-nowrap">
                 <Sparkles className="w-4 h-4" />
-                Найпопулярніший
+                {t('subscription.most_popular')}
               </span>
             </div>
 
             <div className="text-center mb-8 mt-4">
-              <h2 className="text-2xl font-bold mb-2">Стандарт</h2>
+              <h2 className="text-2xl font-bold mb-2">{t('subscription.standard')}</h2>
               <p className="text-5xl font-black text-white">
-                199 <span className="text-xl font-normal text-gray-400">грн/міс</span>
+                199 <span className="text-xl font-normal text-gray-400">{t('subscription.standard_price')}</span>
               </p>
-              <p className="text-indigo-300 mt-2">Full HD + без реклами</p>
+              <p className="text-indigo-300 mt-2">{t('subscription.standard_features')}</p>
             </div>
 
             <ul className="space-y-5 mb-10">
               <li className="flex items-start gap-4">
                 <Check className="w-6 h-6 text-indigo-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">Все з Базового</p></div>
+                <div><p className="font-medium">{t('subscription.standard_all_basic')}</p></div>
               </li>
               <li className="flex items-start gap-4">
                 <Zap className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">Full HD 1080p</p></div>
+                <div><p className="font-medium">{t('subscription.standard_full_hd')}</p></div>
               </li>
               <li className="flex items-start gap-4">
                 <Tv className="w-6 h-6 text-indigo-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">Без реклами</p></div>
+                <div><p className="font-medium">{t('subscription.standard_no_ads')}</p></div>
               </li>
               <li className="flex items-start gap-4">
                 <Download className="w-6 h-6 text-indigo-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">Офлайн завантаження</p></div>
+                <div><p className="font-medium">{t('subscription.standard_offline')}</p></div>
               </li>
               <li className="flex items-start gap-4">
                 <Users className="w-6 h-6 text-indigo-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">До 2 пристроїв одночасно</p></div>
+                <div><p className="font-medium">{t('subscription.standard_devices')}</p></div>
               </li>
               <li className="flex items-start gap-4">
                 <Shield className="w-6 h-6 text-indigo-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">Батьківський контроль</p></div>
+                <div><p className="font-medium">{t('subscription.standard_parental')}</p></div>
               </li>
             </ul>
 
@@ -125,7 +126,7 @@ const SubscriptionPlansPage: React.FC = () => {
                                  flex items-center justify-center gap-4 
                                  border border-indigo-500/30 relative overflow-hidden">
                 <Lock className="w-7 h-7 text-white/90" />
-                <span>Оформити Стандарт</span>
+                <span>{t('subscription.standard_subscribe')}</span>
                 <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
               </button>
 
@@ -178,29 +179,29 @@ const SubscriptionPlansPage: React.FC = () => {
           {/* ========== ПРЕМІУМ ========== */}
           <div className="relative bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 hover:border-gray-700 transition-all duration-300">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold mb-2">Преміум</h2>
+              <h2 className="text-2xl font-bold mb-2">{t('subscription.premium')}</h2>
               <p className="text-5xl font-black text-white">
-                299 <span className="text-xl font-normal text-gray-400">грн/міс</span>
+                299 <span className="text-xl font-normal text-gray-400">{t('subscription.standard_price')}</span>
               </p>
-              <p className="text-purple-300 mt-2">4K + вся родина</p>
+              <p className="text-purple-300 mt-2">{t('subscription.premium_features')}</p>
             </div>
 
             <ul className="space-y-5 mb-10">
               <li className="flex items-start gap-4">
                 <Check className="w-6 h-6 text-purple-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">Все зі Стандарту</p></div>
+                <div><p className="font-medium">{t('subscription.premium_all_standard')}</p></div>
               </li>
               <li className="flex items-start gap-4">
                 <Sparkles className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">4K Ultra HD + HDR</p></div>
+                <div><p className="font-medium">{t('subscription.premium_4k')}</p></div>
               </li>
               <li className="flex items-start gap-4">
                 <Users className="w-6 h-6 text-purple-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">До 4 пристроїв одночасно</p></div>
+                <div><p className="font-medium">{t('subscription.premium_devices')}</p></div>
               </li>
               <li className="flex items-start gap-4">
                 <Check className="w-6 h-6 text-purple-400 flex-shrink-0 mt-0.5" />
-                <div><p className="font-medium">Ексклюзивні прем'єри</p></div>
+                <div><p className="font-medium">{t('subscription.premium_exclusive')}</p></div>
               </li>
             </ul>
 
@@ -214,7 +215,7 @@ const SubscriptionPlansPage: React.FC = () => {
                                  flex items-center justify-center gap-4 
                                  border border-purple-500/30 relative overflow-hidden">
                 <Lock className="w-7 h-7 text-white/90" />
-                <span>Оформити Преміум</span>
+                <span>{t('subscription.premium_subscribe')}</span>
                 <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
               </button>
 
@@ -268,7 +269,7 @@ const SubscriptionPlansPage: React.FC = () => {
         {/* Нижній текст */}
         <div className="text-center mt-20">
           <p className="text-gray-500 text-sm">
-            Безпечна оплата через Google Pay • Скасувати можна будь-коли • Без зобов'язань
+            {t('subscription.footer')}
           </p>
         </div>
       </div>
