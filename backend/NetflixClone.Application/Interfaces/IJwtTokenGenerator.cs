@@ -9,5 +9,5 @@ namespace NetflixClone.Application.Interfaces;
 
 public interface IJwtTokenGenerator
 {
-    string GenerateToken(User user);
+    string GenerateToken(User user, IList<string> roles);
 }

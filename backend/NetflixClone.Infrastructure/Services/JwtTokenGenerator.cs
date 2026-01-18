@@ -18,14 +18,19 @@ class JwtTokenGenerator : IJwtTokenGenerator
         _config = config;
     }
 
-    public string GenerateToken(User user)
+    public string GenerateToken(User user, IList<string> roles)
     {
         var claims = new List<Claim>
+    {
+        new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+        new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+        new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName!)
+    };
+
+        foreach (var role in roles)
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email!),
-            new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName!)
-        };
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JwtSettings:Secret"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using NetflixClone.Application.Common.Behaviors;
+using System.Reflection;
 
 namespace NetflixClone.Application;
 
@@ -17,6 +18,7 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(assembly);
+        services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
         return services;
     }

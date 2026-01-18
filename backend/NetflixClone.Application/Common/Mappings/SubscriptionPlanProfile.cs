@@ -1,0 +1,17 @@
+﻿using AutoMapper;
+using NetflixClone.Application.UseCases.SubscriptionPlans.Commands.CreatePlan;
+using NetflixClone.Application.UseCases.SubscriptionPlans.Commands.UpdatePlan;
+using NetflixClone.Application.UseCases.SubscriptionPlans.Queries;
+using NetflixClone.Domain.Entities;
+
+namespace NetflixClone.Application.Common.Mappings;
+
+public class SubscriptionPlanProfile : Profile
+{
+    public SubscriptionPlanProfile()
+    {
+        CreateMap<CreateSubscriptionPlanCommand, SubscriptionPlan>();
+        CreateMap<UpdateSubscriptionPlanCommand, SubscriptionPlan>();
+        CreateMap<SubscriptionPlan, SubscriptionPlanDto>();
+    }
+}

@@ -19,7 +19,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
     public async Task<AuthResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         if (request.Password != request.ConfirmPassword)
-            throw new Exception("Password do not match");
+            throw new Exception("Passwords do not match");
 
         var user = new User
         {
@@ -37,13 +37,18 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
             throw new Exception($"Registration failed: {errors}");
         }
 
-        var token = _jwtTokenGenerator.GenerateToken(user);
+        await _userManager.AddToRoleAsync(user, "User");
 
-        return new AuthResponse(
-            user.Id,
-            user.UserName!,
-            user.Email!,
-            token
-        );
+        var roles = await _userManager.GetRolesAsync(user);
+
+        var token = _jwtTokenGenerator.GenerateToken(user, roles);
+
+        return new AuthResponse
+        {
+            Id = user.Id,
+            UserName = user.UserName!,
+            Email = user.Email!,
+            Token = token
+        };
     }
 }
