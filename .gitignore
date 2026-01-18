@@ -1,5 +1,5 @@
 # -------------------------
-# 1. ЗАГАЛЬНІ СИСТЕМНІ ФАЙЛИ ТА IDE
+# 1. пїЅпїЅпїЅпїЅпїЅпїЅНІ пїЅпїЅпїЅпїЅпїЅпїЅНІ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ IDE
 # -------------------------
 .DS_Store
 Thumbs.db
@@ -12,19 +12,19 @@ Thumbs.db
 # -------------------------
 # 2. REACT / VITE (frontend/CloneNetflixUI)
 # -------------------------
-# Залежності Node (обов'язково ігнорувати!)
+# пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ Node (пїЅпїЅпїЅпїЅ'пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ!)
 /frontend/CloneNetflixUI/node_modules/
 
-# Результати збірки (Production build)
+# пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (Production build)
 /frontend/CloneNetflixUI/dist/
 /frontend/CloneNetflixUI/build/
 
-# Файли середовища (конфігурація, чутливі дані)
+# пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ)
 /frontend/CloneNetflixUI/.env
 /frontend/CloneNetflixUI/.env.local
 /frontend/CloneNetflixUI/.env.*.local
 
-# Кеші та тимчасові файли Vite/npm
+# пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ Vite/npm
 /frontend/CloneNetflixUI/.vite/
 /frontend/CloneNetflixUI/.npm/
 npm-debug.log
@@ -32,32 +32,30 @@ yarn-error.log
 pnpm-debug.log
 
 # -------------------------
-# 3. ASP.NET CORE / .NET (backend/CloneNetflixApi)
+# 3. ASP.NET CORE / .NET
 # -------------------------
-# Вихідні папки компіляції (обов'язково ігнорувати!)
-/backend/CloneNetflixApi/[Bb]in/
-/backend/CloneNetflixApi/[Oo]bj/
-# Загальні вихідні папки (на випадок, якщо вони будуть на рівні backend)
-/[Bb]in/
-/[Oo]bj/
+# Р†РіРЅРѕСЂСѓС”РјРѕ РІСЃС– РїР°РїРєРё bin С‚Р° obj Сѓ Р±СѓРґСЊ-СЏРєРѕРјСѓ РјС–СЃС†С– РїСЂРѕРµРєС‚Сѓ
+[Bb]in/
+[Oo]bj/
 
-# Файли NuGet
-*.nupkg
-*.snupkg
-# Закешовані пакети та конфігурація
-packages/
-
-# Налаштування користувача та IDE (унікальні для розробника)
+# РљРѕСЂРёСЃС‚СѓРІР°С†СЊРєС– РЅР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ Visual Studio
+.vs/
 *.user
 *.userosscache
 *.suo
 *.sln.docstates
 
-# Файли символів та діагностики
-*.pdb
-*.bak
+# Р¤Р°Р№Р»Рё СЃРµРєСЂРµС‚С–РІ (РґСѓР¶Рµ РІР°Р¶Р»РёРІРѕ!)
+# РЎРµРєСЂРµС‚Рё РЅРµ РјР°СЋС‚СЊ Р±СѓС‚Рё РІ Р“С–С‚С–
+appsettings.Development.json
+UserSecretsId
 
-# Журнали та дампи
+# РўРёРјС‡Р°СЃРѕРІС– С„Р°Р№Р»Рё С‚Р° Р»РѕРіС–
 *.log
-*.zip
-*.tar
+*.tmp
+.staticwebassets.runtime.json
+
+# Р‘Р°Р·Рё РґР°РЅРёС… (СЏРєС‰Рѕ РІРёРєРѕСЂРёСЃС‚РѕРІСѓС”С€ Р»РѕРєР°Р»СЊРЅС– С„Р°Р№Р»Рё)
+*.db
+*.db-shm
+*.db-wal
