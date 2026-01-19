@@ -4,6 +4,9 @@ using NetflixClone.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.Extensions.FileProviders;
+using NetflixClone.Application.Interfaces;
+using NetflixClone.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +26,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IImageService, ImageService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -53,6 +57,19 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+var dirImageName = builder.Configuration
+    .GetValue<string>("DirImageName") ?? "duplo";
+
+// Console.WriteLine("Image dir {0}", dirImageName);
+var path = Path.Combine(Directory.GetCurrentDirectory(), dirImageName);
+Directory.CreateDirectory(dirImageName);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(path),
+    RequestPath = $"/{dirImageName}"
+});
 
 app.UseHttpsRedirection();
 
