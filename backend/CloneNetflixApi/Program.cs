@@ -1,19 +1,25 @@
 using CloneNetflix.API;
 using CloneNetflix.API.Middleware;
 using NetflixClone.Application;
+using NetflixClone.Application.Interfaces;
 using NetflixClone.Infrastructure;
 using NetflixClone.Infrastructure.Persistence;
+using NetflixClone.Infrastructure.Services;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Підключення шарів архітектури
-builder.Services.AddPresentation(); // Налаштування Swagger, CORS, Controllers
+// 1. Р РµС”СЃС‚СЂР°С†С–СЏ СЃРµСЂРІС–СЃС–РІ (DI Container)
+builder.Services.AddPresentation(); // Swagger, CORS, Controllers
 builder.Services.AddApplication();   // MediatR, FluentValidation
 builder.Services.AddInfrastructure(builder.Configuration); // DB, Identity, JWT
 
+// ImageService
+builder.Services.AddScoped<IImageService, ImageService>();
+
 var app = builder.Build();
 
-// 2. Сидинг бази даних (Ролі та Адмін)
+// 2. РЎРёРґРёРЅРі Р±Р°Р·Рё РґР°РЅРёС… (Р РѕР»С– С‚Р° РђРґРјС–РЅ)
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -23,11 +29,11 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Помилка під час сидингу бази даних.");
+        logger.LogError(ex, "РџРѕРјРёР»РєР° РїС–Рґ С‡Р°СЃ СЃРёРґРёРЅРіСѓ Р±Р°Р·Рё РґР°РЅРёС….");
     }
 }
 
-// 3. Конфігурація HTTP-конвеєра (Middleware)
+// 3. РљРѕРЅС„С–РіСѓСЂР°С†С–СЏ HTTP-РєРѕРЅРІРµС”СЂР° (Middleware)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -36,8 +42,19 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// 4. РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ СЃС‚Р°С‚РёС‡РЅРёС… С„Р°Р№Р»С–РІ РґР»СЏ Р·РѕР±СЂР°Р¶РµРЅСЊ
+var dirImageName = builder.Configuration.GetValue<string>("DirImageName") ?? "duplo";
+var path = Path.Combine(Directory.GetCurrentDirectory(), dirImageName);
+Directory.CreateDirectory(path);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(path),
+    RequestPath = $"/{dirImageName}"
+});
+
 app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+app.UseCors("AllowAll"); // РџРѕР»С–С‚РёРєР° РјР°С” Р±СѓС‚Рё РІРёР·РЅР°С‡РµРЅР° РІ AddPresentation()
 
 app.UseAuthentication();
 app.UseAuthorization();

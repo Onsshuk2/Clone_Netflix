@@ -9,11 +9,13 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
 {
     private readonly UserManager<User> _userManager;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IImageService _imageService;
 
-    public RegisterCommandHandler(UserManager<User> userManager, IJwtTokenGenerator jwtTokenGenerator)
+    public RegisterCommandHandler(UserManager<User> userManager, IJwtTokenGenerator jwtTokenGenerator, IImageService imageService)
     {
         _userManager = userManager;
         _jwtTokenGenerator = jwtTokenGenerator;
+        _imageService = imageService;
     }
 
     public async Task<AuthResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -28,6 +30,11 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
             DateOfBirth = request.DateOfBirth,
             CreatedAt = DateTime.UtcNow
         };
+        
+        if (request.Image != null)
+        {
+            user.AvatarUrl = await _imageService.UploadImageAsync(request.Image);
+        }
 
         var result = await _userManager.CreateAsync(user, request.Password);
 
