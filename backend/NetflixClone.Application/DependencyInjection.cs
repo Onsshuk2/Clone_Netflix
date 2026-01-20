@@ -1,10 +1,10 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using NetflixClone.Application.Common.Behaviors;
+using System.Reflection;
 
 namespace NetflixClone.Application;
 
-// Просто конфігурація, щоб не засоряти Program.cs пишемо тут
 public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
@@ -17,6 +17,8 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(assembly);
+        services.AddAutoMapper(assembly);
+
         return services;
     }
 }

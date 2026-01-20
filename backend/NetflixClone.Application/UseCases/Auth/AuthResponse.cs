@@ -1,9 +1,9 @@
 ﻿namespace NetflixClone.Application.UseCases.Auth;
 
-//Просто модель яку ми повертаємо в контролер
-public record AuthResponse(
-    Guid Id,
-    string UserName,
-    string Email,
-    string Token
-);
+public class AuthResponse
+{
+    public Guid Id { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
+}

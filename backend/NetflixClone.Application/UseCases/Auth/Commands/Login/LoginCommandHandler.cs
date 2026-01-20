@@ -1,7 +1,6 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Identity;
 using NetflixClone.Application.Interfaces;
-using NetflixClone.Application.UseCases.Auth;
 using NetflixClone.Domain.Entities;
 
 namespace NetflixClone.Application.UseCases.Auth.Commands.Login;
@@ -23,7 +22,7 @@ class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponse>
 
         if (user == null)
         {
-            throw new Exception("Invalid email ot password");
+            throw new Exception("Invalid email or password");
         }
 
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
@@ -33,14 +32,17 @@ class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponse>
             throw new Exception("Invalid email or password");
         }
 
-        var token = _jwtTokenGenerator.GenerateToken(user);
+        var roles = await _userManager.GetRolesAsync(user);
 
-        return new AuthResponse(
-            user.Id,
-            user.UserName!,
-            user.Email!,
-            token
-        );
+        var token = _jwtTokenGenerator.GenerateToken(user, roles);
+
+        return new AuthResponse
+        {
+            Id = user.Id,
+            UserName = user.UserName!,
+            Email = user.Email!,
+            Token = token
+        };
     }
 }
 

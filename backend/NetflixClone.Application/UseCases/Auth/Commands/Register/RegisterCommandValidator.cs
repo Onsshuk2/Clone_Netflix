@@ -6,6 +6,9 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 {
     public RegisterCommandValidator()
     {
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var minDate = today.AddYears(-120);
+
         RuleFor(x => x.UserName)
             .NotEmpty().WithMessage("Username is required")
             .MinimumLength(3).WithMessage("Username must be at least 3 characters long");
@@ -25,8 +28,8 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
             .Equal(x => x.Password).WithMessage("Passwords do not match");
 
         RuleFor(x => x.DateOfBirth)
-            .NotEmpty().WithMessage("Date of birth is required")
-            .LessThan(DateTime.UtcNow).WithMessage("Date of birth cannot be in the future")
-            .GreaterThan(DateTime.UtcNow.AddYears(-120)).WithMessage("Please enter a realistic date of birth (not older than 120 years)");
+            .NotEmpty()
+            .LessThan(DateOnly.FromDateTime(DateTime.Now))
+            .WithMessage("Дата народження не може бути в майбутньому");
     }
 }

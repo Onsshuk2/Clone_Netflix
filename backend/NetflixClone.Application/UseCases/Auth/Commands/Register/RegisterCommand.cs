@@ -11,5 +11,5 @@ public class RegisterCommand : IRequest<AuthResponse>
     public string Password { get; set; } = string.Empty;
     public string ConfirmPassword { get; set; } = string.Empty;
     public IFormFile Image { get; set; } = null!;
-    public DateTime DateOfBirth { get; set; }
+    public DateOnly DateOfBirth { get; set; }
 }
