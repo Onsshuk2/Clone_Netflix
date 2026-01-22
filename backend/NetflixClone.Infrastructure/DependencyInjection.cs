@@ -9,7 +9,9 @@ using NetflixClone.Application.Interfaces;
 using NetflixClone.Domain.Entities;
 using NetflixClone.Domain.Interfaces;
 using NetflixClone.Infrastructure.Persistence;
+using NetflixClone.Infrastructure.Persistence.Interceptors;
 using NetflixClone.Infrastructure.Persistence.Repositories;
+using NetflixClone.Infrastructure.Persistence.Repositoriesl;
 using NetflixClone.Infrastructure.Services;
 using System.Text;
 
@@ -19,11 +21,16 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // 1. Налаштування бази даних (PostgreSQL)
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+        services.AddScoped<UpdateAuditableInterceptor>();
 
-        // 2. Налаштування ASP.NET Core Identity
+        services.AddDbContext<ApplicationDbContext>((sp, options) =>
+        {
+            var auditableInterceptor = sp.GetRequiredService<UpdateAuditableInterceptor>();
+
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"))
+                   .AddInterceptors(auditableInterceptor);
+        });
+
         services.AddIdentity<User, IdentityRole<Guid>>(options =>
         {
             options.Password.RequireDigit = false;
@@ -34,7 +41,6 @@ public static class DependencyInjection
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-        // 3. Налаштування JWT Аутентифікації
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -55,7 +61,6 @@ public static class DependencyInjection
                 ClockSkew = TimeSpan.Zero
             };
 
-            // Події для логування (допомагають при розробці на .NET 9)
             options.Events = new JwtBearerEvents
             {
                 OnAuthenticationFailed = context =>
@@ -73,9 +78,11 @@ public static class DependencyInjection
             };
         });
 
-        // 4. Реєстрація сервісів та репозиторіїв
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
+        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IImageService, ImageService>();
 
         return services;
     }

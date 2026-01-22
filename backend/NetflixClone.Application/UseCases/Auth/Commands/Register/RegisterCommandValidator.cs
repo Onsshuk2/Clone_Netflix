@@ -9,10 +9,6 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
         var today = DateOnly.FromDateTime(DateTime.Now);
         var minDate = today.AddYears(-120);
 
-        RuleFor(x => x.UserName)
-            .NotEmpty().WithMessage("Username is required")
-            .MinimumLength(3).WithMessage("Username must be at least 3 characters long");
-
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required")
             .EmailAddress().WithMessage("Invalid email format");

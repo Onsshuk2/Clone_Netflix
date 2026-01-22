@@ -1,4 +1,5 @@
 ﻿using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.FileProviders;
 
 namespace CloneNetflix.API;
 
@@ -48,5 +49,24 @@ public static class DependencyInjection
         });
 
         return services;
+    }
+
+    public static IApplicationBuilder UseImagesStaticFiles(this IApplicationBuilder app, IConfiguration configuration)
+    {
+        var dirImageName = configuration.GetValue<string>("DirImageName") ?? "duplo";
+        var path = Path.Combine(Directory.GetCurrentDirectory(), dirImageName);
+
+        if (!Directory.Exists(path))
+        {
+            Directory.CreateDirectory(path);
+        }
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(path),
+            RequestPath = $"/{dirImageName}"
+        });
+
+        return app;
     }
 }

@@ -37,4 +37,16 @@ public class UserRepository : BaseRepository<User>, IUserRepository
             await UpdateAsync(user);
         }
     }
+
+    // Для Create
+    public async Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default)
+    {
+        return await _dbSet.AnyAsync(u => u.Email == email, ct);
+    }
+
+    // Для Update
+    public async Task<bool> ExistsByEmailAsync(string email, Guid excludeUserId, CancellationToken ct = default)
+    {
+        return await _dbSet.AnyAsync(u => u.Email == email && u.Id != excludeUserId, ct);
+    }
 }

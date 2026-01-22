@@ -1,8 +1,8 @@
-﻿using MediatR;
+﻿using AutoMapper;
+using MediatR;
 using Microsoft.AspNetCore.Identity;
 using NetflixClone.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using AutoMapper;
 
 namespace NetflixClone.Application.UseCases.Users.Admin.Queries.GetAllUsers;
 
@@ -22,6 +22,8 @@ public class GetAllUsersHandler : IRequestHandler<GetAllUsersQuery, List<UserAdm
         var users = await _userManager.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+            .Include(u => u.Subscriptions)
+                .ThenInclude(s => s.Plan)
             .ToListAsync(cancellationToken);
 
         return _mapper.Map<List<UserAdminDto>>(users);

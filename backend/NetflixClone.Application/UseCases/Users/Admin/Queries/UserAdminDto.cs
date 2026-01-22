@@ -9,5 +9,7 @@ public class UserAdminDto
     public string? AvatarUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public IList<string> Roles { get; set; } = new List<string>();
+    public List<string> Roles { get; set; } = new();
+    public string? ActiveSubscriptionPlan { get; set; }
+    public DateTime? SubscriptionEndDate { get; set; }
 }

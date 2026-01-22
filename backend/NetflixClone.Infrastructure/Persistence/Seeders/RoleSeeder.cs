@@ -7,7 +7,7 @@ namespace NetflixClone.Infrastructure.Persistence.Seeders
     {
         public static async Task SeedAsync(RoleManager<IdentityRole<Guid>> roleManager)
         {
-            string[] roleNames = { Roles.Admin, Roles.User };
+            string[] roleNames = { RoleConstants.Admin, RoleConstants.User };
 
             foreach (var roleName in roleNames)
             {
