@@ -6,16 +6,12 @@ import { useFavorites } from "../../lib/useFavorites";
 import { Heart } from "lucide-react";
 import toast from "react-hot-toast";
 
-
-
-
-const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
-const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
-const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
+import { fetchTopAnime, searchAnime } from "../../api/tmdbDashboard";
 
 const DashboardAnime: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
+
   const [displayItems, setDisplayItems] = useState<any[]>([]);
   const [allItems, setAllItems] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
@@ -26,59 +22,25 @@ const DashboardAnime: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [topAnime, setTopAnime] = useState<any[]>([]);
 
-  const authHeaders = {
-    Authorization: `Bearer ${TMDB_TOKEN}`,
-    "Content-Type": "application/json;charset=utf-8",
-  };
+  const language = getTMDBLanguage();
 
-  const animeFilters =
-    "with_keywords=210024&with_genres=16&with_original_language=ja&vote_count.gte=50";
-
-  // Завантаження топ аніме при першому вході
   useEffect(() => {
     const loadTopAnime = async () => {
       setLoading(true);
       setError(null);
       setSearchMode(false);
+      setSearchTerm("");
+      setDisplaySearchTerm("");
 
       try {
-        const results: any[] = [];
-
-        // Топ аніме-фільми
-        for (let page = 1; page <= 3; page++) {
-          const res = await fetch(
-            `${TMDB_API_URL}/discover/movie?language=uk-UA&sort_by=vote_average.desc&page=${page}&${animeFilters}`,
-            { headers: authHeaders }
-          );
-          if (!res.ok) throw new Error("TMDB movie error");
-          const data = await res.json();
-          results.push(...(data.results || []));
-        }
-
-        // Топ аніме-серіали
-        for (let page = 1; page <= 3; page++) {
-          const res = await fetch(
-            `${TMDB_API_URL}/discover/tv?language=uk-UA&sort_by=vote_average.desc&page=${page}&${animeFilters}`,
-            { headers: authHeaders }
-          );
-          if (!res.ok) throw new Error("TMDB tv error");
-          const data = await res.json();
-          results.push(...(data.results || []));
-        }
-
-        const sorted = results
-          .sort((a: any, b: any) => b.vote_average - a.vote_average)
-          .slice(0, 100)
-          .map((item: any) => ({
-            ...item,
-            media_type: item.first_air_date ? "tv" : "movie",
-          }));
+        const sorted = await fetchTopAnime(language);
 
         setTopAnime(sorted);
         setAllItems(sorted);
         setVisibleCount(20);
         setDisplayItems(sorted.slice(0, 20));
       } catch (err) {
+        console.error("Помилка завантаження топ-аніме:", err);
         setError(t('anime.loading_error'));
         setAllItems([]);
         setDisplayItems([]);
@@ -88,21 +50,19 @@ const DashboardAnime: React.FC = () => {
     };
 
     loadTopAnime();
-  }, []);
+  }, [language, t]);
 
-  // === ПРОСТА ЛОГІКА: ЗАВЖДИ ПРОКРУЧУВАТИ ВГОРУ ПРИ МОНТУВАННІ СТОРІНКИ ===
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []); // Виконується один раз при першому рендері
+  }, []);
 
-  // Пошук аніме
-  const searchAnime = async (e: React.FormEvent) => {
+  const searchAnimeHandler = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
 
     const term = searchTerm.trim();
     if (term.length < 2) {
-      setError(t('series.search_min_chars'));
+      setError(t('series.search_min_chars') || "Мінімум 2 символи");
       return;
     }
 
@@ -113,39 +73,19 @@ const DashboardAnime: React.FC = () => {
     setDisplaySearchTerm(term);
 
     try {
-      const response = await fetch(
-        `${TMDB_API_URL}/search/multi?language=uk-UA&query=${encodeURIComponent(
-          term
-        )}&include_adult=false`,
-        { headers: authHeaders }
-      );
+      const results = await searchAnime(term, language, 1);
 
-      if (!response.ok) throw new Error("TMDB search error");
-
-      const data = await response.json();
-
-      const animeResults = (data.results || [])
-        .filter((item: any) => {
-          const isAnimeKeyword = item.keyword_ids?.includes(210024);
-          const isJapanese = item.original_language === "ja";
-          const isAnimation = item.genre_ids?.includes(16);
-          return (
-            (item.media_type === "movie" || item.media_type === "tv") &&
-            (isAnimeKeyword || (isJapanese && isAnimation))
-          );
-        })
-        .slice(0, 100);
-
-      if (animeResults.length > 0) {
-        setAllItems(animeResults);
-        setDisplayItems(animeResults.slice(0, 20));
+      if (results.length > 0) {
+        setAllItems(results);
+        setDisplayItems(results.slice(0, 20));
       } else {
-        setError(t('anime.search_error'));
+        setError(t('anime.search_error') || "Нічого не знайдено");
         setAllItems([]);
         setDisplayItems([]);
       }
     } catch (err) {
-      setError("Помилка пошуку. Перевірте інтернет або токен.");
+      console.error("Помилка пошуку аніме:", err);
+      setError(t('anime.connection_error') || "Помилка з'єднання");
       setAllItems([]);
       setDisplayItems([]);
     } finally {
@@ -153,7 +93,6 @@ const DashboardAnime: React.FC = () => {
     }
   };
 
-  // Повернення до топ-списку
   const resetToTopAnime = () => {
     setSearchMode(false);
     setSearchTerm("");
@@ -162,10 +101,9 @@ const DashboardAnime: React.FC = () => {
     setAllItems(topAnime);
     setVisibleCount(20);
     setDisplayItems(topAnime.slice(0, 20));
-    window.scrollTo(0, 0); // При поверненні до топу — теж вгору
+    window.scrollTo(0, 0);
   };
 
-  // Показати ще
   const loadMore = () => {
     if (loading) return;
     const nextCount = Math.min(visibleCount + 20, allItems.length);
@@ -194,7 +132,7 @@ const DashboardAnime: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={searchAnime} className="max-w-3xl mx-auto mb-16">
+        <form onSubmit={searchAnimeHandler} className="max-w-3xl mx-auto mb-16">
           <div className="flex flex-col sm:flex-row gap-4">
             <input
               type="text"
@@ -228,78 +166,76 @@ const DashboardAnime: React.FC = () => {
         {!loading && displayItems.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-              {displayItems.map((item) => (
-                <div key={item.id + item.media_type} className="group relative">
-                  <Link
-                    to={`/details/${item.media_type}/${item.id}`}
-                    className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
-                  >
-                    {item.poster_path ? (
-                      <img
-                        src={`${TMDB_IMG_BASE}${item.poster_path}`}
-                        alt={item.title || item.name}
-                        className="w-full h-80 object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                        <span className="text-gray-500 text-center px-4">
-                          {t('common.no_image')}
-                        </span>
-                      </div>
-                    )}
-                    <div className="p-5">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs bg-purple-600 px-2 py-1 rounded">
-                          {item.media_type === "tv" ? "Аніме-серіал" : "Аніме-фільм"}
-                        </span>
-                      </div>
-                      <h3
-                        className="text-lg font-semibold line-clamp-2"
-                        title={item.title || item.name}
-                      >
-                        {item.title || item.name}
-                      </h3>
-                      <p className="text-gray-400 mt-2 text-sm">
-                      {item.release_date?.slice(0, 4) ||
-                        item.first_air_date?.slice(0, 4) ||
-                        "Невідомо"}{" "}
-                      рік
-                    </p>
-                    {item.vote_average > 0 && (
-                      <p className="text-purple-400 mt-2 font-bold">
-                        ⭐ {item.vote_average.toFixed(1)}
-                      </p>
-                    )}
+              {displayItems.map((item) => {
+                const title = item.title || item.name || "Без назви";
+                const year =
+                  item.release_date?.slice(0, 4) ||
+                  item.first_air_date?.slice(0, 4) ||
+                  t('common.unknown');
+                const mediaType = item.media_type || (item.first_air_date ? "tv" : "movie");
+
+                return (
+                  <div key={`${item.id}-${mediaType}`} className="group relative h-full">
+                    <Link
+                      to={`/details/${mediaType}/${item.id}`}
+                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
+                    >
+                      {item.poster_path ? (
+                        <img
+                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`}
+                          alt={title}
+                          className="w-full h-80 object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
+                          <span className="text-gray-500 text-center px-4">
+                            {t('common.poster_missing')}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
+                        <h3 className="text-lg font-semibold break-words line-clamp-2">
+                          {title}
+                        </h3>
+                        <div>
+                          <p className="text-gray-400 text-sm">
+                            {year} {t('common.year')}
+                          </p>
+                          {item.vote_average > 0 && (
+                            <p className="text-purple-400 mt-1 font-bold">
+                              ⭐ {item.vote_average.toFixed(1)}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </Link>
+
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         toggleFavorite({
                           id: item.id,
-                          mediaType: item.media_type === 'tv' ? 'tv' : 'movie',
-                          title: item.title || item.name,
+                          mediaType,
+                          title,
                           posterPath: item.poster_path,
                           voteAverage: item.vote_average,
                           releaseDate: item.release_date || item.first_air_date,
                         });
-                        const isFav = isFavorite(item.id, item.media_type === 'tv' ? 'tv' : 'movie');
-                        if (isFav) {
-                          toast.success(t('favorites.removed'));
-                        } else {
-                          toast.success(t('favorites.added'));
-                        }
+                        const isFav = isFavorite(item.id, mediaType);
+                        toast.success(isFav ? t('favorites.removed') : t('favorites.added'));
                       }}
                       className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
                     >
                       <Heart
                         size={24}
-                        className={isFavorite(item.id, item.media_type === 'tv' ? 'tv' : 'movie') ? 'fill-red-500 text-red-500' : 'text-white'}
+                        className={isFavorite(item.id, mediaType) ? "fill-red-500 text-red-500" : "text-white"}
                       />
                     </button>
                   </div>
-              ))}
+                );
+              })}
             </div>
 
             {visibleCount < allItems.length && (
@@ -318,7 +254,7 @@ const DashboardAnime: React.FC = () => {
 
         {!loading && displayItems.length === 0 && !error && (
           <div className="text-center mt-32 text-3xl text-gray-500">
-            Введіть назву аніме для пошуку
+            {t('dashboard.enter_search') || "Введіть назву аніме для пошуку"}
           </div>
         )}
       </div>
