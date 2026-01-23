@@ -1,4 +1,5 @@
-// src/pages/WelcomeDashboard.tsx
+// src/pages/WelcomeDashboard.tsx   ← оновлена версія без прямих запитів
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import SimpleHeroSlider from "../../lib/Slider";
@@ -8,9 +9,10 @@ import toast from "react-hot-toast";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useFavorites } from "../../lib/useFavorites";
 
-const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
-const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
-const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
+import {
+  fetchDashboardInitialData,
+  searchMulti,
+} from "../../api/tmdbDashboard";   // ← імпортуємо звідси
 
 interface Movie {
   id: number;
@@ -36,35 +38,19 @@ const WelcomeDashboard: React.FC = () => {
   const [searchMode, setSearchMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const authHeaders = {
-    Authorization: `Bearer ${TMDB_TOKEN}`,
-    "Content-Type": "application/json;charset=utf-8",
-  };
+  const language = getTMDBLanguage(); // можна винесено, бо часто використовується
 
-  // Завантаження контенту з урахуванням мови
+  // Завантаження початкових даних
   useEffect(() => {
     const loadContent = async () => {
       setLoading(true);
-      const language = getTMDBLanguage();
       try {
-        const [nowRes, popMoviesRes, popTvRes] = await Promise.all([
-          fetch(`${TMDB_API_URL}/movie/now_playing?language=${language}&page=1`, { headers: authHeaders }),
-          fetch(`${TMDB_API_URL}/movie/popular?language=${language}&page=1`, { headers: authHeaders }),
-          fetch(`${TMDB_API_URL}/tv/popular?language=${language}&page=1`, { headers: authHeaders }),
-        ]);
+        const { nowPlaying, popularMovies, popularTv } =
+          await fetchDashboardInitialData(language);
 
-        if (nowRes.ok) {
-          const data = await nowRes.json();
-          setNowPlaying(data.results);
-        }
-        if (popMoviesRes.ok) {
-          const data = await popMoviesRes.json();
-          setPopularMovies(data.results);
-        }
-        if (popTvRes.ok) {
-          const data = await popTvRes.json();
-          setPopularTv(data.results);
-        }
+        setNowPlaying(nowPlaying);
+        setPopularMovies(popularMovies);
+        setPopularTv(popularTv);
       } catch (err) {
         console.error(err);
         setError("Помилка завантаження контенту");
@@ -74,12 +60,12 @@ const WelcomeDashboard: React.FC = () => {
     };
 
     loadContent();
-  }, [getTMDBLanguage]);
+  }, [language]); // залежність від мови — при зміні мови перезавантажуємо
 
-  // === ПРОСТА ЛОГІКА: ЗАВЖДИ ПРОКРУЧУВАТИ ВГОРУ ПРИ МОНТУВАННІ СТОРІНКИ ===
+  // ПРОКРУТКА ВГОРУ
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []); // Порожній масив залежностей — виконується тільки один раз при першому рендері
+  }, []);
 
   const searchContent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,24 +73,12 @@ const WelcomeDashboard: React.FC = () => {
 
     setLoading(true);
     setSearchMode(true);
-    const language = getTMDBLanguage();
 
     try {
-      const response = await fetch(
-        `${TMDB_API_URL}/search/multi?language=${language}&query=${encodeURIComponent(searchTerm.trim())}&include_adult=false`,
-        { headers: authHeaders }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        const filtered = data.results.filter(
-          (item: any) => item.media_type === "movie" || item.media_type === "tv"
-        );
-        setSearchResults(filtered.slice(0, 30));
-      } else {
-        setError("Помилка пошуку");
-      }
+      const results = await searchMulti(searchTerm.trim(), language);
+      setSearchResults(results.slice(0, 30));
     } catch {
-      setError("Помилка з'єднання");
+      setError("Помилка пошуку");
     } finally {
       setLoading(false);
     }
@@ -114,7 +88,7 @@ const WelcomeDashboard: React.FC = () => {
     setSearchMode(false);
     setSearchTerm("");
     setSearchResults([]);
-    window.scrollTo(0, 0); // При поверненні з пошуку — теж вгору
+    window.scrollTo(0, 0);
   };
 
   const renderGrid = (items: Movie[], mediaType: "movie" | "tv") => (
@@ -130,7 +104,7 @@ const WelcomeDashboard: React.FC = () => {
             >
               {item.poster_path ? (
                 <img
-                  src={`${TMDB_IMG_BASE}${item.poster_path}`}
+                  src={`${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`}
                   alt={item.title || item.name}
                   className="w-full h-80 object-cover"
                   loading="lazy"
@@ -173,11 +147,7 @@ const WelcomeDashboard: React.FC = () => {
                   releaseDate: item.release_date || item.first_air_date,
                 });
                 const isFav = isFavorite(item.id, type);
-                if (isFav) {
-                  toast.success(t('favorites.removed'));
-                } else {
-                  toast.success(t('favorites.added'));
-                }
+                toast.success(isFav ? t('favorites.removed') : t('favorites.added'));
               }}
               className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
             >
@@ -195,8 +165,7 @@ const WelcomeDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-       
-        {/* Слайдер з новинками */}
+        {/* Слайдер */}
         {!loading && <SimpleHeroSlider movies={nowPlaying} />}
 
         {/* Пошук */}

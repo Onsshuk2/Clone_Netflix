@@ -6,13 +6,12 @@ import { useFavorites } from "../../lib/useFavorites";
 import { Heart } from "lucide-react";
 import toast from "react-hot-toast";
 
-const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
-const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
-const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
+import { fetchTopCartoons, searchCartoonsOnly } from "../../api/tmdbDashboard";
 
 const DashboardCartoons: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
+
   const [displayItems, setDisplayItems] = useState<any[]>([]);
   const [allItems, setAllItems] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
@@ -23,48 +22,25 @@ const DashboardCartoons: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [topCartoons, setTopCartoons] = useState<any[]>([]);
 
-  const authHeaders = {
-    Authorization: `Bearer ${TMDB_TOKEN}`,
-    "Content-Type": "application/json;charset=utf-8",
-  };
+  const language = getTMDBLanguage();
 
-  // Завантаження топ мультфільмів при першому вході
   useEffect(() => {
     const loadTopCartoons = async () => {
       setLoading(true);
       setError(null);
       setSearchMode(false);
+      setSearchTerm("");
+      setDisplaySearchTerm("");
 
       try {
-        const pagesToLoad = 5;
-        const results: any[] = [];
-
-        for (let page = 1; page <= pagesToLoad; page++) {
-          const response = await fetch(
-            `${TMDB_API_URL}/discover/movie?language=uk-UA&sort_by=vote_average.desc&vote_count.gte=300&with_genres=16&without_keywords=210024&page=${page}`,
-            { headers: authHeaders }
-          );
-
-          if (!response.ok) throw new Error("TMDB error " + response.status);
-
-          const data = await response.json();
-
-          const filtered = (data.results || []).filter(
-            (item: any) => item.original_language !== "ja"
-          );
-
-          results.push(...filtered);
-        }
-
-        const sorted = results
-          .sort((a: any, b: any) => b.vote_average - a.vote_average)
-          .slice(0, 100);
+        const sorted = await fetchTopCartoons(language, 5);
 
         setTopCartoons(sorted);
         setAllItems(sorted);
         setVisibleCount(20);
         setDisplayItems(sorted.slice(0, 20));
       } catch (err) {
+        console.error("Помилка завантаження топ-мультфільмів:", err);
         setError(t('cartoons.loading_error'));
         setAllItems([]);
         setDisplayItems([]);
@@ -74,14 +50,12 @@ const DashboardCartoons: React.FC = () => {
     };
 
     loadTopCartoons();
-  }, []);
+  }, [language, t]);
 
-  // === ПРОСТА ЛОГІКА: ЗАВЖДИ ПРОКРУЧУВАТИ ВГОРУ ПРИ МОНТУВАННІ СТОРІНКИ ===
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []); // Виконується один раз при першому рендері
+  }, []);
 
-  // Пошук мультфільмів
   const searchCartoons = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
@@ -99,37 +73,22 @@ const DashboardCartoons: React.FC = () => {
     setDisplaySearchTerm(term);
 
     try {
-      const response = await fetch(
-        `${TMDB_API_URL}/search/movie?language=uk-UA&query=${encodeURIComponent(
-          term
-        )}&include_adult=false`,
-        { headers: authHeaders }
-      );
-
-      if (!response.ok) throw new Error("TMDB search error");
-
-      const data = await response.json();
-
-      const cartoonResults = (data.results || [])
-        .filter((item: any) => {
-          const isAnimation = item.genre_ids?.includes(16);
-          const isNotAnime = item.original_language !== "ja";
-          return isAnimation && isNotAnime;
-        })
-        .slice(0, 100);
+      const cartoonResults = await searchCartoonsOnly(term, language, 1);
 
       if (cartoonResults.length > 0) {
         setAllItems(cartoonResults);
         setDisplayItems(cartoonResults.slice(0, 20));
       } else {
         setError(
+          t('cartoons.not_found') ||
           "Мультфільм не знайдено. Спробуйте: Король Лев, Холодне серце, Шрек, Вгору, Історія іграшок, Міньйони..."
         );
         setAllItems([]);
         setDisplayItems([]);
       }
     } catch (err) {
-      setError("Помилка пошуку. Перевірте інтернет або токен.");
+      console.error("Помилка пошуку мультфільмів:", err);
+      setError(t('cartoons.connection_error') || "Помилка з'єднання");
       setAllItems([]);
       setDisplayItems([]);
     } finally {
@@ -137,7 +96,6 @@ const DashboardCartoons: React.FC = () => {
     }
   };
 
-  // Повернення до топ
   const resetToTop = () => {
     setSearchMode(false);
     setSearchTerm("");
@@ -146,10 +104,9 @@ const DashboardCartoons: React.FC = () => {
     setAllItems(topCartoons);
     setVisibleCount(20);
     setDisplayItems(topCartoons.slice(0, 20));
-    window.scrollTo(0, 0); // При поверненні до топу — теж вгору
+    window.scrollTo(0, 0);
   };
 
-  // Показати ще
   const loadMore = () => {
     if (loading) return;
     const nextCount = Math.min(visibleCount + 20, allItems.length);
@@ -212,75 +169,72 @@ const DashboardCartoons: React.FC = () => {
         {!loading && displayItems.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-              {displayItems.map((item) => (
-                <div key={item.id} className="group relative">
-                  <Link
-                    to={`/details/movie/${item.id}`}
-                    className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
-                  >
-                    {item.poster_path ? (
-                      <img
-                        src={`${TMDB_IMG_BASE}${item.poster_path}`}
-                        alt={item.title}
-                        className="w-full h-80 object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                        <span className="text-gray-500 text-center px-4">
-                          {t('common.no_image')}
-                        </span>
-                      </div>
-                    )}
-                    <div className="p-5">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs bg-teal-600 px-2 py-1 rounded">
-                          Мультфільм
-                        </span>
-                      </div>
-                      <h3
-                        className="text-lg font-semibold line-clamp-2"
-                        title={item.title}
-                      >
-                        {item.title}
-                      </h3>
-                      <p className="text-gray-400 mt-2 text-sm">
-                        {item.release_date?.slice(0, 4) || "Невідомо"} рік
-                      </p>
-                      {item.vote_average > 0 && (
-                        <p className="text-teal-400 mt-2 font-bold">
-                          ⭐ {item.vote_average.toFixed(1)}
-                        </p>
+              {displayItems.map((item) => {
+                const title = item.title || item.original_title || "Без назви";
+                const year = item.release_date?.slice(0, 4) || t('common.unknown');
+
+                return (
+                  <div key={item.id} className="group relative h-full">
+                    <Link
+                      to={`/details/movie/${item.id}`}
+                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
+                    >
+                      {item.poster_path ? (
+                        <img
+                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`}
+                          alt={title}
+                          className="w-full h-80 object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
+                          <span className="text-gray-500 text-center px-4">
+                            {t('common.poster_missing')}
+                          </span>
+                        </div>
                       )}
-                    </div>
-                  </Link>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleFavorite({
-                        id: item.id,
-                        mediaType: 'movie',
-                        title: item.title,
-                        posterPath: item.poster_path,
-                        voteAverage: item.vote_average,
-                        releaseDate: item.release_date,
-                      });
-                      const isFav = isFavorite(item.id, 'movie');
-                      if (isFav) {
-                        toast.success(t('favorites.removed'));
-                      } else {
-                        toast.success(t('favorites.added'));
-                      }
-                    }}
-                    className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
-                  >
-                    <Heart
-                      size={24}
-                      className={isFavorite(item.id, 'movie') ? 'fill-red-500 text-red-500' : 'text-white'}
-                    />
-                  </button>
-                </div>
-              ))}
+
+                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
+                        <h3 className="text-lg font-semibold break-words line-clamp-2">
+                          {title}
+                        </h3>
+                        <div>
+                          <p className="text-gray-400 text-sm">
+                            {year} {t('common.year')}
+                          </p>
+                          {item.vote_average > 0 && (
+                            <p className="text-teal-400 mt-1 font-bold">
+                              ⭐ {item.vote_average.toFixed(1)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleFavorite({
+                          id: item.id,
+                          mediaType: 'movie',
+                          title,
+                          posterPath: item.poster_path,
+                          voteAverage: item.vote_average,
+                          releaseDate: item.release_date,
+                        });
+                        const isFav = isFavorite(item.id, 'movie');
+                        toast.success(isFav ? t('favorites.removed') : t('favorites.added'));
+                      }}
+                      className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                    >
+                      <Heart
+                        size={24}
+                        className={isFavorite(item.id, 'movie') ? 'fill-red-500 text-red-500' : 'text-white'}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
             {visibleCount < allItems.length && (
@@ -299,7 +253,7 @@ const DashboardCartoons: React.FC = () => {
 
         {!loading && displayItems.length === 0 && !error && (
           <div className="text-center mt-32 text-3xl text-gray-500">
-            Введіть назву мультфільму для пошуку
+            {t('dashboard.enter_search') || "Введіть назву мультфільму для пошуку"}
           </div>
         )}
       </div>

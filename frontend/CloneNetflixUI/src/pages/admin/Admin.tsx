@@ -1,6 +1,5 @@
 // src/pages/admin/Users.tsx
 import React, { useEffect, useState } from "react";
-import { adminApi } from "../../api/Admin";
 import {
   Button,
   Table,
@@ -11,14 +10,19 @@ import {
   Avatar,
   Space,
   Tag,
+  Popconfirm,
 } from "antd";
 import {
   EditOutlined,
   DeleteOutlined,
   PlusOutlined,
   UserOutlined,
+  MailOutlined,
+  LockOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { adminApi } from "../../api/Admin";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 interface User {
   id: string;
@@ -32,6 +36,7 @@ interface User {
 }
 
 const AdminUsers: React.FC = () => {
+  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -44,7 +49,7 @@ const AdminUsers: React.FC = () => {
       const data = await adminApi.getAllUsers();
       setUsers(data);
     } catch (err: any) {
-      message.error("Не вдалося завантажити користувачів");
+      message.error(t("admin.users.load_error"));
       console.error(err);
     } finally {
       setLoading(false);
@@ -58,10 +63,10 @@ const AdminUsers: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await adminApi.deleteUser(id);
-      message.success("Користувача видалено");
+      message.success(t("admin.users.deleted"));
       fetchUsers();
-    } catch {
-      message.error("Помилка видалення");
+    } catch (err: any) {
+      message.error(t("admin.users.delete_error"));
     }
   };
 
@@ -82,31 +87,40 @@ const AdminUsers: React.FC = () => {
   const handleSubmit = async (values: any) => {
     try {
       if (editingUser) {
+        // Оновлення (без пароля)
         await adminApi.updateUser(editingUser.id, {
-          email: values.email,
-          displayName: values.displayName,
+          email: values.email.trim(),
+          displayName: values.displayName.trim(),
           profilePictureUrl: values.profilePictureUrl || null,
         });
-        message.success("Оновлено");
+        message.success(t("admin.users.updated"));
       } else {
+        // Створення нового
+        if (!values.password) {
+          message.error(t("admin.users.password_required"));
+          return;
+        }
         await adminApi.createUser({
           email: values.email.trim(),
           displayName: values.displayName.trim(),
           password: values.password,
           profilePictureUrl: values.profilePictureUrl || null,
         });
-        message.success("Користувача створено!");
+        message.success(t("admin.users.created"));
       }
       setModalOpen(false);
       fetchUsers();
     } catch (err: any) {
-      message.error(err.response?.data?.message || "Перевірте введені дані");
+      const msg =
+        err.response?.data?.message ||
+        (editingUser ? t("admin.users.update_error") : t("admin.users.create_error"));
+      message.error(msg);
     }
   };
 
   const columns: ColumnsType<User> = [
     {
-      title: "Користувач",
+      title: t("admin.users.user"),
       key: "user",
       render: (_, record) => (
         <Space>
@@ -117,26 +131,26 @@ const AdminUsers: React.FC = () => {
             className="ring-4 ring-indigo-500/20"
           />
           <div>
-            <div className="font-semibold text-white">{record.displayName}</div>
+            <div className="font-semibold text-white">{record.displayName || t("common.unknown")}</div>
             <div className="text-sm text-gray-400">{record.email}</div>
           </div>
         </Space>
       ),
     },
     {
-      title: "Роль",
+      title: t("admin.users.role"),
       dataIndex: "role",
       render: (role) => (
         <Tag
-          color={role === "Admin" ? "volcano" : "purple"}
+          color={role === "Admin" ? "volcano" : role === "Moderator" ? "geekblue" : "purple"}
           className="font-medium"
         >
-          {role || "User"}
+          {role || t("admin.users.user")}
         </Tag>
       ),
     },
     {
-      title: "Підписка",
+      title: t("admin.users.subscription"),
       dataIndex: "subscriptionName",
       render: (name) =>
         name ? (
@@ -144,11 +158,11 @@ const AdminUsers: React.FC = () => {
             {name}
           </Tag>
         ) : (
-          <Tag color="default">Немає</Tag>
+          <Tag color="default">{t("admin.users.no_subscription")}</Tag>
         ),
     },
     {
-      title: "Дії",
+      title: t("admin.users.actions"),
       key: "actions",
       render: (_, record) => (
         <Space size="middle">
@@ -158,28 +172,38 @@ const AdminUsers: React.FC = () => {
             onClick={() => openModal(record)}
             className="text-indigo-400 hover:text-indigo-300"
           >
-            Редагувати
+            {t("common.edit")}
           </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-            className="text-red-400 hover:text-red-300"
+
+          <Popconfirm
+            title={t("admin.users.confirm_delete")}
+            description={t("admin.users.confirm_delete_desc")}
+            onConfirm={() => handleDelete(record.id)}
+            okText={t("common.yes")}
+            cancelText={t("common.no")}
+            okButtonProps={{ danger: true }}
           >
-            Видалити
-          </Button>
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              className="text-red-400 hover:text-red-300"
+            >
+              {t("common.delete")}
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
   ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Заголовок + кнопка */}
-        <div className="flex justify-between items-center mb-10">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
           <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            Управління користувачами
+            {t("admin.users.title")}
           </h1>
           <Button
             type="primary"
@@ -188,7 +212,7 @@ const AdminUsers: React.FC = () => {
             onClick={() => openModal()}
             className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 border-0 shadow-xl font-bold text-lg px-8 py-6 h-auto"
           >
-            Створити користувача
+            {t("admin.users.create_user")}
           </Button>
         </div>
 
@@ -206,15 +230,15 @@ const AdminUsers: React.FC = () => {
             }}
             scroll={{ x: 800 }}
             className="custom-ant-table"
-            rowClassName="hover:bg-purple-900/20 transition-colors duration-200"  // ← ВИПРАВЛЕНО: м'який фіолетовий ховер
+            rowClassName="hover:bg-purple-900/20 transition-colors duration-200"
           />
         </div>
 
-        {/* Модалка — без змін */}
+        {/* Модальне вікно створення/редагування */}
         <Modal
           title={
             <span className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              {editingUser ? "Редагувати користувача" : "Створити користувача"}
+              {editingUser ? t("admin.users.edit_user") : t("admin.users.create_user")}
             </span>
           }
           open={modalOpen}
@@ -222,13 +246,80 @@ const AdminUsers: React.FC = () => {
           footer={null}
           destroyOnClose
           centered
+          width={600}
           className="custom-admin-modal"
         >
-          {/* ... форма без змін ... */}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            className="mt-6"
+          >
+            <Form.Item
+              name="email"
+              label={t("admin.users.email")}
+              rules={[
+                { required: true, message: t("admin.users.email_required") },
+                { type: "email", message: t("admin.users.email_invalid") },
+              ]}
+            >
+              <Input
+                prefix={<MailOutlined className="text-gray-400" />}
+                placeholder="example@email.com"
+                size="large"
+                className="rounded-xl"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="displayName"
+              label={t("admin.users.display_name")}
+              rules={[{ required: true, message: t("admin.users.name_required") }]}
+            >
+              <Input size="large" className="rounded-xl" />
+            </Form.Item>
+
+            {!editingUser && (
+              <Form.Item
+                name="password"
+                label={t("admin.users.password")}
+                rules={[
+                  { required: true, message: t("admin.users.password_required") },
+                  { min: 6, message: t("admin.users.password_min") },
+                ]}
+              >
+                <Input.Password
+                  prefix={<LockOutlined className="text-gray-400" />}
+                  size="large"
+                  className="rounded-xl"
+                />
+              </Form.Item>
+            )}
+
+            <Form.Item name="profilePictureUrl" label={t("admin.users.avatar_url")}>
+              <Input placeholder="https://..." size="large" className="rounded-xl" />
+            </Form.Item>
+
+            <Form.Item className="mb-0 text-right">
+              <Space>
+                <Button onClick={() => setModalOpen(false)} size="large">
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
+                  className="bg-indigo-600 hover:bg-indigo-500"
+                >
+                  {editingUser ? t("common.save") : t("admin.users.create")}
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
         </Modal>
       </div>
 
-      {/* Стилі Ant Design — оновлено ховер для рядків */}
+      {/* Глобальні стилі */}
       <style jsx global>{`
         .custom-ant-table .ant-table {
           background: transparent;
@@ -243,7 +334,7 @@ const AdminUsers: React.FC = () => {
           border-bottom: 1px solid #374151;
         }
         .custom-ant-table .ant-table-tbody > tr:hover > td {
-          background: rgba(139, 92, 246, 0.15) !important; /* Додатковий ховер через CSS для надійності */
+          background: rgba(139, 92, 246, 0.15) !important;
         }
         .custom-ant-table .ant-pagination-item {
           background: #1f2937;
@@ -255,6 +346,9 @@ const AdminUsers: React.FC = () => {
         .custom-ant-table .ant-pagination-item-active {
           background: #6366f1;
           border-color: #6366f1;
+          a {
+            color: white !important;
+          }
         }
         .custom-admin-modal .ant-modal-content {
           background: #111827;
@@ -267,10 +361,26 @@ const AdminUsers: React.FC = () => {
           padding: 24px 32px;
         }
         .custom-admin-modal .ant-modal-body {
-          padding: 32px;
+          padding: 0 32px 32px;
         }
         .custom-admin-modal .ant-modal-close-x {
           color: #9ca3af;
+        }
+        .ant-form-item-label > label {
+          color: #d1d5db !important;
+        }
+        .ant-input,
+        .ant-input-password {
+          background: #1f2937;
+          border-color: #374151;
+          color: white;
+        }
+        .ant-input::placeholder {
+          color: #6b7280;
+        }
+        .ant-input-affix-wrapper {
+          background: #1f2937;
+          border-color: #374151;
         }
       `}</style>
     </div>

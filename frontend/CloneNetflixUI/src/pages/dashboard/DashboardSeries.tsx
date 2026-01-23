@@ -6,13 +6,12 @@ import { useFavorites } from "../../lib/useFavorites";
 import { Heart } from "lucide-react";
 import toast from "react-hot-toast";
 
-const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;
-const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
-const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
+import { fetchTopRatedSeries, searchSeriesOnly } from "../../api/tmdbDashboard";
 
 const DashboardSeries: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
+
   const [displaySeries, setDisplaySeries] = useState<any[]>([]);
   const [allSeries, setAllSeries] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
@@ -23,49 +22,25 @@ const DashboardSeries: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [topSeries, setTopSeries] = useState<any[]>([]);
 
-  const authHeaders = {
-    Authorization: `Bearer ${TMDB_TOKEN}`,
-    "Content-Type": "application/json;charset=utf-8",
-  };
+  const language = getTMDBLanguage();
 
-  // Завантаження топ-100 серіалів (без аніме)
   useEffect(() => {
     const loadTopSeries = async () => {
       setLoading(true);
       setError(null);
       setSearchMode(false);
+      setSearchTerm("");
+      setDisplaySearchTerm("");
 
       try {
-        const pagesToLoad = 5;
-        const results: any[] = [];
-
-        for (let page = 1; page <= pagesToLoad; page++) {
-          const response = await fetch(
-            `${TMDB_API_URL}/tv/top_rated?language=uk-UA&page=${page}`,
-            { headers: authHeaders }
-          );
-
-          if (!response.ok) throw new Error("TMDB error " + response.status);
-
-          const data = await response.json();
-          if (data.results) {
-            const filtered = data.results.filter(
-              (item: any) =>
-                !(
-                  item.genre_ids.includes(16) && item.original_language === "ja"
-                )
-            );
-            results.push(...filtered);
-          }
-        }
-
-        const top100 = results.slice(0, 100);
+        const top100 = await fetchTopRatedSeries(language, 5);
 
         setTopSeries(top100);
         setAllSeries(top100);
         setVisibleCount(20);
         setDisplaySeries(top100.slice(0, 20));
       } catch (err) {
+        console.error("Помилка завантаження топ-серіалів:", err);
         setError(t('series.loading_error'));
         setAllSeries([]);
         setDisplaySeries([]);
@@ -75,14 +50,12 @@ const DashboardSeries: React.FC = () => {
     };
 
     loadTopSeries();
-  }, []);
+  }, [language, t]);
 
-  // === ПРОСТА ЛОГІКА: ЗАВЖДИ ПРОКРУЧУВАТИ ВГОРУ ПРИ МОНТУВАННІ СТОРІНКИ ===
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []); // Виконується один раз при першому рендері
+  }, []);
 
-  // Пошук серіалів
   const searchSeries = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
@@ -100,21 +73,7 @@ const DashboardSeries: React.FC = () => {
     setDisplaySearchTerm(term);
 
     try {
-      const response = await fetch(
-        `${TMDB_API_URL}/search/tv?language=uk-UA&query=${encodeURIComponent(term)}&include_adult=false`,
-        { headers: authHeaders }
-      );
-
-      if (!response.ok) throw new Error("TMDB search error");
-
-      const data = await response.json();
-
-      const filteredResults = (data.results || [])
-        .filter(
-          (item: any) =>
-            !(item.genre_ids?.includes(16) && item.original_language === "ja")
-        )
-        .slice(0, 100);
+      const filteredResults = await searchSeriesOnly(term, language, 1);
 
       if (filteredResults.length > 0) {
         setAllSeries(filteredResults);
@@ -125,7 +84,8 @@ const DashboardSeries: React.FC = () => {
         setDisplaySeries([]);
       }
     } catch (err) {
-      setError("Помилка пошуку. Перевірте інтернет або токен.");
+      console.error("Помилка пошуку серіалів:", err);
+      setError(t('series.connection_error') || "Помилка з'єднання");
       setAllSeries([]);
       setDisplaySeries([]);
     } finally {
@@ -133,7 +93,6 @@ const DashboardSeries: React.FC = () => {
     }
   };
 
-  // Повернення до топ-списку
   const resetToTop = () => {
     setSearchMode(false);
     setSearchTerm("");
@@ -142,10 +101,9 @@ const DashboardSeries: React.FC = () => {
     setAllSeries(topSeries);
     setVisibleCount(20);
     setDisplaySeries(topSeries.slice(0, 20));
-    window.scrollTo(0, 0); // При поверненні до топу — теж вгору
+    window.scrollTo(0, 0);
   };
 
-  // Показати ще
   const loadMore = () => {
     if (loading) return;
     const nextCount = Math.min(visibleCount + 20, allSeries.length);
@@ -186,7 +144,7 @@ const DashboardSeries: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="px-12 py-5 bg-green-600 hover:bg-green-700 disabled:bg-green-800 rounded-xl font-bold text-lg transition shadow-lg"
+              className="px-12 py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-xl font-bold text-lg transition shadow-lg"
             >
               {loading && searchMode ? t('common.searching') : t('common.find_button')}
             </button>
@@ -208,75 +166,72 @@ const DashboardSeries: React.FC = () => {
         {!loading && displaySeries.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-              {displaySeries.map((series) => (
-                <div key={series.id} className="group relative">
-                  <Link
-                    to={`/details/tv/${series.id}`}
-                    className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
-                  >
-                    {series.poster_path ? (
-                      <img
-                        src={`${TMDB_IMG_BASE}${series.poster_path}`}
-                        alt={series.name}
-                        className="w-full h-80 object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                        <span className="text-gray-500 text-center px-4">
-                          {t('common.no_image')}
-                        </span>
-                      </div>
-                    )}
-                    <div className="p-5">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs bg-blue-600 px-2 py-1 rounded">
-                          Серіал
-                        </span>
-                      </div>
-                      <h3
-                        className="text-lg font-semibold line-clamp-2"
-                        title={series.name}
-                      >
-                        {series.name}
-                      </h3>
-                      <p className="text-gray-400 mt-2 text-sm">
-                        {series.first_air_date?.slice(0, 4) || "Невідомо"} рік
-                      </p>
-                      {series.vote_average > 0 && (
-                        <p className="text-blue-400 mt-2 font-bold">
-                          ⭐ {series.vote_average.toFixed(1)}
-                        </p>
+              {displaySeries.map((series) => {
+                const title = series.name || series.title || "Без назви";
+                const year = series.first_air_date?.slice(0, 4) || t('common.unknown');
+
+                return (
+                  <div key={series.id} className="group relative h-full">
+                    <Link
+                      to={`/details/tv/${series.id}`}
+                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
+                    >
+                      {series.poster_path ? (
+                        <img
+                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${series.poster_path}`}
+                          alt={title}
+                          className="w-full h-80 object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
+                          <span className="text-gray-500 text-center px-4">
+                            {t('common.poster_missing')}
+                          </span>
+                        </div>
                       )}
-                    </div>
-                  </Link>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleFavorite({
-                        id: series.id,
-                        mediaType: 'tv',
-                        title: series.name,
-                        posterPath: series.poster_path,
-                        voteAverage: series.vote_average,
-                        releaseDate: series.first_air_date,
-                      });
-                      const isFav = isFavorite(series.id, 'tv');
-                      if (isFav) {
-                        toast.success(t('favorites.removed'));
-                      } else {
-                        toast.success(t('favorites.added'));
-                      }
-                    }}
-                    className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
-                  >
-                    <Heart
-                      size={24}
-                      className={isFavorite(series.id, 'tv') ? 'fill-red-500 text-red-500' : 'text-white'}
-                    />
-                  </button>
-                </div>
-              ))}
+
+                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
+                        <h3 className="text-lg font-semibold break-words line-clamp-2">
+                          {title}
+                        </h3>
+                        <div>
+                          <p className="text-gray-400 text-sm">
+                            {year} {t('common.year')}
+                          </p>
+                          {series.vote_average > 0 && (
+                            <p className="text-blue-400 mt-1 font-bold">
+                              ⭐ {series.vote_average.toFixed(1)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleFavorite({
+                          id: series.id,
+                          mediaType: 'tv',
+                          title,
+                          posterPath: series.poster_path,
+                          voteAverage: series.vote_average,
+                          releaseDate: series.first_air_date,
+                        });
+                        const isFav = isFavorite(series.id, 'tv');
+                        toast.success(isFav ? t('favorites.removed') : t('favorites.added'));
+                      }}
+                      className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                    >
+                      <Heart
+                        size={24}
+                        className={isFavorite(series.id, 'tv') ? 'fill-red-500 text-red-500' : 'text-white'}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
             {visibleCount < allSeries.length && (
@@ -295,7 +250,7 @@ const DashboardSeries: React.FC = () => {
 
         {!loading && displaySeries.length === 0 && !error && (
           <div className="text-center mt-32 text-3xl text-gray-500">
-            Введіть назву серіалу для пошуку
+            {t('dashboard.enter_search_series') || "Введіть назву серіалу для пошуку"}
           </div>
         )}
       </div>
