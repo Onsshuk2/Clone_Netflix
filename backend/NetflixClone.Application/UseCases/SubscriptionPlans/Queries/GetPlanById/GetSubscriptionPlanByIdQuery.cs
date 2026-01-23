@@ -4,5 +4,5 @@ namespace NetflixClone.Application.UseCases.SubscriptionPlans.Queries.GetPlanByI
 
 public class GetSubscriptionPlanByIdQuery : IRequest<SubscriptionPlanDto>
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 }

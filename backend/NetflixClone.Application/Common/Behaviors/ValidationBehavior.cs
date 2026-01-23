@@ -3,7 +3,7 @@ using MediatR;
 
 namespace NetflixClone.Application.Common.Behaviors;
 
-// Ця штука ловить всі по типу LoginCommandValidator, оскільки вони наслідуються від AbstractValidator, ну і валідується все 
+// Ця штука ловить всі файли по типу LoginCommandValidator, оскільки вони наслідуються від AbstractValidator, ну і валідується все 
 public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {

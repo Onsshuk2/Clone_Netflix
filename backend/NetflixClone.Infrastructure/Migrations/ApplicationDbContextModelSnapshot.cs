@@ -201,7 +201,8 @@ namespace NetflixClone.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("AvatarUrl")
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -249,7 +250,7 @@ namespace NetflixClone.Infrastructure.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UserName")
@@ -343,7 +344,7 @@ namespace NetflixClone.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("NetflixClone.Domain.Entities.User", null)
-                        .WithMany()
+                        .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -385,6 +386,8 @@ namespace NetflixClone.Infrastructure.Migrations
             modelBuilder.Entity("NetflixClone.Domain.Entities.User", b =>
                 {
                     b.Navigation("Subscriptions");
+
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

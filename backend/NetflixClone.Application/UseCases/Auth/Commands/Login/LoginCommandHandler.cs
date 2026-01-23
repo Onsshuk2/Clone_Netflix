@@ -1,19 +1,25 @@
-﻿using MediatR;
+﻿using AutoMapper;
+using MediatR;
 using Microsoft.AspNetCore.Identity;
 using NetflixClone.Application.Interfaces;
 using NetflixClone.Domain.Entities;
 
 namespace NetflixClone.Application.UseCases.Auth.Commands.Login;
 
-class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponse>
+public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponse>
 {
     private readonly UserManager<User> _userManager;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IMapper _mapper;
 
-    public LoginCommandHandler(UserManager<User> userManager, IJwtTokenGenerator jwtTokenGenerator)
+    public LoginCommandHandler(
+        UserManager<User> userManager,
+        IJwtTokenGenerator jwtTokenGenerator,
+        IMapper mapper)
     {
         _userManager = userManager;
         _jwtTokenGenerator = jwtTokenGenerator;
+        _mapper = mapper;
     }
 
     public async Task<AuthResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
@@ -33,16 +39,12 @@ class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponse>
         }
 
         var roles = await _userManager.GetRolesAsync(user);
-
         var token = _jwtTokenGenerator.GenerateToken(user, roles);
 
-        return new AuthResponse
-        {
-            Id = user.Id,
-            UserName = user.UserName!,
-            Email = user.Email!,
-            Token = token
-        };
+        var response = _mapper.Map<AuthResponse>(user);
+
+        response.Token = token;
+
+        return response;
     }
 }
-

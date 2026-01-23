@@ -1,5 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NetflixClone.Domain.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace NetflixClone.Infrastructure.Persistence.Repositories;
 
@@ -17,7 +21,7 @@ public class BaseRepository<T> : IGenericRepository<T> where T : class
     public virtual async Task<List<T>> GetAllAsync(CancellationToken ct = default)
         => await _dbSet.ToListAsync(ct);
 
-    public virtual async Task<T?> GetByIdAsync(object id, CancellationToken ct = default)
+    public virtual async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await _dbSet.FindAsync(new object[] { id }, ct);
 
     public virtual async Task<T> AddAsync(T entity, CancellationToken ct = default)
@@ -33,7 +37,7 @@ public class BaseRepository<T> : IGenericRepository<T> where T : class
         await _context.SaveChangesAsync(ct);
     }
 
-    public virtual async Task DeleteAsync(object id, CancellationToken ct = default)
+    public virtual async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await GetByIdAsync(id, ct);
         if (entity != null)

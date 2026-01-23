@@ -12,54 +12,61 @@ public static class UserSeeder
         var admin = await SeedAdmin(userManager);
         var user = await SeedUser(userManager);
 
-        if (admin != null) await EnsureSubscription(admin.Id, "Premium", context);
-        if (user != null) await EnsureSubscription(user.Id, "Standard", context);
+        if (admin != null)
+            await EnsureSubscription(admin.Id, SubscriptionPlanConstants.Premium.Name, context);
+
+        if (user != null)
+            await EnsureSubscription(user.Id, SubscriptionPlanConstants.Standard.Name, context);
     }
 
     private static async Task<User?> SeedAdmin(UserManager<User> userManager)
     {
-        var adminEmail = "admin@gmail.com";
-        var admin = await userManager.FindByEmailAsync(adminEmail);
+        var admin = await userManager.FindByEmailAsync(UserConstants.Admin.Email);
 
         if (admin == null)
         {
             admin = new User
             {
-                UserName = "admin",
-                Email = adminEmail,
+                UserName = UserConstants.Admin.UserName,
+                Email = UserConstants.Admin.Email,
                 DateOfBirth = new DateOnly(1990, 1, 1),
                 EmailConfirmed = true
             };
 
-            var result = await userManager.CreateAsync(admin, "Admin123");
-            if (result.Succeeded)
+            var result = await userManager.CreateAsync(admin, UserConstants.Admin.Password);
+            if (!result.Succeeded)
             {
-                await userManager.AddToRoleAsync(admin, Roles.Admin);
+
+                return null;
             }
+
+            await userManager.AddToRoleAsync(admin, RoleConstants.Admin);
         }
         return admin;
     }
 
     private static async Task<User?> SeedUser(UserManager<User> userManager)
     {
-        var userEmail = "user@gmail.com";
-        var user = await userManager.FindByEmailAsync(userEmail);
+        var user = await userManager.FindByEmailAsync(UserConstants.TestUser.Email);
 
         if (user == null)
         {
             user = new User
             {
-                UserName = "user",
-                Email = userEmail,
+                UserName = UserConstants.TestUser.UserName,
+                Email = UserConstants.TestUser.Email,
                 DateOfBirth = new DateOnly(1990, 1, 1),
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                AvatarUrl = ""
             };
 
-            var result = await userManager.CreateAsync(user, "User123");
-            if (result.Succeeded)
+            var result = await userManager.CreateAsync(user, UserConstants.TestUser.Password);
+            if (!result.Succeeded)
             {
-                await userManager.AddToRoleAsync(user, Roles.User);
+                return null;
             }
+
+            await userManager.AddToRoleAsync(user, RoleConstants.User);
         }
         return user;
     }
@@ -79,9 +86,9 @@ public static class UserSeeder
                     UserId = userId,
                     PlanId = plan.Id,
                     StartDate = DateTime.UtcNow,
-                    EndDate = DateTime.UtcNow.AddDays(30),
+                    EndDate = DateTime.UtcNow.AddDays(UserConstants.Technical.DefaultSubscriptionDays),
                     IsAutoRenew = true,
-                    PaymentProviderTransactionId = "SEED_MOCK_TRANSACTION" // Емуляція ID транзакції
+                    PaymentProviderTransactionId = UserConstants.Technical.MockTransactionId
                 };
 
                 await context.UserSubscriptions.AddAsync(subscription);

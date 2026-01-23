@@ -6,9 +6,9 @@ using NetflixClone.Domain.Entities;
 
 namespace NetflixClone.Application.Common.Mappings;
 
-public class SubscriptionPlanProfile : Profile
+public class SubscriptionMappingProfile : Profile
 {
-    public SubscriptionPlanProfile()
+    public SubscriptionMappingProfile()
     {
         CreateMap<CreateSubscriptionPlanCommand, SubscriptionPlan>();
         CreateMap<UpdateSubscriptionPlanCommand, SubscriptionPlan>();
