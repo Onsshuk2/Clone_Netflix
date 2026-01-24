@@ -1,388 +1,501 @@
-// src/pages/admin/Users.tsx
-import React, { useEffect, useState } from "react";
-import {
-  Button,
-  Table,
-  message,
-  Modal,
-  Form,
-  Input,
-  Avatar,
-  Space,
-  Tag,
-  Popconfirm,
-} from "antd";
-import {
-  EditOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  UserOutlined,
-  MailOutlined,
-  LockOutlined,
-} from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
-import { adminApi } from "../../api/Admin";
-import { useLanguage } from "../../contexts/LanguageContext";
+// src/pages/AdminUsers.tsx
+import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
+import api from '../../api/Api';
+import { Plus, X } from 'lucide-react';
 
 interface User {
   id: string;
+  userName: string;
   email: string;
-  displayName: string;
-  profilePictureUrl?: string | null;
-  subscriptionId?: string | null;
-  subscriptionName?: string | null;
-  role?: string;
-  createdAt?: string;
+  dateOfBirth?: string;
+  avatarUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  roles: string[];
 }
 
-const AdminUsers: React.FC = () => {
-  const { t } = useLanguage();
+interface UserFormData {
+  userName: string;
+  email: string;
+  dateOfBirth: string;
+  password?: string;
+  confirmPassword?: string;
+  roles: string[];
+  imageFile?: File | null;
+  imagePreview?: string;
+}
+
+const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [form] = Form.useForm();
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
+  const [showModal, setShowModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+
+  const [form, setForm] = useState<UserFormData>({
+    userName: '',
+    email: '',
+    dateOfBirth: '',
+    password: '',
+    confirmPassword: '',
+    roles: ['User'],
+    imageFile: null,
+    imagePreview: '',
+  });
+
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof UserFormData, string>>>({});
+
+  const loadUsers = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await adminApi.getAllUsers();
-      setUsers(data);
+      const res = await api.get('/users/admin/get-all');
+      let data = res.data;
+      if (typeof data === 'string') data = JSON.parse(data);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      message.error(t("admin.users.load_error"));
-      console.error(err);
+      console.error('Помилка завантаження користувачів:', err);
+      setError('Не вдалося завантажити користувачів');
+      toast.error('Помилка завантаження');
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchUsers();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteUser(id);
-      message.success(t("admin.users.deleted"));
-      fetchUsers();
-    } catch (err: any) {
-      message.error(t("admin.users.delete_error"));
-    }
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const resetForm = () => {
+    setForm({
+      userName: '',
+      email: '',
+      dateOfBirth: '',
+      password: '',
+      confirmPassword: '',
+      roles: ['User'],
+      imageFile: null,
+      imagePreview: '',
+    });
+    setEditingId(null);
+    setIsCreating(true);
+    setFormErrors({});
   };
 
-  const openModal = (user?: User) => {
-    setEditingUser(user || null);
-    if (user) {
-      form.setFieldsValue({
-        email: user.email,
-        displayName: user.displayName,
-        profilePictureUrl: user.profilePictureUrl || "",
+  const openCreateModal = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const loadUserForEdit = async (id: string) => {
+    try {
+      const res = await api.get(`/users/admin/get-user/${id}`);
+      let user = res.data;
+      if (typeof user === 'string') user = JSON.parse(user);
+
+      setForm({
+        userName: user.userName || '',
+        email: user.email || '',
+        dateOfBirth: user.dateOfBirth?.split('T')[0] || '',
+        password: '',
+        confirmPassword: '',
+        roles: user.roles || ['User'],
+        imageFile: null,
+        imagePreview: user.avatarUrl || '',
       });
-    } else {
-      form.resetFields();
+
+      setEditingId(id);
+      setIsCreating(false);
+      setShowModal(true);
+      setFormErrors({});
+    } catch (err) {
+      toast.error('Не вдалося завантажити дані користувача');
     }
-    setModalOpen(true);
   };
 
-  const handleSubmit = async (values: any) => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors({});
+
+    const errors: Partial<Record<keyof UserFormData, string>> = {};
+    if (!form.userName.trim()) errors.userName = "Ім'я обов'язкове";
+    if (!form.email.trim()) errors.email = "Email обов'язковий";
+    if (isCreating) {
+      if (!form.password?.trim()) errors.password = "Пароль обов'язковий";
+      if (form.password !== form.confirmPassword) errors.confirmPassword = "Паролі не співпадають";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    const fd = new FormData();
+
+    // Основні поля — camelCase (найпоширеніший варіант для сучасних API)
+    fd.append('userName', form.userName.trim());
+    fd.append('email', form.email.trim());
+    if (form.dateOfBirth) fd.append('dateOfBirth', form.dateOfBirth);
+
+    // Аватар — спробуйте 'avatar' або 'image' — якщо не працює, змініть на те, що чекає бекенд
+    if (form.imageFile) {
+      fd.append('avatar', form.imageFile);
+    }
+
+    // Ролі як масив
+    form.roles.forEach(role => fd.append('roles', role));
+
+    if (isCreating) {
+      fd.append('password', form.password!.trim());
+      fd.append('confirmPassword', form.confirmPassword!.trim());
+    }
+
+    // Дебаг — подивіться в консоль, що саме відправляється
+    console.group('📤 FormData (create/update)');
+    for (const [key, value] of fd.entries()) {
+      console.log(
+        key.padEnd(16),
+        value instanceof File
+          ? `${value.name} (${(value.size / 1024).toFixed(1)} KB)`
+          : value
+      );
+    }
+    console.groupEnd();
+
     try {
-      if (editingUser) {
-        // Оновлення (без пароля)
-        await adminApi.updateUser(editingUser.id, {
-          email: values.email.trim(),
-          displayName: values.displayName.trim(),
-          profilePictureUrl: values.profilePictureUrl || null,
+      if (isCreating) {
+        await api.post('/users/admin/create', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
-        message.success(t("admin.users.updated"));
+        toast.success('Користувача створено');
       } else {
-        // Створення нового
-        if (!values.password) {
-          message.error(t("admin.users.password_required"));
-          return;
-        }
-        await adminApi.createUser({
-          email: values.email.trim(),
-          displayName: values.displayName.trim(),
-          password: values.password,
-          profilePictureUrl: values.profilePictureUrl || null,
+        await api.put(`/users/admin/update/${editingId}`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
-        message.success(t("admin.users.created"));
+        toast.success('Користувача оновлено');
       }
-      setModalOpen(false);
-      fetchUsers();
+
+      setShowModal(false);
+      resetForm();
+      loadUsers();
     } catch (err: any) {
-      const msg =
-        err.response?.data?.message ||
-        (editingUser ? t("admin.users.update_error") : t("admin.users.create_error"));
-      message.error(msg);
+      console.error('Помилка збереження:');
+      console.error('Статус:', err.response?.status);
+      console.error('Дані:', err.response?.data);
+
+      let msg = 'Помилка збереження';
+
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          msg = err.response.data;
+        } else if (err.response.data.message) {
+          msg = err.response.data.message;
+        } else if (err.response.data.errors) {
+          // типова структура валідації ASP.NET
+          const firstKey = Object.keys(err.response.data.errors)[0];
+          if (firstKey) {
+            const firstError = err.response.data.errors[firstKey];
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              msg = firstError[0];
+            }
+          }
+        }
+      }
+
+      toast.error(msg);
     }
   };
 
-  const columns: ColumnsType<User> = [
-    {
-      title: t("admin.users.user"),
-      key: "user",
-      render: (_, record) => (
-        <Space>
-          <Avatar
-            src={record.profilePictureUrl || undefined}
-            icon={<UserOutlined />}
-            size={48}
-            className="ring-4 ring-indigo-500/20"
-          />
-          <div>
-            <div className="font-semibold text-white">{record.displayName || t("common.unknown")}</div>
-            <div className="text-sm text-gray-400">{record.email}</div>
-          </div>
-        </Space>
-      ),
-    },
-    {
-      title: t("admin.users.role"),
-      dataIndex: "role",
-      render: (role) => (
-        <Tag
-          color={role === "Admin" ? "volcano" : role === "Moderator" ? "geekblue" : "purple"}
-          className="font-medium"
-        >
-          {role || t("admin.users.user")}
-        </Tag>
-      ),
-    },
-    {
-      title: t("admin.users.subscription"),
-      dataIndex: "subscriptionName",
-      render: (name) =>
-        name ? (
-          <Tag color="cyan" className="font-medium">
-            {name}
-          </Tag>
-        ) : (
-          <Tag color="default">{t("admin.users.no_subscription")}</Tag>
-        ),
-    },
-    {
-      title: t("admin.users.actions"),
-      key: "actions",
-      render: (_, record) => (
-        <Space size="middle">
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => openModal(record)}
-            className="text-indigo-400 hover:text-indigo-300"
-          >
-            {t("common.edit")}
-          </Button>
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Видалити користувача?')) return;
+    try {
+      await api.delete(`/users/admin/delete/${id}`);
+      toast.success('Користувача видалено');
+      loadUsers();
+    } catch (err) {
+      toast.error('Помилка видалення');
+    }
+  };
 
-          <Popconfirm
-            title={t("admin.users.confirm_delete")}
-            description={t("admin.users.confirm_delete_desc")}
-            onConfirm={() => handleDelete(record.id)}
-            okText={t("common.yes")}
-            cancelText={t("common.no")}
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              type="link"
-              danger
-              icon={<DeleteOutlined />}
-              className="text-red-400 hover:text-red-300"
-            >
-              {t("common.delete")}
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Максимальний розмір файлу — 5 МБ');
+        return;
+      }
+      setForm(prev => ({
+        ...prev,
+        imageFile: file,
+        imagePreview: URL.createObjectURL(file),
+      }));
+    }
+  };
+
+  const filteredUsers = users.filter(u => {
+    const term = searchTerm.toLowerCase().trim();
+    const matchesSearch =
+      !term ||
+      u.userName?.toLowerCase().includes(term) ||
+      u.email?.toLowerCase().includes(term);
+    const matchesRole =
+      roleFilter === 'all' || u.roles?.some(r => r.toLowerCase() === roleFilter.toLowerCase());
+    return matchesSearch && matchesRole;
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6">
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6 text-white">
       <div className="max-w-7xl mx-auto">
         {/* Заголовок + кнопка */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
-          <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            {t("admin.users.title")}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+          <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+            Користувачі
           </h1>
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            onClick={() => openModal()}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 border-0 shadow-xl font-bold text-lg px-8 py-6 h-auto"
+          <button
+            onClick={openCreateModal}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
           >
-            {t("admin.users.create_user")}
-          </Button>
+            <Plus size={20} /> Додати користувача
+          </button>
         </div>
 
-        {/* Таблиця */}
-        <div className="bg-gray-900/70 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-800 overflow-hidden">
-          <Table
-            columns={columns}
-            dataSource={users}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              pageSize: 15,
-              position: ["bottomCenter"],
-              className: "text-gray-400",
-            }}
-            scroll={{ x: 800 }}
-            className="custom-ant-table"
-            rowClassName="hover:bg-purple-900/20 transition-colors duration-200"
+        {/* Фільтри */}
+        <div className="flex flex-col md:flex-row gap-4 mb-10">
+          <input
+            type="text"
+            placeholder="Пошук за ім'ям або email..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="flex-1 px-6 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
           />
+          <select
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value)}
+            className="px-6 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+          >
+            <option value="all">Всі ролі</option>
+            <option value="Admin">Адміністратори</option>
+            <option value="Moderator">Модератори</option>
+            <option value="User">Користувачі</option>
+          </select>
+          <button
+            onClick={loadUsers}
+            className="bg-gray-700 hover:bg-gray-600 px-8 py-4 rounded-2xl font-bold transition"
+          >
+            Оновити
+          </button>
         </div>
 
-        {/* Модальне вікно створення/редагування */}
-        <Modal
-          title={
-            <span className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              {editingUser ? t("admin.users.edit_user") : t("admin.users.create_user")}
-            </span>
-          }
-          open={modalOpen}
-          onCancel={() => setModalOpen(false)}
-          footer={null}
-          destroyOnClose
-          centered
-          width={600}
-          className="custom-admin-modal"
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSubmit}
-            className="mt-6"
-          >
-            <Form.Item
-              name="email"
-              label={t("admin.users.email")}
-              rules={[
-                { required: true, message: t("admin.users.email_required") },
-                { type: "email", message: t("admin.users.email_invalid") },
-              ]}
-            >
-              <Input
-                prefix={<MailOutlined className="text-gray-400" />}
-                placeholder="example@email.com"
-                size="large"
-                className="rounded-xl"
-              />
-            </Form.Item>
+        {/* Таблиця або статуси */}
+        {loading ? (
+          <div className="text-center py-32 text-indigo-400 text-2xl animate-pulse">Завантаження...</div>
+        ) : error ? (
+          <div className="text-center py-32 text-red-500 text-2xl">{error}</div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="text-center py-32 text-gray-400 text-2xl">Користувачів не знайдено</div>
+        ) : (
+          <div className="bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-800">
+                <thead className="bg-gray-800/50">
+                  <tr>
+                    <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Аватар</th>
+                    <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Ім'я</th>
+                    <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Email</th>
+                    <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Дата народження</th>
+                    <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Ролі</th>
+                    <th className="px-8 py-5 text-center text-sm font-semibold text-gray-300 uppercase tracking-wider">Дії</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {filteredUsers.map(user => (
+                    <tr key={user.id} className="hover:bg-indigo-950/30 transition duration-200">
+                      <td className="px-8 py-6">
+                        <img
+                          src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=6366f1&color=fff&size=128`}
+                          alt={user.userName}
+                          className="w-14 h-14 rounded-full object-cover ring-2 ring-indigo-500/50"
+                        />
+                      </td>
+                      <td className="px-8 py-6 font-medium text-white">{user.userName}</td>
+                      <td className="px-8 py-6 text-gray-300">{user.email}</td>
+                      <td className="px-8 py-6 text-gray-300">
+                        {user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString('uk-UA') : '—'}
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex flex-wrap gap-2">
+                          {user.roles.map(role => (
+                            <span key={role} className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-900/50 text-indigo-300">
+                              {role}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <button
+                          onClick={() => loadUserForEdit(user.id)}
+                          className="text-indigo-400 hover:text-indigo-300 text-2xl mr-6 transition"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user.id)}
+                          className="text-red-400 hover:text-red-300 text-2xl transition"
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-            <Form.Item
-              name="displayName"
-              label={t("admin.users.display_name")}
-              rules={[{ required: true, message: t("admin.users.name_required") }]}
-            >
-              <Input size="large" className="rounded-xl" />
-            </Form.Item>
+        {/* Модальне вікно */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md p-4">
+            <div className="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="p-10">
+                <div className="flex justify-between items-center mb-10">
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                    {isCreating ? 'Додати користувача' : 'Редагувати користувача'}
+                  </h2>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="text-gray-400 hover:text-white text-4xl transition"
+                  >
+                    <X size={40} />
+                  </button>
+                </div>
 
-            {!editingUser && (
-              <Form.Item
-                name="password"
-                label={t("admin.users.password")}
-                rules={[
-                  { required: true, message: t("admin.users.password_required") },
-                  { min: 6, message: t("admin.users.password_min") },
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined className="text-gray-400" />}
-                  size="large"
-                  className="rounded-xl"
-                />
-              </Form.Item>
-            )}
+                <form onSubmit={handleSave} className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <label className="block text-gray-300 font-medium mb-3">Ім'я *</label>
+                      <input
+                        value={form.userName}
+                        onChange={e => setForm({ ...form, userName: e.target.value })}
+                        className="w-full px-6 py-5 bg-gray-800 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                      />
+                      {formErrors.userName && <p className="mt-2 text-red-400 text-sm">{formErrors.userName}</p>}
+                    </div>
 
-            <Form.Item name="profilePictureUrl" label={t("admin.users.avatar_url")}>
-              <Input placeholder="https://..." size="large" className="rounded-xl" />
-            </Form.Item>
+                    <div>
+                      <label className="block text-gray-300 font-medium mb-3">Email *</label>
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={e => setForm({ ...form, email: e.target.value })}
+                        className="w-full px-6 py-5 bg-gray-800 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                      />
+                      {formErrors.email && <p className="mt-2 text-red-400 text-sm">{formErrors.email}</p>}
+                    </div>
+                  </div>
 
-            <Form.Item className="mb-0 text-right">
-              <Space>
-                <Button onClick={() => setModalOpen(false)} size="large">
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  className="bg-indigo-600 hover:bg-indigo-500"
-                >
-                  {editingUser ? t("common.save") : t("admin.users.create")}
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
-        </Modal>
+                  <div>
+                    <label className="block text-gray-300 font-medium mb-3">Дата народження</label>
+                    <input
+                      type="date"
+                      value={form.dateOfBirth}
+                      onChange={e => setForm({ ...form, dateOfBirth: e.target.value })}
+                      className="w-full px-6 py-5 bg-gray-800 border border-gray-700 rounded-2xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                    />
+                  </div>
+
+                  {isCreating && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <label className="block text-gray-300 font-medium mb-3">Пароль *</label>
+                        <input
+                          type="password"
+                          value={form.password || ''}
+                          onChange={e => setForm({ ...form, password: e.target.value })}
+                          className="w-full px-6 py-5 bg-gray-800 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                        />
+                        {formErrors.password && <p className="mt-2 text-red-400 text-sm">{formErrors.password}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-gray-300 font-medium mb-3">Підтвердження пароля *</label>
+                        <input
+                          type="password"
+                          value={form.confirmPassword || ''}
+                          onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
+                          className="w-full px-6 py-5 bg-gray-800 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                        />
+                        {formErrors.confirmPassword && <p className="mt-2 text-red-400 text-sm">{formErrors.confirmPassword}</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-gray-300 font-medium mb-3">Аватар</label>
+                    <div className="flex items-center gap-6">
+                      <label className="cursor-pointer bg-indigo-900/30 hover:bg-indigo-800 px-6 py-4 rounded-xl transition text-indigo-300 font-medium">
+                        Обрати фото
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      {form.imagePreview && (
+                        <img
+                          src={form.imagePreview}
+                          alt="Прев'ю"
+                          className="w-24 h-24 rounded-full object-cover ring-2 ring-indigo-500 shadow-lg"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-300 font-medium mb-3">Ролі</label>
+                    <select
+                      multiple
+                      value={form.roles}
+                      onChange={e => {
+                        const selected = Array.from(e.target.selectedOptions, opt => opt.value);
+                        setForm({ ...form, roles: selected });
+                      }}
+                      className="w-full px-6 py-5 bg-gray-800 border border-gray-700 rounded-2xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition h-32"
+                    >
+                      <option value="User">Користувач</option>
+                      <option value="Moderator">Модератор</option>
+                      <option value="Admin">Адміністратор</option>
+                    </select>
+                  </div>
+
+                  <div className="flex justify-end gap-6 pt-10 border-t border-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => setShowModal(false)}
+                      className="px-12 py-5 border border-gray-700 rounded-2xl text-gray-300 hover:bg-gray-800 transition font-medium"
+                    >
+                      Скасувати
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-12 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl text-white font-bold shadow-xl transition-all hover:scale-105"
+                    >
+                      {isCreating ? 'Створити' : 'Зберегти зміни'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Глобальні стилі */}
-      <style jsx global>{`
-        .custom-ant-table .ant-table {
-          background: transparent;
-          color: #e5e7eb;
-        }
-        .custom-ant-table .ant-table-thead > tr > th {
-          background: #1f2937 !important;
-          color: #9ca3af;
-          border-bottom: 1px solid #374151;
-        }
-        .custom-ant-table .ant-table-tbody > tr > td {
-          border-bottom: 1px solid #374151;
-        }
-        .custom-ant-table .ant-table-tbody > tr:hover > td {
-          background: rgba(139, 92, 246, 0.15) !important;
-        }
-        .custom-ant-table .ant-pagination-item {
-          background: #1f2937;
-          border-color: #374151;
-        }
-        .custom-ant-table .ant-pagination-item a {
-          color: #e5e7eb;
-        }
-        .custom-ant-table .ant-pagination-item-active {
-          background: #6366f1;
-          border-color: #6366f1;
-          a {
-            color: white !important;
-          }
-        }
-        .custom-admin-modal .ant-modal-content {
-          background: #111827;
-          border: 1px solid #374151;
-          border-radius: 24px;
-        }
-        .custom-admin-modal .ant-modal-header {
-          background: transparent;
-          border-bottom: 1px solid #374151;
-          padding: 24px 32px;
-        }
-        .custom-admin-modal .ant-modal-body {
-          padding: 0 32px 32px;
-        }
-        .custom-admin-modal .ant-modal-close-x {
-          color: #9ca3af;
-        }
-        .ant-form-item-label > label {
-          color: #d1d5db !important;
-        }
-        .ant-input,
-        .ant-input-password {
-          background: #1f2937;
-          border-color: #374151;
-          color: white;
-        }
-        .ant-input::placeholder {
-          color: #6b7280;
-        }
-        .ant-input-affix-wrapper {
-          background: #1f2937;
-          border-color: #374151;
-        }
-      `}</style>
     </div>
   );
 };

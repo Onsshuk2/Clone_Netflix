@@ -16,25 +16,35 @@ export default function UserLayout() {
   const token = localStorage.getItem("token");
   const isAuthenticated = !!token;
 
-  let user = null;
+  // Об'єкт користувача з правильним отриманням імені та аватарки
+  const user = (() => {
+    if (!isAuthenticated) return null;
 
-  if (isAuthenticated) {
     const userJson = localStorage.getItem("user");
-    if (userJson) {
-      try {
-        const parsedUser = JSON.parse(userJson);
-        user = {
-          name: parsedUser.name || "Користувач",
-          avatar:
-            parsedUser.avatar ||
-            "https://i.pinimg.com/736x/24/49/08/2449080f7429c683bc9cba619c237d01.jpg",
-          email: parsedUser.email || "",
-        };
-      } catch (e) {
-        console.error("Не вдалося розпарсити user з localStorage", e);
-      }
+    if (!userJson) return null;
+
+    try {
+      const parsed = JSON.parse(userJson);
+
+      // Беремо userName як пріоритет, потім частину email, потім дефолт
+      const displayName =
+        parsed.userName?.trim() ||
+        (parsed.email || "").split("@")[0]?.trim() ||
+        "Користувач";
+
+      return {
+        name: displayName,
+        avatar:
+          parsed.avatarUrl ||
+          parsed.avatar ||
+          "https://i.pinimg.com/736x/24/49/08/2449080f7429c683bc9cba619c237d01.jpg",
+        email: parsed.email || "",
+      };
+    } catch (e) {
+      console.error("Не вдалося розпарсити user з localStorage", e);
+      return null;
     }
-  }
+  })();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,7 +55,7 @@ export default function UserLayout() {
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [isOpen, language]);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,10 +66,7 @@ export default function UserLayout() {
   }, []);
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleLogout = () => {
@@ -68,7 +75,6 @@ export default function UserLayout() {
     navigate("/", { replace: true });
   };
 
-  // Функція для прокрутки вгору при переході по навігації
   const handleNavClick = () => {
     scrollToTop();
   };
@@ -158,16 +164,18 @@ export default function UserLayout() {
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center font-bold text-lg ring-4 ring-indigo-500/30 shadow-xl">
-                    {user?.name[0]?.toUpperCase()}
+                    {user?.name?.[0]?.toUpperCase() || "?"}
                   </div>
                 )}
-                <span className="hidden md:block font-medium text-gray-200">{user?.name}</span>
+                <span className="hidden md:block font-medium text-gray-200">
+                  {user?.name || "Гість"}
+                </span>
               </button>
 
               {isOpen && (
                 <div className="absolute right-0 mt-4 w-80 bg-gray-900/96 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-800/60 overflow-hidden">
                   <div className="p-6 bg-gradient-to-r from-indigo-900/70 to-purple-900/70 border-b border-gray-800">
-                    <p className="font-bold text-xl text-white">{user?.name}</p>
+                    <p className="font-bold text-xl text-white">{user?.name || "Гість"}</p>
                     <p className="text-sm text-indigo-200 mt-1">{t('user.premium')}</p>
                   </div>
                   <div className="py-3">
