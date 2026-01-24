@@ -63,7 +63,7 @@ public class ImageService(IConfiguration configuration) : IImageService
         }
     }
 
-    public void DeleteImage(string fileName)
+    private void DeleteImage(string fileName)
     {
         if (string.IsNullOrEmpty(fileName)) return;
 
@@ -73,6 +73,11 @@ public class ImageService(IConfiguration configuration) : IImageService
         {
             File.Delete(filePath);
         }
+    }
+
+    public async Task DeleteImageAsync(string fileName)
+    {
+        await Task.Run(() => DeleteImage(fileName));
     }
 
     public async Task<string> SaveImageFromUrlAsync(string imageUrl)

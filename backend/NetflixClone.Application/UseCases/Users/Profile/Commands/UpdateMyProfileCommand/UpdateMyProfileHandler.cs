@@ -37,7 +37,7 @@ public class UpdateMyProfileHandler : IRequestHandler<UpdateMyProfileCommand>
                 user.AvatarUrl = newAvatarUrl;
                 if (!string.IsNullOrEmpty(oldAvatarUrl))
                 {
-                    _imageService.DeleteImage(oldAvatarUrl);
+                    await _imageService.DeleteImageAsync(oldAvatarUrl);
                 }
             }
         }
