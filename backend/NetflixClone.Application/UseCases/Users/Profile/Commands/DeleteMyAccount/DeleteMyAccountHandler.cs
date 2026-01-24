@@ -23,7 +23,7 @@ public class DeleteMyAccountHandler : IRequestHandler<DeleteMyAccountCommand>
 
         if (!string.IsNullOrEmpty(user.AvatarUrl))
         {
-            _imageService.DeleteImage(user.AvatarUrl);
+            await _imageService.DeleteImageAsync(user.AvatarUrl);
         }
 
         var result = await _userManager.DeleteAsync(user);
