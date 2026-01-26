@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35806.99
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloneNetflix.API", "CloneNetflix.API.csproj", "{8A242C3F-E97F-4879-A81C-7FECE1F201D6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloneNetflix.API", "CloneNetflixApi\CloneNetflix.API.csproj", "{8A242C3F-E97F-4879-A81C-7FECE1F201D6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetflixClone.Domain", "..\NetflixClone.Domain\NetflixClone.Domain.csproj", "{479652B7-E6F5-42D8-9F62-3CEBD6D53FA4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetflixClone.Domain", "NetflixClone.Domain\NetflixClone.Domain.csproj", "{479652B7-E6F5-42D8-9F62-3CEBD6D53FA4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetflixClone.Application", "..\NetflixClone.Application\NetflixClone.Application.csproj", "{EEBEC6B9-651B-48AA-8F73-9787FEAD051B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetflixClone.Application", "NetflixClone.Application\NetflixClone.Application.csproj", "{EEBEC6B9-651B-48AA-8F73-9787FEAD051B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetflixClone.Infrastructure", "..\NetflixClone.Infrastructure\NetflixClone.Infrastructure.csproj", "{47FC82D8-E0ED-4807-B559-03E22EB84AC8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetflixClone.Infrastructure", "NetflixClone.Infrastructure\NetflixClone.Infrastructure.csproj", "{47FC82D8-E0ED-4807-B559-03E22EB84AC8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
