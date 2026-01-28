@@ -16,7 +16,7 @@ public class AuthMappingProfile : Profile
         CreateMap<User, AuthResponse>();
 
         CreateMap<RegisterCommand, User>()
-            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.UserName))
+            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Email.Split('@', StringSplitOptions.None)[0]))
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.AvatarUrl, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())

@@ -39,17 +39,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
         if (request.Password != request.ConfirmPassword)
             throw new Exception("Passwords do not match");
 
-        if (string.IsNullOrWhiteSpace(request.UserName))
-        {
-            request.UserName = request.Email.Split('@')[0];
-        }
-
         var user = _mapper.Map<User>(request);
-
-        if (request.Image != null)
-        {
-            user.AvatarUrl = await _imageService.UploadImageAsync(request.Image);
-        }
 
         var result = await _userManager.CreateAsync(user, request.Password);
 
