@@ -1,229 +1,239 @@
-// src/pages/Profile.tsx
 import { useEffect, useState, useRef } from "react";
 import { Camera, Check, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
-import { updateMyProfile } from "../../api/User";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { getMyProfile, updateMyProfile } from "../../api/User"; // ← імпорт обох функцій!
 
-interface UserFromStorage {
-  name: string;
-  avatar: string | null;
+interface ProfileData {
+  userName: string;
   email: string;
-}
-
-interface JwtPayload {
-  DisplayName?: string;
-  Email?: string;
-  ProfilePictureUrl?: string;
-  exp?: number;
+  dateOfBirth: string; // "yyyy-MM-dd" або ISO
+  avatarUrl: string | null;
 }
 
 export default function Profile() {
   const { t } = useLanguage();
-  const [user, setUser] = useState<UserFromStorage>({
-    name: "Користувач",
-    avatar: null,
+  const navigate = useNavigate();
+
+  const [profile, setProfile] = useState<ProfileData>({
+    userName: "Користувач",
     email: "",
+    dateOfBirth: "",
+    avatarUrl: null,
   });
 
-  const navigate = useNavigate();
-  const [displayName, setDisplayName] = useState("");
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    dateOfBirth: "",
+  });
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Початково true, бо завантажуємо дані
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Завантаження профілю з сервера
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      setUser(parsed);
-      setDisplayName(parsed.name);
-      setPreviewUrl(parsed.avatar || null);
-      return;
-    }
+    const loadProfile = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Не авторизовано");
+        navigate("/login");
+        return;
+      }
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.error(t('profile.not_authorized'));
-      return;
-    }
+      setLoading(true);
+      try {
+        const data = await getMyProfile(); // Отримуємо з бази!
 
-    try {
-      const decoded = jwtDecode<JwtPayload>(token);
-      const name = decoded.DisplayName || "Користувач";
-      const email = decoded.Email || "";
-      const avatar = decoded.ProfilePictureUrl || null;
+        setProfile(data);
+        setForm({
+          username: data.userName || "Користувач",
+          email: data.email || "",
+          dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "", // Обрізаємо до yyyy-MM-dd для <input type="date">
+        });
+        setPreviewUrl(data.avatarUrl);
 
-      const fallbackUser = { name, avatar, email };
-      setUser(fallbackUser);
-      setDisplayName(name);
-      setPreviewUrl(avatar);
-      localStorage.setItem("user", JSON.stringify(fallbackUser));
-    } catch (err) {
-      toast.error(t('profile.read_error'));
-    }
-  }, []);
+        // Зберігаємо в localStorage для швидкого доступу наступного разу
+        localStorage.setItem("user", JSON.stringify(data));
+      } catch (err) {
+        console.error("Не вдалося завантажити профіль", err);
+        toast.error("Помилка завантаження даних профілю");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const openFilePicker = () => fileInputRef.current?.click();
+    loadProfile();
+  }, [navigate]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error(t('profile.image_too_large'));
+      toast.error("Зображення >5MB");
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast.error(t('profile.select_image'));
+      toast.error("Оберіть зображення");
       return;
     }
 
     setSelectedFile(file);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const dataUrl = reader.result as string;
-      setPreviewUrl(dataUrl);
-      setUser((prev) => ({ ...prev, avatar: dataUrl }));
-    };
-    reader.readAsDataURL(file);
-
-    toast.success(t('profile.image_selected'));
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!displayName.trim()) return;
+
+    if (!form.username.trim()) {
+      toast.error("Ім'я обов'язкове");
+      return;
+    }
 
     setLoading(true);
 
     try {
-      let profilePictureUrl: string | null = user.avatar;
+      const formData = new FormData();
+      formData.append("UserId", jwtDecode(localStorage.getItem("token")!).sub || ""); // або витягуй як раніше
+      formData.append("Username", form.username.trim());
+      formData.append("Email", form.email.trim());
+      formData.append("DateOfBirth", form.dateOfBirth || "");
 
-      if (selectedFile) {
-        profilePictureUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(selectedFile);
-        });
-      }
+      if (selectedFile) formData.append("Image", selectedFile);
 
-      const result = await updateMyProfile({
-        displayName: displayName.trim(),
-        profilePictureUrl: profilePictureUrl || null,
-      });
+      await updateMyProfile(formData);
 
-      const finalAvatar = selectedFile
-        ? profilePictureUrl
-        : result.profilePictureUrl || user.avatar;
-
-      const updatedUser = {
-        name: displayName.trim(),
-        email: user.email,
-        avatar: finalAvatar,
+      // Оновлюємо локальний стан
+      const updated = {
+        ...profile,
+        userName: form.username.trim(),
+        email: form.email.trim(),
+        dateOfBirth: form.dateOfBirth,
+        avatarUrl: previewUrl || profile.avatarUrl,
       };
-
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      setUser(updatedUser);
+      setProfile(updated);
       setSelectedFile(null);
-      setPreviewUrl(finalAvatar);
 
-      toast.success(t('profile.profile_updated'));
+      toast.success("Профіль оновлено!");
     } catch (err) {
-      console.error(err);
+      // помилка вже оброблена в updateMyProfile
     } finally {
       setLoading(false);
     }
   };
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Завантаження профілю...</div>;
+  }
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl md:text-5xl font-black mb-10 text-center bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-          {t('profile.my_profile')}
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-10 px-5">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-4xl font-black text-center mb-10 bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+          {t("profile.title") || "Мій профіль"}
         </h1>
 
-        {/* Картка профілю */}
-        <div className="bg-gray-900/70 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-800 overflow-hidden">
-          {/* Шапка з аватаром */}
-          <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 p-12 text-center">
-            <div className="relative inline-block">
+        <div className="bg-gray-900/70 backdrop-blur-xl rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
+          {/* Аватар + верхня частина */}
+          <div className="relative pt-12 pb-10 bg-gradient-to-b from-indigo-950/40 to-transparent text-center">
+            <div className="relative inline-block mx-auto">
               <img
                 src={
                   previewUrl ||
-                  user.avatar ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=6366f1&color=fff&size=256&bold=true`
+                  profile.avatarUrl ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(form.username || "User")}&background=6b7280&color=fff&size=256`
                 }
                 alt="Аватар"
-                className="w-40 h-40 rounded-full object-cover ring-8 ring-white/20 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 hover:ring-indigo-500/50"
-                onClick={openFilePicker}
+                className="w-44 h-44 rounded-full object-cover ring-8 ring-indigo-500/30 shadow-2xl cursor-pointer hover:scale-105 transition"
+                onClick={() => fileInputRef.current?.click()}
               />
 
-              <div
-                onClick={openFilePicker}
-                className="absolute bottom-2 right-2 bg-gray-900/80 backdrop-blur-md rounded-full p-4 shadow-xl cursor-pointer hover:bg-gray-800 transition-all duration-300 hover:scale-110 border border-indigo-500/30"
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-3 right-3 bg-gray-900/90 p-4 rounded-full border border-indigo-500/40 hover:bg-gray-800 transition"
               >
                 <Camera className="w-7 h-7 text-indigo-400" />
-              </div>
+              </button>
 
               <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
               />
             </div>
 
-            <h2 className="text-3xl font-bold text-white mt-8">{user.name}</h2>
-            <p className="text-xl text-gray-300 mt-2">
-              {user.email || t('profile.email_not_specified')}
-            </p>
-            <p className="text-sm text-indigo-300 mt-4">{t('profile.premium_user')}</p>
+            <h2 className="mt-6 text-3xl font-bold text-white">{form.username || profile.userName}</h2>
+            <p className="mt-2 text-gray-400">{form.email || profile.email || "—"}</p>
           </div>
 
-          {/* Форма редагування */}
-          <form onSubmit={handleSubmit} className="p-10 space-y-8">
+          {/* Форма */}
+          <form onSubmit={handleSubmit} className="p-8 space-y-7">
+            {/* Ім'я */}
             <div>
-              <label className="block text-lg font-medium text-gray-300 mb-3">
-                {t('profile.full_name')}
-              </label>
+              <label className="block text-gray-300 font-medium mb-2">Ім'я для відображення</label>
               <input
+                type="text"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                className="w-full px-5 py-3.5 bg-gray-800/60 border border-gray-700 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                placeholder="Як вас відображати"
                 required
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full px-6 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition"
-                placeholder={t('profile.enter_name')}
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-gray-300 font-medium mb-2">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full px-5 py-3.5 bg-gray-800/60 border border-gray-700 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                placeholder="your@email.com"
+              />
+            </div>
+
+            {/* Дата народження */}
+            <div>
+              <label className="block text-gray-300 font-medium mb-2">Дата народження</label>
+              <input
+                type="date"
+                value={form.dateOfBirth}
+                onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
+                className="w-full px-5 py-3.5 bg-gray-800/60 border border-gray-700 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
               />
             </div>
 
             {/* Кнопки */}
-            <div className="flex justify-end gap-6 pt-8">
+            <div className="flex justify-end gap-5 pt-6">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="px-8 py-4 border border-gray-700 rounded-2xl font-medium text-gray-300 hover:bg-gray-800/50 hover:border-gray-600 transition flex items-center gap-3"
+                className="px-8 py-3.5 border border-gray-600 rounded-xl text-gray-300 hover:bg-gray-800/50 transition flex items-center gap-2"
               >
-                <X className="w-5 h-5" />
-                {t('profile.cancel_btn')}
+                <X size={18} /> Скасувати
               </button>
 
               <button
                 type="submit"
-                disabled={loading || !displayName.trim()}
-                className="px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-900/50 transition-all duration-300 transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-3"
+                disabled={loading || !form.username.trim()}
+                className="px-10 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-semibold shadow-lg shadow-indigo-900/40 transition disabled:opacity-60 flex items-center gap-2"
               >
                 {loading ? (
-                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <Check className="w-6 h-6" />
+                  <Check size={18} />
                 )}
-                {t('profile.save_btn')}
+                Зберегти
               </button>
             </div>
           </form>
