@@ -27,10 +27,10 @@ public class UpdateMyProfileHandler : IRequestHandler<UpdateMyProfileCommand>
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user == null) throw new Exception("Користувача не знайдено");
 
-        if (request.Image != null)
+        if (request.Avatar != null)
         {
             var oldAvatarUrl = user.AvatarUrl;
-            var newAvatarUrl = await _imageService.UploadImageAsync(request.Image);
+            var newAvatarUrl = await _imageService.UploadImageAsync(request.Avatar);
 
             if (!string.IsNullOrEmpty(newAvatarUrl))
             {
