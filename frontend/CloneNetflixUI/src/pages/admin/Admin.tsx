@@ -48,7 +48,7 @@ const AdminUsers = () => {
     imageFile: null,
     imagePreview: '',
   });
-
+  const API_URL = import.meta.env.VITE_API_URL;
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof UserFormData, string>>>({});
 
   const loadUsers = useCallback(async () => {
@@ -57,6 +57,7 @@ const AdminUsers = () => {
     try {
       const res = await api.get('/users/admin/get-all');
       let data = res.data;
+      console.log(res.data);
       if (typeof data === 'string') data = JSON.parse(data);
       setUsers(Array.isArray(data) ? data : []);
     } catch (err: any) {
@@ -96,7 +97,9 @@ const AdminUsers = () => {
   const loadUserForEdit = async (id: string) => {
     try {
       const res = await api.get(`/users/admin/get-user/${id}`);
+
       let user = res.data;
+
       if (typeof user === 'string') user = JSON.parse(user);
 
       setForm({
@@ -318,7 +321,11 @@ const AdminUsers = () => {
                     <tr key={user.id} className="hover:bg-indigo-950/30 transition duration-200">
                       <td className="px-8 py-6">
                         <img
-                          src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=6366f1&color=fff&size=128`}
+                          src={
+                            user.avatarUrl && user.avatarUrl.trim() !== ""
+                              ? `${API_URL}/images/${user.avatarUrl}`
+                              : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=6366f1&color=fff&size=128`
+                          }
                           alt={user.userName}
                           className="w-14 h-14 rounded-full object-cover ring-2 ring-indigo-500/50"
                         />

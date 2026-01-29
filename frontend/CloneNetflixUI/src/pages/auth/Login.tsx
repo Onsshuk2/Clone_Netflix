@@ -1,8 +1,10 @@
 // src/pages/Login.tsx (або де в тебе лежить)
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { $t } from "../../lib/Toast"; // ← наш глобальний тост (з попереднього кроку)
+import { $t } from "../../lib/toast"; // ← наш глобальний тост (з попереднього кроку)
 import { useLanguage } from "../../contexts/LanguageContext";
+import { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -12,6 +14,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   const mapError = (raw: any) => {
     if (!raw) return t('auth.error_generic');
@@ -35,62 +38,87 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
-      console.log(API_URL);
-
-      const loginData = await loginRes.json();
 
       if (!loginRes.ok) {
-        throw new Error(
-          loginData.message || loginData.error || "Помилка входу"
-        );
+        const errData = await loginRes.json();
+        throw new Error(errData.message || errData.error || "Помилка входу");
       }
 
+      const loginData = await loginRes.json();
       const token = loginData.token;
+
       if (!token) throw new Error("Токен не отримано");
 
       localStorage.setItem("token", token);
 
-      // 2. Отримуємо дані користувача
-      const meRes = await fetch(`${API_URL}/api/Auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // 2. Витягуємо userId з токена (jwt-decode або вручну)
+      let userId: string | null = null;
+      try {
+        const decoded: any = jwtDecode(token);  // імпортуй jwt-decode якщо ще не
+        userId = decoded.sub || decoded.userId || decoded.id || decoded.nameid || null;
+      } catch (decodeErr) {
+        console.warn("Не вдалося декодувати токен для userId", decodeErr);
+      }
 
       let userData: any = {};
 
-      if (meRes.ok) {
-        userData = await meRes.json();
-      } else {
-        console.warn("me не спрацював → беремо з login відповіді");
-        userData = loginData.user || loginData;
+      // 3. Якщо userId є — запитуємо повний профіль через адмінський ендпоінт
+      if (userId) {
+        const userRes = await fetch(`${API_URL}/api/users/admin/get-user/${userId}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (userRes.ok) {
+          userData = await userRes.json();
+        } else {
+          console.warn("Не вдалося отримати користувача по ID, статус:", userRes.status);
+        }
       }
 
-      // 3. Формуємо об'єкт користувача
-      const userToSave = {
-        name:
+      // 4. Якщо нічого не отримали — fallback на мінімальні дані
+      if (!userData || Object.keys(userData).length === 0) {
+        userData = { email };
+      }
+
+      // 5. Нормалізуємо під формат UserLayout / Profile
+      const normalizedUser = {
+        userName:
+          userData.userName ||
+          userData.username ||
           userData.name ||
           userData.fullName ||
-          userData.username ||
-          userData.email?.split("@")[0] ||
+          userData.displayName ||
+          (userData.email || email)?.split("@")[0] ||
           "Користувач",
-        avatar: userData.avatar || userData.photo || userData.photoURL || null,
+
+        avatarUrl:
+          userData.avatarUrl ||
+          userData.avatar ||
+          userData.photo ||
+          userData.profilePicture ||
+          null,
+
         email: userData.email || email,
+
+        // якщо в відповіді є dateOfBirth, id тощо — додавай
+        // dateOfBirth: userData.dateOfBirth || null,
       };
 
-      localStorage.setItem("user", JSON.stringify(userToSave));
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
 
-      // Успішний тост
-      $t.success(t('auth.login_success'));
+      $t.success(t('auth.login_success') || "Вхід успішний!");
 
-      // Перехід
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1300);
+      navigate("/dashboard");
+
     } catch (err: any) {
-      const raw = err?.message || err?.response?.data?.message || err?.response?.data || '';
+      const raw = err?.message || err?.response?.data?.message || '';
       const message = mapError(raw);
       $t.error(message);
 
-      // Чистимо, щоб не залишився старий токен
       localStorage.removeItem("token");
       localStorage.removeItem("user");
     } finally {
