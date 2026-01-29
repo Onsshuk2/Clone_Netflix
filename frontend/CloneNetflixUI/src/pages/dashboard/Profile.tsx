@@ -135,7 +135,7 @@ export default function Profile() {
       formData.append("Email", form.email.trim());
       formData.append("DateOfBirth", form.dateOfBirth || "");
 
-      if (selectedFile) formData.append("Image", selectedFile);
+      if (selectedFile) formData.append("avatar", selectedFile);
 
       const updatedData = await updateMyProfile(formData);
 
