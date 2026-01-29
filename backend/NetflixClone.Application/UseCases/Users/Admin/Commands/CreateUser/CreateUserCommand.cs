@@ -11,7 +11,7 @@ public class CreateUserCommand : IRequest<Guid>
     public string Password { get; set; } = string.Empty;
     public string ConfirmPassword { get; set; } = string.Empty;
     public DateOnly DateOfBirth { get; set; }
-    public IFormFile? Image { get; set; }
+    public IFormFile? Avatar { get; set; }
     public List<string> Roles { get; set; }
     public Guid? PlanId { get; set; }
 }

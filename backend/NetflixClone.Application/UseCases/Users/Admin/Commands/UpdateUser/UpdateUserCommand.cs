@@ -9,7 +9,7 @@ public class UpdateUserCommand : IRequest
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public DateOnly DateOfBirth { get; set; }
-    public IFormFile? Image { get; set; }
+    public IFormFile? Avatar { get; set; }
     public List<string> Roles { get; set; } = new();
     public Guid? PlanId { get; set; }
 }
