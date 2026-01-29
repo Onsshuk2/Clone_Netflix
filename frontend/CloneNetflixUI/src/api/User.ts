@@ -1,10 +1,9 @@
-import api from "./Api"; // твій axios instance
+import api from "./Api";
 import { toast } from "react-hot-toast";
 
-// GET профілю з сервера
 export const getMyProfile = async () => {
   try {
-    const response = await api.get("/users/profile/get"); // без /api/ на початку!
+    const response = await api.get("/users/profile/get");
     console.log("GET профіль:", response.data);
     return response.data;
   } catch (error: any) {
@@ -21,10 +20,8 @@ export const getMyProfile = async () => {
   }
 };
 
-// PUT оновлення профілю
 export const updateMyProfile = async (formData: FormData) => {
   try {
-    // ШЛЯХ БЕЗ /api/ !!!
     const response = await api.put("/users/profile/update", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
