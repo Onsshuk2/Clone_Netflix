@@ -3,11 +3,12 @@ import { Link, Outlet } from "react-router-dom";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
 
+
 export default function AuthLayout() {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 text-gray-100">
+    <div className="bg-gradient-to-b from-gray-950 via-black to-gray-950 text-gray-100">
       {/* Хедер для авторизації — темний стиль */}
       <header className="bg-gray-900/70 backdrop-blur-2xl shadow-2xl sticky top-0 z-50 border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
@@ -36,7 +37,7 @@ export default function AuthLayout() {
       </header>
 
       {/* Основний контент (логін/реєстрація форми) */}
-      <main className="flex-1">
+      <main className="flex-2">
         <Outlet />
       </main>
     </div>

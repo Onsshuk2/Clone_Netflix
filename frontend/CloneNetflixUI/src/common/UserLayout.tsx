@@ -16,7 +16,13 @@ export default function UserLayout() {
   const token = localStorage.getItem("token");
   const isAuthenticated = !!token;
 
-  // Об'єкт користувача з правильним отриманням імені та аватарки
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; // або твій базовий URL
+
+  // Дефолтний аватар (стабільний, темний стиль, підходить до теми)
+  const DEFAULT_AVATAR =
+    "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
+
+  // Об'єкт користувача
   const user = (() => {
     if (!isAuthenticated) return null;
 
@@ -26,7 +32,6 @@ export default function UserLayout() {
     try {
       const parsed = JSON.parse(userJson);
 
-      // Беремо userName як пріоритет, потім частину email, потім дефолт
       const displayName =
         parsed.userName?.trim() ||
         (parsed.email || "").split("@")[0]?.trim() ||
@@ -34,10 +39,7 @@ export default function UserLayout() {
 
       return {
         name: displayName,
-        avatar:
-          parsed.avatarUrl ||
-          parsed.avatar ||
-          "https://i.pinimg.com/736x/24/49/08/2449080f7429c683bc9cba619c237d01.jpg",
+        avatarUrl: parsed.avatarUrl || parsed.avatar || null,
         email: parsed.email || "",
       };
     } catch (e) {
@@ -45,6 +47,23 @@ export default function UserLayout() {
       return null;
     }
   })();
+
+  // Функція для коректного src аватара (така ж логіка, як у Profile)
+  const getAvatarSrc = () => {
+    if (!user?.avatarUrl) return DEFAULT_AVATAR;
+
+    // Якщо вже повний URL — беремо як є
+    if (user.avatarUrl.startsWith("http://") || user.avatarUrl.startsWith("https://")) {
+      return user.avatarUrl;
+    }
+
+    // Якщо відносний шлях — додаємо API_URL + чистимо префікси
+    let cleanPath = user.avatarUrl
+      .replace(/^\/+/, "")
+      .replace(/^(images\/|uploads\/|avatars\/)?/, "");
+
+    return `${API_URL}/images/${cleanPath}`;
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -92,13 +111,13 @@ export default function UserLayout() {
   const activeNavButtonClasses = "bg-indigo-600/40 shadow-md shadow-indigo-900/60 ring-2 ring-indigo-500/60";
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-950 via-black to-gray-950 text-gray-100 relative">
+    <div className="flex flex-col bg-gradient-to-b from-gray-950 via-black to-gray-950 text-gray-100 relative min-h-screen">
       <header className="bg-gray-900/70 backdrop-blur-2xl shadow-2xl sticky top-0 z-50 border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
           <Link
             to="/dashboard"
             onClick={handleNavClick}
-            className="text-3xl font-black tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
+            className="text-3xl font-black tracking-normal bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
           >
             Nexo Cinema
           </Link>
@@ -156,15 +175,19 @@ export default function UserLayout() {
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-3 hover:bg-gray-800/60 px-4 py-3 rounded-2xl transition backdrop-blur-sm border border-gray-700/40"
               >
-                {user?.avatar ? (
+                {user ? (
                   <img
-                    src={user.avatar}
+                    src={getAvatarSrc()}
                     alt="Аватар"
                     className="w-10 h-10 rounded-full ring-4 ring-indigo-500/30 shadow-xl object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                      (e.target as HTMLImageElement).onerror = null;
+                    }}
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center font-bold text-lg ring-4 ring-indigo-500/30 shadow-xl">
-                    {user?.name?.[0]?.toUpperCase() || "?"}
+                    ?
                   </div>
                 )}
                 <span className="hidden md:block font-medium text-gray-200">
@@ -219,7 +242,7 @@ export default function UserLayout() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-12">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         <Outlet />
       </main>
 

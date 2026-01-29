@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
-import { getMyProfile, updateMyProfile } from "../../api/User"; // ← імпорт обох функцій!
+import { getMyProfile, updateMyProfile } from "../../api/User";
 
 interface ProfileData {
   userName: string;
@@ -30,13 +30,43 @@ export default function Profile() {
     dateOfBirth: "",
   });
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // Початково true, бо завантажуємо дані
+  const [loading, setLoading] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Завантаження профілю з сервера
+  // Дефолтний аватар — стильний, темний, підходить до теми сайту
+  const DEFAULT_AVATAR =
+    "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
+
+  // Функція для коректного визначення src аватара
+  const getAvatarSrc = () => {
+    // 1. Прев'ю щойно обраного файлу (найвищий пріоритет)
+    if (previewUrl) return previewUrl;
+
+    // 2. Аватар з профілю
+    if (profile.avatarUrl) {
+      // Якщо вже повний URL — беремо як є
+      if (profile.avatarUrl.startsWith("http://") || profile.avatarUrl.startsWith("https://")) {
+        return profile.avatarUrl;
+      }
+
+      // Якщо відносний шлях — чистимо та додаємо базу
+      let cleanPath = profile.avatarUrl
+        .replace(/^\/+/, "") // прибираємо зайві слеші на початку
+        .replace(/^(images\/|uploads\/|avatars\/)?/, ""); // типові префікси
+
+      return `${API_URL}/images/${cleanPath}`;
+    }
+
+    // 3. Дефолтний аватар
+    return DEFAULT_AVATAR;
+  };
+
+  // Завантаження профілю
   useEffect(() => {
     const loadProfile = async () => {
       const token = localStorage.getItem("token");
@@ -48,17 +78,16 @@ export default function Profile() {
 
       setLoading(true);
       try {
-        const data = await getMyProfile(); // Отримуємо з бази!
+        const data = await getMyProfile();
 
         setProfile(data);
         setForm({
           username: data.userName || "Користувач",
           email: data.email || "",
-          dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "", // Обрізаємо до yyyy-MM-dd для <input type="date">
+          dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "",
         });
-        setPreviewUrl(data.avatarUrl);
+        setPreviewUrl(null); // скидаємо прев'ю при завантаженні свіжих даних
 
-        // Зберігаємо в localStorage для швидкого доступу наступного разу
         localStorage.setItem("user", JSON.stringify(data));
       } catch (err) {
         console.error("Не вдалося завантажити профіль", err);
@@ -76,7 +105,7 @@ export default function Profile() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Зображення >5MB");
+      toast.error("Зображення більше 5MB");
       return;
     }
     if (!file.type.startsWith("image/")) {
@@ -101,29 +130,30 @@ export default function Profile() {
 
     try {
       const formData = new FormData();
-      formData.append("UserId", jwtDecode(localStorage.getItem("token")!).sub || ""); // або витягуй як раніше
+      formData.append("UserId", jwtDecode(localStorage.getItem("token")!).sub || "");
       formData.append("Username", form.username.trim());
       formData.append("Email", form.email.trim());
       formData.append("DateOfBirth", form.dateOfBirth || "");
 
       if (selectedFile) formData.append("Image", selectedFile);
 
-      await updateMyProfile(formData);
+      const updatedData = await updateMyProfile(formData);
 
-      // Оновлюємо локальний стан
-      const updated = {
-        ...profile,
-        userName: form.username.trim(),
-        email: form.email.trim(),
-        dateOfBirth: form.dateOfBirth,
-        avatarUrl: previewUrl || profile.avatarUrl,
-      };
-      setProfile(updated);
+      // Оновлюємо стан після успішного оновлення
+      setProfile(updatedData);
+      setForm({
+        username: updatedData.userName || form.username,
+        email: updatedData.email || form.email,
+        dateOfBirth: updatedData.dateOfBirth ? updatedData.dateOfBirth.split("T")[0] : form.dateOfBirth,
+      });
+      setPreviewUrl(null); // скидаємо локальне прев'ю після збереження
       setSelectedFile(null);
 
       toast.success("Профіль оновлено!");
     } catch (err) {
-      // помилка вже оброблена в updateMyProfile
+      console.error(err);
+      // помилка вже оброблена в updateMyProfile або покажи загальну
+      toast.error("Не вдалося оновити профіль");
     } finally {
       setLoading(false);
     }
@@ -132,6 +162,7 @@ export default function Profile() {
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Завантаження профілю...</div>;
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-10 px-5">
       <div className="max-w-2xl mx-auto">
@@ -144,14 +175,14 @@ export default function Profile() {
           <div className="relative pt-12 pb-10 bg-gradient-to-b from-indigo-950/40 to-transparent text-center">
             <div className="relative inline-block mx-auto">
               <img
-                src={
-                  previewUrl ||
-                  profile.avatarUrl ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(form.username || "User")}&background=6b7280&color=fff&size=256`
-                }
-                alt="Аватар"
+                src={getAvatarSrc()}
+                alt="Аватар користувача"
                 className="w-44 h-44 rounded-full object-cover ring-8 ring-indigo-500/30 shadow-2xl cursor-pointer hover:scale-105 transition"
                 onClick={() => fileInputRef.current?.click()}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                  (e.target as HTMLImageElement).onerror = null;
+                }}
               />
 
               <button
@@ -177,7 +208,6 @@ export default function Profile() {
 
           {/* Форма */}
           <form onSubmit={handleSubmit} className="p-8 space-y-7">
-            {/* Ім'я */}
             <div>
               <label className="block text-gray-300 font-medium mb-2">Ім'я для відображення</label>
               <input
@@ -190,7 +220,6 @@ export default function Profile() {
               />
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-gray-300 font-medium mb-2">Email</label>
               <input
@@ -202,7 +231,6 @@ export default function Profile() {
               />
             </div>
 
-            {/* Дата народження */}
             <div>
               <label className="block text-gray-300 font-medium mb-2">Дата народження</label>
               <input
@@ -213,7 +241,6 @@ export default function Profile() {
               />
             </div>
 
-            {/* Кнопки */}
             <div className="flex justify-end gap-5 pt-6">
               <button
                 type="button"
