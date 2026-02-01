@@ -8,7 +8,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 export default function UserLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -102,7 +102,7 @@ export default function UserLayout() {
   const isAnimeActive = location.pathname.startsWith("/dashboard-anime");
   const isSeriesActive = location.pathname.startsWith("/dashboard-series");
   const isCartoonsActive = location.pathname.startsWith("/dashboard-cartoons");
-  const isFavoritesActive = location.pathname === "/favorites";
+  // const isFavoritesActive = location.pathname === "/favorites";
   const isDashboardActive = location.pathname === "/dashboard" || location.pathname.startsWith("/dashboard/");
 
   const navButtonClasses =
@@ -158,14 +158,14 @@ export default function UserLayout() {
             >
               {t('nav.cartoons')}
             </Link>
-            <Link
+            {/* <Link
               to="/favorites"
               onClick={handleNavClick}
               className={`${navButtonClasses} ${isFavoritesActive ? activeNavButtonClasses : ""} flex items-center gap-2 mr-6`}
             >
               <Heart size={20} />
               {t('favorites.title')}
-            </Link>
+            </Link> */}
           </nav>
 
           <div className="flex items-center gap-6">
@@ -217,6 +217,14 @@ export default function UserLayout() {
                     >
                       <Heart className="w-5 h-5 text-red-400" />
                       <span className="font-medium">{t('favorites.title')}</span>
+                    </Link>
+                    <Link
+                      to="/watch-history"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
+                    >
+                      <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <span className="font-medium">{t('watch_history.title')}</span>
                     </Link>
                     <Link
                       to="/subscriptions"

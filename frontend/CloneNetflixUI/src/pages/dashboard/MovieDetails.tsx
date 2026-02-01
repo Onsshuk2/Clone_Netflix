@@ -5,6 +5,7 @@ import YouTube from "react-youtube";
 
 import { useLanguage } from "../../contexts/LanguageContext";
 
+import { useWatchHistory } from "../../lib/useWatchHistory";
 import {
     fetchContentDetails,
     fetchContentVideos,
@@ -29,6 +30,9 @@ const MovieDetails: React.FC = () => {
 
     const language = getTMDBLanguage();
 
+    const { addToHistory } = useWatchHistory();
+
+
     // Прокрутка вгору при зміні id
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -49,6 +53,13 @@ const MovieDetails: React.FC = () => {
                 // Деталі
                 const detailsData = await fetchContentDetails(type, id, language);
                 setDetails(detailsData);
+
+                // Додаємо в історію переглядів
+                try {
+                    addToHistory({ id: detailsData.id, type: type, poster_path: detailsData.poster_path || null });
+                } catch (err) {
+                    // nothing
+                }
 
                 // Відео
                 const videosData = await fetchContentVideos(type, id, language);

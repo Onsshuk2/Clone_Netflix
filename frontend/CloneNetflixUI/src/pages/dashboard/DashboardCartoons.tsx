@@ -22,6 +22,9 @@ const DashboardCartoons: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [topCartoons, setTopCartoons] = useState<any[]>([]);
 
+  // 🔹 ДОДАНО ТІЛЬКИ ДЛЯ АНІМАЦІЇ
+  const [animatingId, setAnimatingId] = useState<number | null>(null);
+
   const language = getTMDBLanguage();
 
   useEffect(() => {
@@ -41,7 +44,7 @@ const DashboardCartoons: React.FC = () => {
         setDisplayItems(sorted.slice(0, 20));
       } catch (err) {
         console.error("Помилка завантаження топ-мультфільмів:", err);
-        setError(t('cartoons.loading_error'));
+        setError(t("cartoons.loading_error"));
         setAllItems([]);
         setDisplayItems([]);
       } finally {
@@ -62,7 +65,7 @@ const DashboardCartoons: React.FC = () => {
 
     const term = searchTerm.trim();
     if (term.length < 2) {
-      setError(t('common.search_min_chars'));
+      setError(t("common.search_min_chars"));
       return;
     }
 
@@ -80,15 +83,15 @@ const DashboardCartoons: React.FC = () => {
         setDisplayItems(cartoonResults.slice(0, 20));
       } else {
         setError(
-          t('cartoons.not_found') ||
-          "Мультфільм не знайдено. Спробуйте: Король Лев, Холодне серце, Шрек, Вгору, Історія іграшок, Міньйони..."
+          t("cartoons.not_found") ||
+            "Мультфільм не знайдено. Спробуйте: Король Лев, Шрек, Міньйони..."
         );
         setAllItems([]);
         setDisplayItems([]);
       }
     } catch (err) {
       console.error("Помилка пошуку мультфільмів:", err);
-      setError(t('cartoons.connection_error') || "Помилка з'єднання");
+      setError(t("cartoons.connection_error") || "Помилка з'єднання");
       setAllItems([]);
       setDisplayItems([]);
     } finally {
@@ -118,10 +121,12 @@ const DashboardCartoons: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12 max-w-7xl">
         <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
-          {t('cartoons.welcome')}
+          {t("cartoons.welcome")}
         </h1>
         <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
-          {searchMode ? `${t('dashboard.search_results')} "${displaySearchTerm}"` : t('cartoons.top_100')}
+          {searchMode
+            ? `${t("dashboard.search_results")} "${displaySearchTerm}"`
+            : t("cartoons.top_100")}
         </p>
 
         {searchMode && (
@@ -130,7 +135,7 @@ const DashboardCartoons: React.FC = () => {
               onClick={resetToTop}
               className="px-8 py-3 bg-teal-700 hover:bg-teal-600 rounded-xl font-semibold text-lg transition shadow"
             >
-              {t('dashboard.back')}
+              {t("dashboard.back")}
             </button>
           </div>
         )}
@@ -141,7 +146,7 @@ const DashboardCartoons: React.FC = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t('cartoons.search_placeholder')}
+              placeholder={t("cartoons.search_placeholder")}
               className="flex-1 px-6 py-5 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:border-teal-500 text-lg placeholder-gray-500 transition"
             />
             <button
@@ -149,20 +154,16 @@ const DashboardCartoons: React.FC = () => {
               disabled={loading}
               className="px-12 py-5 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 rounded-xl font-bold text-lg transition shadow-lg"
             >
-              {loading && searchMode ? t('common.searching') : t('common.find_button')}
+              {loading && searchMode
+                ? t("common.searching")
+                : t("common.find_button")}
             </button>
           </div>
         </form>
 
-        {error && !loading && (
-          <div className="text-center text-red-400 text-xl bg-red-900/20 py-6 rounded-lg mb-12">
+        {error && (
+          <div className="max-w-2xl mx-auto mb-8 text-center text-red-400 bg-red-900/40 rounded-xl p-6 font-semibold text-lg">
             {error}
-          </div>
-        )}
-
-        {loading && displayItems.length === 0 && (
-          <div className="text-center text-2xl py-20">
-            {searchMode ? t('cartoons.searching') : t('cartoons.loading')}
           </div>
         )}
 
@@ -170,8 +171,11 @@ const DashboardCartoons: React.FC = () => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
               {displayItems.map((item) => {
-                const title = item.title || item.original_title || "Без назви";
-                const year = item.release_date?.slice(0, 4) || t('common.unknown');
+                const title =
+                  item.title || item.original_title || "Без назви";
+                const year =
+                  item.release_date?.slice(0, 4) ||
+                  t("common.unknown");
 
                 return (
                   <div key={item.id} className="group relative h-full">
@@ -189,7 +193,7 @@ const DashboardCartoons: React.FC = () => {
                       ) : (
                         <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
                           <span className="text-gray-500 text-center px-4">
-                            {t('common.poster_missing')}
+                            {t("common.poster_missing")}
                           </span>
                         </div>
                       )}
@@ -200,7 +204,7 @@ const DashboardCartoons: React.FC = () => {
                         </h3>
                         <div>
                           <p className="text-gray-400 text-sm">
-                            {year} {t('common.year')}
+                            {year} {t("common.year")}
                           </p>
                           {item.vote_average > 0 && (
                             <p className="text-teal-400 mt-1 font-bold">
@@ -211,25 +215,57 @@ const DashboardCartoons: React.FC = () => {
                       </div>
                     </Link>
 
+                    {/* ❤️ КНОПКА УЛЮБЛЕНИХ З АНІМАЦІЄЮ */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
+
+                        setAnimatingId(item.id);
+
                         toggleFavorite({
                           id: item.id,
-                          mediaType: 'movie',
+                          mediaType: "movie",
                           title,
                           posterPath: item.poster_path,
                           voteAverage: item.vote_average,
                           releaseDate: item.release_date,
                         });
-                        const isFav = isFavorite(item.id, 'movie');
-                        toast.success(isFav ? t('favorites.removed') : t('favorites.added'));
+
+                        const isFav = isFavorite(item.id, "movie");
+                        toast.success(
+                          isFav
+                            ? t("favorites.removed")
+                            : t("favorites.added")
+                        );
+
+                        setTimeout(() => setAnimatingId(null), 300);
                       }}
-                      className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                      className="
+                        absolute top-3 right-3
+                        p-2 bg-black/60 rounded-full
+                        hover:bg-black/80
+                        transition-all duration-300
+                        z-10
+                        opacity-0 group-hover:opacity-100
+                        hover:scale-110
+                        active:scale-90
+                      "
                     >
                       <Heart
                         size={24}
-                        className={isFavorite(item.id, 'movie') ? 'fill-red-500 text-red-500' : 'text-white'}
+                        className={`
+                          transition-all duration-300
+                          ${
+                            isFavorite(item.id, "movie")
+                              ? "fill-red-500 text-red-500 scale-110"
+                              : "text-white"
+                          }
+                          ${
+                            animatingId === item.id
+                              ? "scale-125 rotate-12"
+                              : ""
+                          }
+                        `}
                       />
                     </button>
                   </div>
@@ -244,17 +280,11 @@ const DashboardCartoons: React.FC = () => {
                   disabled={loading}
                   className="px-10 py-4 bg-teal-600 hover:bg-teal-700 disabled:opacity-70 rounded-xl font-bold text-xl transition shadow-lg"
                 >
-                  {t('common.load_more')}
+                  {t("common.load_more")}
                 </button>
               </div>
             )}
           </>
-        )}
-
-        {!loading && displayItems.length === 0 && !error && (
-          <div className="text-center mt-32 text-3xl text-gray-500">
-            {t('dashboard.enter_search') || "Введіть назву мультфільму для пошуку"}
-          </div>
         )}
       </div>
     </div>

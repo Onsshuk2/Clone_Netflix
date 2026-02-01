@@ -5,7 +5,6 @@ import { useFavorites } from "../../lib/useFavorites";
 import { Heart, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 
-const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
 
 const Favorites: React.FC = () => {
   const { t } = useLanguage();
@@ -68,51 +67,61 @@ const Favorites: React.FC = () => {
                     className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block"
                   >
                     {item.posterPath ? (
-                      <img
-                        src={`${TMDB_IMG_BASE}${item.posterPath}`}
-                        alt={item.title}
-                        className="w-full h-80 object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                        <span className="text-gray-500 text-center px-4">
-                          {t('common.no_image')}
-                        </span>
-                      </div>
-                    )}
-                    <div className="p-5">
-                      <h3
-                        className="text-lg font-semibold line-clamp-2"
-                        title={item.title}
-                      >
-                        {item.title}
-                      </h3>
-                      <p className="text-gray-400 mt-2 text-sm">
-                        {item.releaseDate?.slice(0, 4) || t('common.unknown')} {t('common.year')}
-                      </p>
-                      {item.voteAverage > 0 && (
-                        <p className="text-yellow-400 mt-2 font-bold">
-                          ⭐ {item.voteAverage.toFixed(1)}
-                        </p>
-                      )}
+      <img
+        src={`${import.meta.env.VITE_TMDB_IMG_BASE}${item.posterPath}`}
+        alt={item.title}
+        className="w-full h-80 object-cover flex-shrink-0"
+        loading="lazy"
+      />
+    ) : (
+      <div className="w-full h-80 bg-gray-700 flex items-center justify-center flex-shrink-0">
+        <span className="text-gray-500 text-center px-4">
+          {t('common.poster_missing')}
+        </span>
+      </div>
+    )}
+                    <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
+      <h3 className="text-lg font-semibold break-words line-clamp-2">
+        {item.title}
+      </h3>
+      <div>
+        <p className="text-gray-400 text-sm">
+          {(item.releaseDate || (item as any).firstAirDate || "").slice(0, 4) ||
+            t('common.unknown')}{" "}
+          {t('common.year')}
+        </p>
+        {item.voteAverage > 0 && (
+          <p className="text-yellow-400 mt-1 font-bold">
+            ⭐ {item.voteAverage.toFixed(1)}
+          </p>
+        )}
+      </div>
                     </div>
                   </Link>
 
                   {/* Кнопка видалення */}
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleRemove(item.id, item.mediaType);
-                    }}
-                    className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
-                    title={t('favorites.remove')}
-                  >
-                    <Heart
-                      size={24}
-                      className="fill-red-500 text-red-500"
-                    />
-                  </button>
+  onClick={(e) => {
+    e.preventDefault();
+    handleRemove(item.id, item.mediaType);
+  }}
+  className="
+    absolute top-3 right-3
+    p-2 bg-black/60 rounded-full
+    hover:bg-black/80
+    transition-all duration-300
+    z-10
+    opacity-0 group-hover:opacity-100
+    hover:scale-110
+    active:scale-90
+  "
+  title={t('favorites.remove')}
+>
+  <Heart
+    size={24}
+    className="fill-red-500 text-red-500"
+  />
+</button>
                 </div>
               ))}
             </div>

@@ -138,18 +138,35 @@ const WelcomeDashboard: React.FC = () => {
             <button
               onClick={(e) => {
                 e.preventDefault();
+
+                const isFav = isFavorite(item.id, type);
+
                 toggleFavorite({
                   id: item.id,
                   mediaType: type,
-                  title: item.title || item.name || 'Unknown',
+                  title: item.title || item.name || "",
                   posterPath: item.poster_path,
                   voteAverage: item.vote_average,
-                  releaseDate: item.release_date || item.first_air_date,
+                  releaseDate:
+                    item.release_date || item.first_air_date,
                 });
-                const isFav = isFavorite(item.id, type);
-                toast.success(isFav ? t('favorites.removed') : t('favorites.added'));
+
+                toast.success(
+                  isFav
+                    ? t("favorites.removed")
+                    : t("favorites.added")
+                );
               }}
-              className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
+              className="
+                absolute top-3 right-3
+                p-2 bg-black/60 rounded-full
+                hover:bg-black/80
+                transition-all duration-300
+                z-10
+                opacity-0 group-hover:opacity-100
+                hover:scale-110
+                active:scale-90
+              "
             >
               <Heart
                 size={24}

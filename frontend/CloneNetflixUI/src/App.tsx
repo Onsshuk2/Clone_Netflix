@@ -20,6 +20,7 @@ import DashboardAnime from "./pages/dashboard/DashboardAnime";
 import DashboardCartoons from "./pages/dashboard/DashboardCartoons";
 import Profile from "./pages/dashboard/Profile";
 import Favorites from "./pages/dashboard/Favorites";
+import WatchHistory from "./pages/dashboard/WatchHistory";
 import { GlobalToaster } from "./lib/toast";
 import AdminUsers from "./pages/admin/Admin";
 import DashboardSeries from "./pages/dashboard/DashboardSeries";
@@ -75,6 +76,7 @@ function App() {
           <Route path="/details/:type/:id" element={<MovieDetails />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/favorites" element={<Favorites />} />
+          <Route path="/watch-history" element={<WatchHistory />} />
           <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
         </Route>
 
