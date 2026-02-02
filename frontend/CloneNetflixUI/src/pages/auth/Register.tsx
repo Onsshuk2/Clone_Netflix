@@ -36,31 +36,31 @@ export default function Register() {
 
     // Email
     if (!formData.email.trim()) {
-      newErrors.email = "Вкажіть email";
+      newErrors.email = t('validation.enter_email');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      newErrors.email = "Неправильний формат email";
+      newErrors.email = t('validation.invalid_email');
     }
 
     // Дата народження
     if (!formData.dateOfBirth) {
-      newErrors.dateOfBirth = "Вкажіть дату народження";
+      newErrors.dateOfBirth = t('validation.enter_dob');
     }
 
     // Пароль
     if (!formData.password) {
-      newErrors.password = "Вкажіть пароль";
+      newErrors.password = t('validation.enter_password');
     } else if (formData.password.length < 8) {
-      newErrors.password = "Мінімум 8 символів";
+      newErrors.password = t('validation.password_min');
     }
 
     // Підтвердження пароля
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Паролі не співпадають";
+      newErrors.confirmPassword = t('validation.passwords_mismatch');
     }
 
     // Згода
     if (!agree) {
-      newErrors.agree = "Потрібна згода з умовами";
+      newErrors.agree = t('validation.accept_terms');
     }
 
     setErrors(newErrors);
@@ -88,7 +88,7 @@ export default function Register() {
         headers: { "Content-Type": "application/json" },
       });
 
-      $t.success("Реєстрація успішна!");
+      $t.success(t('auth.register_success'));
 
       setFormData({
         email: "",
@@ -113,11 +113,11 @@ export default function Register() {
         setErrors(formatted);
 
         const firstError = Object.values(formatted)[0];
-        $t.error(firstError || "Невірні дані");
+        $t.error(firstError || t('auth.error_generic'));
       } else if (err.response?.status === 409 || String(err.response?.data?.message || "").includes("taken")) {
-        $t.error("Цей email вже зайнятий");
+        $t.error(t('auth.email_taken'));
       } else {
-        $t.error("Помилка на сервері");
+        $t.error(t('auth.error_generic'));
       }
     } finally {
       setIsLoading(false);
@@ -132,52 +132,62 @@ export default function Register() {
             {t("auth.create_account") || "Створити акаунт"}
           </h2>
           <p className="mt-3 text-base text-slate-600">
-            Вже є акаунт?{" "}
-            <a href="/login" className="text-indigo-600 hover:underline font-medium">
-              Увійти
+            {t('auth.already_have_account')} {" "}
+            <a href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition">
+              {t('auth.login')}
             </a>
           </p>
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl p-8 border border-slate-200/50">
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Email */}
-            <input
-              type="email"
-              name="email"
-              placeholder="example@gmail.com"
-              value={formData.email}
-              onChange={handleChange}
-              className={`w-full px-5 py-4 bg-white border rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition-all ${errors.email ? "border-red-500" : "border-gray-300"}`}
-            />
-            {errors.email && <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>}
+            <div>
+              <input
+                type="email"
+                name="email"
+                placeholder={t('auth.email_placeholder')}
+                value={formData.email}
+                onChange={handleChange}
+                className={`w-full px-5 py-4 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.email ? "border-red-500" : "border-slate-300"}`}
+                required
+              />
+              {errors.email && <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>}
+            </div>
 
             {/* Дата народження */}
-            <input
-              type="date"
-              name="dateOfBirth"
-              value={formData.dateOfBirth}
-              onChange={handleChange}
-              className={`w-full px-5 py-4 bg-white border rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition-all ${errors.dateOfBirth ? "border-red-500" : "border-gray-300"}`}
-            />
-            {errors.dateOfBirth && <p className="mt-1.5 text-sm text-red-600">{errors.dateOfBirth}</p>}
+            <div>
+              <input
+                type="date"
+                name="dateOfBirth"
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                className={`w-full px-5 py-4 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.dateOfBirth ? "border-red-500" : "border-slate-300"}`}
+              />
+              {errors.dateOfBirth && <p className="mt-1.5 text-sm text-red-600">{errors.dateOfBirth}</p>}
+            </div>
 
             {/* Пароль */}
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder="Мінімум 8 символів"
+                placeholder={t('auth.password_placeholder')}
                 value={formData.password}
                 onChange={handleChange}
-                className={`w-full px-5 py-4 pr-12 bg-white border rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition-all ${errors.password ? "border-red-500" : "border-gray-300"}`}
+                className={`w-full px-5 py-4 pr-14 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.password ? "border-red-500" : "border-slate-300"}`}
+                required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute inset-y-0 right-0 flex items-center pr-5 text-slate-500 hover:text-slate-700 transition"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
               {errors.password && <p className="mt-1.5 text-sm text-red-600">{errors.password}</p>}
             </div>
@@ -187,17 +197,22 @@ export default function Register() {
               <input
                 type={showConfirm ? "text" : "password"}
                 name="confirmPassword"
-                placeholder="Повторіть пароль"
+                placeholder={t('auth.confirm_password_placeholder')}
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`w-full px-5 py-4 pr-12 bg-white border rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition-all ${errors.confirmPassword ? "border-red-500" : "border-gray-300"}`}
+                className={`w-full px-5 py-4 pr-14 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition ${errors.confirmPassword ? "border-red-500" : "border-slate-300"}`}
+                required
               />
               <button
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute inset-y-0 right-0 flex items-center pr-5 text-slate-500 hover:text-slate-700 transition"
               >
-                {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showConfirm ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
               {errors.confirmPassword && <p className="mt-1.5 text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
@@ -212,14 +227,14 @@ export default function Register() {
                 className="h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
               />
               <label htmlFor="agree" className="text-sm text-gray-700 select-none">
-                Я погоджуюсь з{" "}
+                {t('auth.agree_prefix')} {" "}
                 <a
                   href="/terms"
                   className="text-indigo-600 hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  умовами використання
+                  {t('auth.terms')}
                 </a>
               </label>
             </div>
@@ -229,18 +244,33 @@ export default function Register() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 mt-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-medium text-lg rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-indigo-400 disabled:to-indigo-500 text-white font-semibold text-lg rounded-xl shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 disabled:transform-none transition-all duration-200 flex items-center justify-center gap-3"
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" className="opacity-25" />
-                    <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" className="opacity-75" />
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                      className="opacity-25"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                      className="opacity-75"
+                    />
                   </svg>
-                  Реєстрація...
+                  {t('auth.registering')}
                 </>
               ) : (
-                "Зареєструватися"
+                t('auth.register_button')
               )}
             </button>
           </form>

@@ -71,7 +71,7 @@ export default function Profile() {
     const loadProfile = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
-        toast.error("Не авторизовано");
+        toast.error(t('profile.not_authorized'));
         navigate("/login");
         return;
       }
@@ -91,7 +91,7 @@ export default function Profile() {
         localStorage.setItem("user", JSON.stringify(data));
       } catch (err) {
         console.error("Не вдалося завантажити профіль", err);
-        toast.error("Помилка завантаження даних профілю");
+        toast.error(t('profile.read_error'));
       } finally {
         setLoading(false);
       }
@@ -105,11 +105,11 @@ export default function Profile() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Зображення більше 5MB");
+      toast.error(t('profile.image_too_large'));
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast.error("Оберіть зображення");
+      toast.error(t('profile.select_image'));
       return;
     }
 
@@ -122,7 +122,7 @@ export default function Profile() {
     e.preventDefault();
 
     if (!form.username.trim()) {
-      toast.error("Ім'я обов'язкове");
+      toast.error(t('validation.enter_name'));
       return;
     }
 
@@ -149,18 +149,18 @@ export default function Profile() {
       setPreviewUrl(null); // скидаємо локальне прев'ю після збереження
       setSelectedFile(null);
 
-      toast.success("Профіль оновлено!");
+      toast.success(t('profile.profile_updated'));
     } catch (err) {
       console.error(err);
       // помилка вже оброблена в updateMyProfile або покажи загальну
-      toast.error("Не вдалося оновити профіль");
+      toast.error(t('profile.update_failed'));
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Завантаження профілю...</div>;
+    return <div className="min-h-screen flex items-center justify-center">{t('profile.loading')}</div>;
   }
 
   return (
@@ -209,30 +209,30 @@ export default function Profile() {
           {/* Форма */}
           <form onSubmit={handleSubmit} className="p-8 space-y-7">
             <div>
-              <label className="block text-gray-300 font-medium mb-2">Ім'я для відображення</label>
+              <label className="block text-gray-300 font-medium mb-2">{t('profile.full_name')}</label>
               <input
                 type="text"
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
                 className="w-full px-5 py-3.5 bg-gray-800/60 border border-gray-700 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
-                placeholder="Як вас відображати"
+                placeholder={t('profile.enter_name')}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-gray-300 font-medium mb-2">Email</label>
+              <label className="block text-gray-300 font-medium mb-2">{t('profile.email')}</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="w-full px-5 py-3.5 bg-gray-800/60 border border-gray-700 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
-                placeholder="your@email.com"
+                placeholder={t('auth.email_placeholder')}
               />
             </div>
 
             <div>
-              <label className="block text-gray-300 font-medium mb-2">Дата народження</label>
+              <label className="block text-gray-300 font-medium mb-2">{t('profile.date_of_birth')}</label>
               <input
                 type="date"
                 value={form.dateOfBirth}
@@ -247,7 +247,7 @@ export default function Profile() {
                 onClick={() => navigate(-1)}
                 className="px-8 py-3.5 border border-gray-600 rounded-xl text-gray-300 hover:bg-gray-800/50 transition flex items-center gap-2"
               >
-                <X size={18} /> Скасувати
+                <X size={18} /> {t('profile.cancel')}
               </button>
 
               <button
@@ -260,7 +260,7 @@ export default function Profile() {
                 ) : (
                   <Check size={18} />
                 )}
-                Зберегти
+                {t('profile.save')}
               </button>
             </div>
           </form>
