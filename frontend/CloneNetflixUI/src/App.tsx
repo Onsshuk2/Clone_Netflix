@@ -26,6 +26,7 @@ import AdminUsers from "./pages/admin/Admin";
 import DashboardSeries from "./pages/dashboard/DashboardSeries";
 import WelcomeDashboard from "./pages/dashboard/DashboardMain";
 import MovieDetails from "./pages/dashboard/MovieDetails";
+import { LoaderProvider } from "./components/GlobalLoader";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
@@ -50,40 +51,42 @@ const GuestRoute = () => {
 function App() {
   return (
     <>
-      <Routes>
-        {/* Гостьові маршрути (з AuthLayout — красивий хедер) */}
-        <Route element={<GuestRoute />}>
-          <Route path="/" element={<PublicHomePage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/password-recovery" element={<PasswordRecovery />} />
-          <Route path="/reset-password" element={<NewPassword />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route
-            path="/confirmation-sent"
-            element={<ConfirmationEmailSent />}
-          />
-        </Route>
+      <LoaderProvider>
+        <Routes>
+          {/* Гостьові маршрути (з AuthLayout — красивий хедер) */}
+          <Route element={<GuestRoute />}>
+            <Route path="/" element={<PublicHomePage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/password-recovery" element={<PasswordRecovery />} />
+            <Route path="/reset-password" element={<NewPassword />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route
+              path="/confirmation-sent"
+              element={<ConfirmationEmailSent />}
+            />
+          </Route>
 
-        {/* Захищені маршрути (з UserLayout — дашбордний хедер/сайдбар) */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/admin" element={<AdminUsers />} />
-          <Route path="/dashboard-films" element={<DashboardMovies />} />
-          <Route path="/dashboard" element={<WelcomeDashboard />} />
-          <Route path="/dashboard-anime" element={<DashboardAnime />} />
-          <Route path="/dashboard-series" element={<DashboardSeries />} />
-          <Route path="/dashboard-cartoons" element={<DashboardCartoons />} />
-          <Route path="/details/:type/:id" element={<MovieDetails />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="/watch-history" element={<WatchHistory />} />
-          <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
-        </Route>
+          {/* Захищені маршрути (з UserLayout — дашбордний хедер/сайдбар) */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/admin" element={<AdminUsers />} />
+            <Route path="/dashboard-films" element={<DashboardMovies />} />
+            <Route path="/dashboard" element={<WelcomeDashboard />} />
+            <Route path="/dashboard-anime" element={<DashboardAnime />} />
+            <Route path="/dashboard-series" element={<DashboardSeries />} />
+            <Route path="/dashboard-cartoons" element={<DashboardCartoons />} />
+            <Route path="/details/:type/:id" element={<MovieDetails />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/favorites" element={<Favorites />} />
+            <Route path="/watch-history" element={<WatchHistory />} />
+            <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
+          </Route>
 
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <GlobalToaster />
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <GlobalToaster />
+      </LoaderProvider>
     </>
   );
 }

@@ -1,7 +1,8 @@
 // src/layouts/AuthLayout.tsx
-import { Link, Outlet } from "react-router-dom";
+import { Link } from "react-router-dom";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
+import AnimatedOutlet from "../components/AnimatedOutlet";
 
 
 export default function AuthLayout() {
@@ -38,7 +39,7 @@ export default function AuthLayout() {
 
       {/* Основний контент (логін/реєстрація форми) */}
       <main className="flex-2">
-        <Outlet />
+        <AnimatedOutlet transition="fadeInUp" />
       </main>
     </div>
   );

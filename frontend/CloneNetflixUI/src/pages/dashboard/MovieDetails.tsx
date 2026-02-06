@@ -11,6 +11,7 @@ import {
     fetchContentVideos,
     fetchSimilarContent,
 } from "../../api/tmdbDashboard";
+import { GradientLoader } from "../../components/Loader";
 
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
 const TMDB_BACKDROP_BASE = "https://image.tmdb.org/t/p/w1280";
@@ -81,9 +82,7 @@ const MovieDetails: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black flex items-center justify-center text-3xl text-gray-400">
-                {t("common.loading")}
-            </div>
+            <GradientLoader />
         );
     }
 

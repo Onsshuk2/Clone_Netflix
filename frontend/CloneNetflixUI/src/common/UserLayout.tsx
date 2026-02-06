@@ -1,9 +1,10 @@
 // src/layouts/UserLayout.tsx
-import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { LogOut, User, CreditCard, ArrowUp, Heart } from "lucide-react";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
+import AnimatedOutlet from "../components/AnimatedOutlet";
 
 export default function UserLayout() {
   const navigate = useNavigate();
@@ -251,7 +252,7 @@ export default function UserLayout() {
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
-        <Outlet />
+        <AnimatedOutlet transition="fadeInUp" />
       </main>
 
       <footer className="bg-black/60 backdrop-blur-md border-t border-gray-800 py-10 text-center">
