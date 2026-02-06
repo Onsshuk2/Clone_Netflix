@@ -6,14 +6,13 @@ import { useFavorites } from "../../lib/useFavorites";
 import { Heart } from "lucide-react";
 import toast from "react-hot-toast";
 
-import {
-  fetchTopRatedMovies,
-  searchMoviesOnly,
-} from "../../api/tmdbDashboard";
+import { fetchTopRatedMovies, searchMoviesOnly } from "../../api/tmdbDashboard";
+import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
 
 const DashboardMovies: React.FC = () => {
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { withLoading } = useLoading();   // ← ДОДАНО ВИКЛИК ХУКА
 
   const [displayMovies, setDisplayMovies] = useState<any[]>([]);
   const [allMovies, setAllMovies] = useState<any[]>([]);
@@ -28,7 +27,7 @@ const DashboardMovies: React.FC = () => {
   const language = getTMDBLanguage();
 
   useEffect(() => {
-    const loadTop100 = async () => {
+    withLoading(async () => {
       setLoading(true);
       setError(null);
       setSearchMode(false);
@@ -44,15 +43,13 @@ const DashboardMovies: React.FC = () => {
         setDisplayMovies(results.slice(0, 20));
       } catch (err) {
         console.error("Помилка завантаження топ-100:", err);
-        setError(t('movies.loading_error'));
+        setError(t("movies.loading_error") || "Не вдалося завантажити фільми");
         setAllMovies([]);
         setDisplayMovies([]);
       } finally {
         setLoading(false);
       }
-    };
-
-    loadTop100();
+    });
   }, [language, t]);
 
   useEffect(() => {
@@ -65,30 +62,32 @@ const DashboardMovies: React.FC = () => {
 
     const term = searchTerm.trim();
     if (term.length < 2) {
-      setError(t('movies.search_min_chars'));
+      setError(t("movies.search_min_chars") || "Мінімум 2 символи");
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    setSearchMode(true);
-    setVisibleCount(20);
-    setDisplaySearchTerm(term);
+    await withLoading(async () => {
+      setLoading(true);
+      setError(null);
+      setSearchMode(true);
+      setVisibleCount(20);
+      setDisplaySearchTerm(term);
 
-    try {
-      const results = await searchMoviesOnly(term, language, 1);
-      const limited = results.slice(0, 100);
+      try {
+        const results = await searchMoviesOnly(term, language, 1);
+        const limited = results.slice(0, 100);
 
-      setAllMovies(limited);
-      setDisplayMovies(limited.slice(0, 20));
-    } catch (err) {
-      console.error("Помилка пошуку:", err);
-      setError(t('movies.connection_error'));
-      setAllMovies([]);
-      setDisplayMovies([]);
-    } finally {
-      setLoading(false);
-    }
+        setAllMovies(limited);
+        setDisplayMovies(limited.slice(0, 20));
+      } catch (err) {
+        console.error("Помилка пошуку:", err);
+        setError(t("movies.connection_error") || "Помилка з'єднання");
+        setAllMovies([]);
+        setDisplayMovies([]);
+      } finally {
+        setLoading(false);
+      }
+    });
   };
 
   const resetToTop100 = () => {
@@ -113,13 +112,13 @@ const DashboardMovies: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12 max-w-7xl">
         <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
-          {t('movies.welcome')}
+          {t("movies.welcome")}
         </h1>
 
         <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
           {searchMode
-            ? `${t('dashboard.search_results')} "${displaySearchTerm}"`
-            : t('movies.top_100')}
+            ? `${t("dashboard.search_results")} "${displaySearchTerm}"`
+            : t("movies.top_100")}
         </p>
 
         {searchMode && (
@@ -128,7 +127,7 @@ const DashboardMovies: React.FC = () => {
               onClick={resetToTop100}
               className="px-8 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold text-lg transition shadow"
             >
-              {t('dashboard.back')}
+              {t("dashboard.back")}
             </button>
           </div>
         )}
@@ -139,7 +138,7 @@ const DashboardMovies: React.FC = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t('movies.search_placeholder')}
+              placeholder={t("movies.search_placeholder")}
               className="flex-1 px-6 py-5 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-lg placeholder-gray-500 transition"
             />
             <button
@@ -147,7 +146,9 @@ const DashboardMovies: React.FC = () => {
               disabled={loading}
               className="px-12 py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-xl font-bold text-lg transition shadow-lg"
             >
-              {loading && searchMode ? t('common.searching') : t('common.find_button')}
+              {loading && searchMode
+                ? t("common.searching")
+                : t("common.find_button")}
             </button>
           </div>
         </form>
@@ -158,18 +159,19 @@ const DashboardMovies: React.FC = () => {
           </div>
         )}
 
-        {loading && displayMovies.length === 0 && (
-          <div className="text-center text-2xl py-20">
-            {searchMode ? "Шукаємо фільми..." : "Завантажуємо топ‑100 фільмів..."}
-          </div>
-        )}
+        {/* ← ВИДАЛЕНО локальний {loading ? <GradientLoader /> : ...} */}
+        {/* Тепер лоадер працює тільки глобально через withLoading */}
 
-        {!loading && displayMovies.length > 0 && (
+        {displayMovies.length === 0 ? (
+          <div className="text-center py-20 text-gray-400 text-xl">
+            {t("movies.no_results") || "Нічого не знайдено..."}
+          </div>
+        ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
               {displayMovies.map((movie) => {
                 const title = movie.title || movie.original_title || "Без назви";
-                const year = movie.release_date?.slice(0, 4) || t('common.unknown');
+                const year = movie.release_date?.slice(0, 4) || t("common.unknown");
 
                 return (
                   <div key={movie.id} className="group relative h-full">
@@ -187,7 +189,7 @@ const DashboardMovies: React.FC = () => {
                       ) : (
                         <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
                           <span className="text-gray-500 text-center px-4">
-                            {t('common.poster_missing')}
+                            {t("common.poster_missing")}
                           </span>
                         </div>
                       )}
@@ -198,7 +200,7 @@ const DashboardMovies: React.FC = () => {
                         </h3>
                         <div>
                           <p className="text-gray-400 text-sm">
-                            {year} {t('common.year')}
+                            {year} {t("common.year")}
                           </p>
                           {movie.vote_average > 0 && (
                             <p className="text-yellow-400 mt-1 font-bold">
@@ -209,7 +211,6 @@ const DashboardMovies: React.FC = () => {
                       </div>
                     </Link>
 
-                    {/* ❤️ КНОПКА УЛЮБЛЕНИХ З АНІМАЦІЄЮ */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -224,11 +225,7 @@ const DashboardMovies: React.FC = () => {
                         });
 
                         const isFav = isFavorite(movie.id, "movie");
-                        toast.success(
-                          isFav
-                            ? t("favorites.removed")
-                            : t("favorites.added")
-                        );
+                        toast.success(isFav ? t("favorites.removed") : t("favorites.added"));
                       }}
                       className="
                         absolute top-3 right-3
@@ -258,17 +255,11 @@ const DashboardMovies: React.FC = () => {
                   disabled={loading}
                   className="px-10 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 rounded-xl font-bold text-xl transition shadow-lg"
                 >
-                  {t('common.load_more')}
+                  {t("common.load_more")}
                 </button>
               </div>
             )}
           </>
-        )}
-
-        {!loading && displayMovies.length === 0 && !error && (
-          <div className="text-center mt-32 text-3xl text-gray-500">
-            {t('dashboard.no_results')}
-          </div>
         )}
       </div>
     </div>

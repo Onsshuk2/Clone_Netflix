@@ -7,10 +7,12 @@ import { Heart } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { fetchTopCartoons, searchCartoonsOnly } from "../../api/tmdbDashboard";
+import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
 
 const DashboardCartoons: React.FC = () => {
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { withLoading } = useLoading();   // ← ДОДАНО ВИКЛИК ХУКА
 
   const [displayItems, setDisplayItems] = useState<any[]>([]);
   const [allItems, setAllItems] = useState<any[]>([]);
@@ -22,13 +24,12 @@ const DashboardCartoons: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [topCartoons, setTopCartoons] = useState<any[]>([]);
 
-  // 🔹 ДОДАНО ТІЛЬКИ ДЛЯ АНІМАЦІЇ
   const [animatingId, setAnimatingId] = useState<number | null>(null);
 
   const language = getTMDBLanguage();
 
   useEffect(() => {
-    const loadTopCartoons = async () => {
+    withLoading(async () => {
       setLoading(true);
       setError(null);
       setSearchMode(false);
@@ -44,15 +45,13 @@ const DashboardCartoons: React.FC = () => {
         setDisplayItems(sorted.slice(0, 20));
       } catch (err) {
         console.error("Помилка завантаження топ-мультфільмів:", err);
-        setError(t("cartoons.loading_error"));
+        setError(t("cartoons.loading_error") || "Не вдалося завантажити мультфільми");
         setAllItems([]);
         setDisplayItems([]);
       } finally {
         setLoading(false);
       }
-    };
-
-    loadTopCartoons();
+    });
   }, [language, t]);
 
   useEffect(() => {
@@ -65,38 +64,40 @@ const DashboardCartoons: React.FC = () => {
 
     const term = searchTerm.trim();
     if (term.length < 2) {
-      setError(t("common.search_min_chars"));
+      setError(t("common.search_min_chars") || "Мінімум 2 символи");
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    setSearchMode(true);
-    setVisibleCount(20);
-    setDisplaySearchTerm(term);
+    await withLoading(async () => {
+      setLoading(true);
+      setError(null);
+      setSearchMode(true);
+      setVisibleCount(20);
+      setDisplaySearchTerm(term);
 
-    try {
-      const cartoonResults = await searchCartoonsOnly(term, language, 1);
+      try {
+        const cartoonResults = await searchCartoonsOnly(term, language, 1);
 
-      if (cartoonResults.length > 0) {
-        setAllItems(cartoonResults);
-        setDisplayItems(cartoonResults.slice(0, 20));
-      } else {
-        setError(
-          t("cartoons.not_found") ||
+        if (cartoonResults.length > 0) {
+          setAllItems(cartoonResults);
+          setDisplayItems(cartoonResults.slice(0, 20));
+        } else {
+          setError(
+            t("cartoons.not_found") ||
             "Мультфільм не знайдено. Спробуйте: Король Лев, Шрек, Міньйони..."
-        );
+          );
+          setAllItems([]);
+          setDisplayItems([]);
+        }
+      } catch (err) {
+        console.error("Помилка пошуку мультфільмів:", err);
+        setError(t("cartoons.connection_error") || "Помилка з'єднання");
         setAllItems([]);
         setDisplayItems([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Помилка пошуку мультфільмів:", err);
-      setError(t("cartoons.connection_error") || "Помилка з'єднання");
-      setAllItems([]);
-      setDisplayItems([]);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const resetToTop = () => {
@@ -123,6 +124,7 @@ const DashboardCartoons: React.FC = () => {
         <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
           {t("cartoons.welcome")}
         </h1>
+
         <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
           {searchMode
             ? `${t("dashboard.search_results")} "${displaySearchTerm}"`
@@ -161,13 +163,20 @@ const DashboardCartoons: React.FC = () => {
           </div>
         </form>
 
-        {error && (
+        {error && !loading && (
           <div className="max-w-2xl mx-auto mb-8 text-center text-red-400 bg-red-900/40 rounded-xl p-6 font-semibold text-lg">
             {error}
           </div>
         )}
 
-        {!loading && displayItems.length > 0 && (
+        {/* ← ВИДАЛЕНО локальний лоадер */}
+        {/* Тепер працює тільки глобальний через withLoading */}
+
+        {displayItems.length === 0 ? (
+          <div className="text-center py-20 text-gray-400 text-xl">
+            {t("cartoons.no_results") || "Нічого не знайдено..."}
+          </div>
+        ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
               {displayItems.map((item) => {
@@ -215,7 +224,6 @@ const DashboardCartoons: React.FC = () => {
                       </div>
                     </Link>
 
-                    {/* ❤️ КНОПКА УЛЮБЛЕНИХ З АНІМАЦІЄЮ */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -233,9 +241,7 @@ const DashboardCartoons: React.FC = () => {
 
                         const isFav = isFavorite(item.id, "movie");
                         toast.success(
-                          isFav
-                            ? t("favorites.removed")
-                            : t("favorites.added")
+                          isFav ? t("favorites.removed") : t("favorites.added")
                         );
 
                         setTimeout(() => setAnimatingId(null), 300);
@@ -255,15 +261,13 @@ const DashboardCartoons: React.FC = () => {
                         size={24}
                         className={`
                           transition-all duration-300
-                          ${
-                            isFavorite(item.id, "movie")
-                              ? "fill-red-500 text-red-500 scale-110"
-                              : "text-white"
+                          ${isFavorite(item.id, "movie")
+                            ? "fill-red-500 text-red-500 scale-110"
+                            : "text-white"
                           }
-                          ${
-                            animatingId === item.id
-                              ? "scale-125 rotate-12"
-                              : ""
+                          ${animatingId === item.id
+                            ? "scale-125 rotate-12"
+                            : ""
                           }
                         `}
                       />

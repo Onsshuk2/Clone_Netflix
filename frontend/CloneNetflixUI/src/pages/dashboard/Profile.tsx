@@ -1,10 +1,13 @@
-import { useEffect, useState, useRef } from "react";
+// src/pages/dashboard/Profile.tsx
+import React, { useState, useEffect, useRef } from "react";
 import { Camera, Check, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { getMyProfile, updateMyProfile } from "../../api/User";
+
+import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
 
 interface ProfileData {
   userName: string;
@@ -16,6 +19,7 @@ interface ProfileData {
 export default function Profile() {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { withLoading } = useLoading();   // ← ДОДАНО ВИКЛИК ХУКА
 
   const [profile, setProfile] = useState<ProfileData>({
     userName: "Користувач",
@@ -38,37 +42,24 @@ export default function Profile() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Дефолтний аватар — стильний, темний, підходить до теми сайту
+  // Дефолтний аватар
   const DEFAULT_AVATAR =
     "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
 
-  // Функція для коректного визначення src аватара
   const getAvatarSrc = () => {
-    // 1. Прев'ю щойно обраного файлу (найвищий пріоритет)
     if (previewUrl) return previewUrl;
-
-    // 2. Аватар з профілю
     if (profile.avatarUrl) {
-      // Якщо вже повний URL — беремо як є
       if (profile.avatarUrl.startsWith("http://") || profile.avatarUrl.startsWith("https://")) {
         return profile.avatarUrl;
       }
-
-      // Якщо відносний шлях — чистимо та додаємо базу
-      let cleanPath = profile.avatarUrl
-        .replace(/^\/+/, "") // прибираємо зайві слеші на початку
-        .replace(/^(images\/|uploads\/|avatars\/)?/, ""); // типові префікси
-
+      let cleanPath = profile.avatarUrl.replace(/^\/+/, "").replace(/^(images\/|uploads\/|avatars\/)?/, "");
       return `${API_URL}/images/${cleanPath}`;
     }
-
-    // 3. Дефолтний аватар
     return DEFAULT_AVATAR;
   };
 
-  // Завантаження профілю
   useEffect(() => {
-    const loadProfile = async () => {
+    withLoading(async () => {
       const token = localStorage.getItem("token");
       if (!token) {
         toast.error(t('profile.not_authorized'));
@@ -86,7 +77,7 @@ export default function Profile() {
           email: data.email || "",
           dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "",
         });
-        setPreviewUrl(null); // скидаємо прев'ю при завантаженні свіжих даних
+        setPreviewUrl(null);
 
         localStorage.setItem("user", JSON.stringify(data));
       } catch (err) {
@@ -95,10 +86,8 @@ export default function Profile() {
       } finally {
         setLoading(false);
       }
-    };
-
-    loadProfile();
-  }, [navigate]);
+    });
+  }, [navigate, t]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,42 +115,38 @@ export default function Profile() {
       return;
     }
 
-    setLoading(true);
+    await withLoading(async () => {
+      setLoading(true);
 
-    try {
-      const formData = new FormData();
-      formData.append("UserId", jwtDecode(localStorage.getItem("token")!).sub || "");
-      formData.append("Username", form.username.trim());
-      formData.append("Email", form.email.trim());
-      formData.append("DateOfBirth", form.dateOfBirth || "");
+      try {
+        const formData = new FormData();
+        formData.append("UserId", jwtDecode(localStorage.getItem("token")!).sub || "");
+        formData.append("Username", form.username.trim());
+        formData.append("Email", form.email.trim());
+        formData.append("DateOfBirth", form.dateOfBirth || "");
 
-      if (selectedFile) formData.append("avatar", selectedFile);
+        if (selectedFile) formData.append("avatar", selectedFile);
 
-      const updatedData = await updateMyProfile(formData);
+        const updatedData = await updateMyProfile(formData);
 
-      // Оновлюємо стан після успішного оновлення
-      setProfile(updatedData);
-      setForm({
-        username: updatedData.userName || form.username,
-        email: updatedData.email || form.email,
-        dateOfBirth: updatedData.dateOfBirth ? updatedData.dateOfBirth.split("T")[0] : form.dateOfBirth,
-      });
-      setPreviewUrl(null); // скидаємо локальне прев'ю після збереження
-      setSelectedFile(null);
+        setProfile(updatedData);
+        setForm({
+          username: updatedData.userName || form.username,
+          email: updatedData.email || form.email,
+          dateOfBirth: updatedData.dateOfBirth ? updatedData.dateOfBirth.split("T")[0] : form.dateOfBirth,
+        });
+        setPreviewUrl(null);
+        setSelectedFile(null);
 
-      toast.success(t('profile.profile_updated'));
-    } catch (err) {
-      console.error(err);
-      // помилка вже оброблена в updateMyProfile або покажи загальну
-      toast.error(t('profile.update_failed'));
-    } finally {
-      setLoading(false);
-    }
+        toast.success(t('profile.profile_updated'));
+      } catch (err) {
+        console.error(err);
+        toast.error(t('profile.update_failed'));
+      } finally {
+        setLoading(false);
+      }
+    });
   };
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">{t('profile.loading')}</div>;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-10 px-5">

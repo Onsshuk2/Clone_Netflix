@@ -1,5 +1,4 @@
-// src/pages/WelcomeDashboard.tsx   ← оновлена версія без прямих запитів
-
+// src/pages/WelcomeDashboard.tsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import SimpleHeroSlider from "../../lib/Slider";
@@ -12,7 +11,9 @@ import { useFavorites } from "../../lib/useFavorites";
 import {
   fetchDashboardInitialData,
   searchMulti,
-} from "../../api/tmdbDashboard";   // ← імпортуємо звідси
+} from "../../api/tmdbDashboard";
+
+import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
 
 interface Movie {
   id: number;
@@ -29,6 +30,8 @@ interface Movie {
 const WelcomeDashboard: React.FC = () => {
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { withLoading } = useLoading();   // ← ДОДАНО ВИКЛИК ХУКА
+
   const [nowPlaying, setNowPlaying] = useState<Movie[]>([]);
   const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
   const [popularTv, setPopularTv] = useState<Movie[]>([]);
@@ -38,11 +41,11 @@ const WelcomeDashboard: React.FC = () => {
   const [searchMode, setSearchMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const language = getTMDBLanguage(); // можна винесено, бо часто використовується
+  const language = getTMDBLanguage();
 
   // Завантаження початкових даних
   useEffect(() => {
-    const loadContent = async () => {
+    withLoading(async () => {
       setLoading(true);
       try {
         const { nowPlaying, popularMovies, popularTv } =
@@ -53,16 +56,13 @@ const WelcomeDashboard: React.FC = () => {
         setPopularTv(popularTv);
       } catch (err) {
         console.error(err);
-        setError("Помилка завантаження контенту");
+        setError(t("dashboard.loading_error") || "Помилка завантаження контенту");
       } finally {
         setLoading(false);
       }
-    };
+    });
+  }, [language]);
 
-    loadContent();
-  }, [language]); // залежність від мови — при зміні мови перезавантажуємо
-
-  // ПРОКРУТКА ВГОРУ
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -71,23 +71,28 @@ const WelcomeDashboard: React.FC = () => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
 
-    setLoading(true);
-    setSearchMode(true);
+    await withLoading(async () => {
+      setLoading(true);
+      setSearchMode(true);
+      setError(null);
 
-    try {
-      const results = await searchMulti(searchTerm.trim(), language);
-      setSearchResults(results.slice(0, 30));
-    } catch {
-      setError("Помилка пошуку");
-    } finally {
-      setLoading(false);
-    }
+      try {
+        const results = await searchMulti(searchTerm.trim(), language);
+        setSearchResults(results.slice(0, 30));
+      } catch (err) {
+        console.error(err);
+        setError(t("dashboard.search_error") || "Помилка пошуку");
+      } finally {
+        setLoading(false);
+      }
+    });
   };
 
   const resetSearch = () => {
     setSearchMode(false);
     setSearchTerm("");
     setSearchResults([]);
+    setError(null);
     window.scrollTo(0, 0);
   };
 
@@ -112,20 +117,20 @@ const WelcomeDashboard: React.FC = () => {
               ) : (
                 <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
                   <span className="text-gray-500 text-center px-4">
-                    {t('common.poster_missing')}
+                    {t("common.poster_missing")}
                   </span>
                 </div>
               )}
 
               <div className="p-5 min-h-[120px] flex flex-col justify-between">
                 <h3 className="text-lg font-semibold break-words">
-                  {item.title || item.name}
+                  {item.title || item.name || t("common.unknown")}
                 </h3>
                 <div>
                   <p className="text-gray-400 text-sm">
                     {(item.release_date || item.first_air_date || "").slice(0, 4) ||
-                      t('common.unknown')}{" "}
-                    {t('common.year')}
+                      t("common.unknown")}{" "}
+                    {t("common.year")}
                   </p>
                   {item.vote_average > 0 && (
                     <p className="text-yellow-400 mt-1 font-bold">
@@ -135,6 +140,7 @@ const WelcomeDashboard: React.FC = () => {
                 </div>
               </div>
             </Link>
+
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -147,15 +153,10 @@ const WelcomeDashboard: React.FC = () => {
                   title: item.title || item.name || "",
                   posterPath: item.poster_path,
                   voteAverage: item.vote_average,
-                  releaseDate:
-                    item.release_date || item.first_air_date,
+                  releaseDate: item.release_date || item.first_air_date,
                 });
 
-                toast.success(
-                  isFav
-                    ? t("favorites.removed")
-                    : t("favorites.added")
-                );
+                toast.success(isFav ? t("favorites.removed") : t("favorites.added"));
               }}
               className="
                 absolute top-3 right-3
@@ -170,7 +171,7 @@ const WelcomeDashboard: React.FC = () => {
             >
               <Heart
                 size={24}
-                className={isFavorite(item.id, type) ? 'fill-red-500 text-red-500' : 'text-white'}
+                className={isFavorite(item.id, type) ? "fill-red-500 text-red-500" : "text-white"}
               />
             </button>
           </div>
@@ -183,7 +184,9 @@ const WelcomeDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Слайдер */}
-        {!loading && <SimpleHeroSlider movies={nowPlaying} />}
+        {!loading && !searchMode && nowPlaying.length > 0 && (
+          <SimpleHeroSlider movies={nowPlaying} />
+        )}
 
         {/* Пошук */}
         <form onSubmit={searchContent} className="max-w-4xl mx-auto mb-20 -mt-8 relative z-10">
@@ -192,7 +195,7 @@ const WelcomeDashboard: React.FC = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t('dashboard.search')}
+              placeholder={t("dashboard.search")}
               className="flex-1 px-8 py-6 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-xl placeholder-gray-500 transition"
             />
             <button
@@ -200,7 +203,7 @@ const WelcomeDashboard: React.FC = () => {
               disabled={loading}
               className="px-16 py-6 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-xl font-bold text-xl transition shadow-lg"
             >
-              {t('dashboard.find')}
+              {t("dashboard.find")}
             </button>
           </div>
         </form>
@@ -211,44 +214,43 @@ const WelcomeDashboard: React.FC = () => {
               onClick={resetSearch}
               className="px-8 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold text-lg transition shadow"
             >
-              {t('dashboard.back')}
+              {t("dashboard.back")}
             </button>
           </div>
         )}
 
-        {error && (
+        {error && !loading && (
           <div className="text-center text-red-400 text-xl bg-red-900/20 py-6 rounded-lg mb-12">
             {error}
           </div>
         )}
 
-        {loading && (
-          <div className="text-center text-2xl py-20">{t('dashboard.loading')}</div>
-        )}
+        {/* ← ВИДАЛЕНО локальний {loading ? <GradientLoader /> : ...} */}
+        {/* Тепер лоадер працює тільки глобально через withLoading */}
 
-        {/* Результати пошуку */}
-        {!loading && searchMode && searchResults.length > 0 && (
+        {searchMode && searchResults.length > 0 ? (
           <div className="mb-20">
             <h2 className="text-4xl font-bold text-center mb-12">
-              {t('dashboard.search_results')} "{searchTerm}"
+              {t("dashboard.search_results")} "{searchTerm}"
             </h2>
             {renderGrid(searchResults, searchResults[0]?.media_type === "tv" ? "tv" : "movie")}
           </div>
-        )}
-
-        {/* Головний контент */}
-        {!loading && !searchMode && (
+        ) : !searchMode ? (
           <>
             <section className="mt-12 mb-24">
-              <h2 className="text-4xl font-bold text-center mb-12">{t('dashboard.top_movies')}</h2>
+              <h2 className="text-4xl font-bold text-center mb-12">{t("dashboard.top_movies")}</h2>
               {renderGrid(popularMovies, "movie")}
             </section>
 
             <section className="mb-20">
-              <h2 className="text-4xl font-bold text-center mb-12">{t('dashboard.top_series')}</h2>
+              <h2 className="text-4xl font-bold text-center mb-12">{t("dashboard.top_series")}</h2>
               {renderGrid(popularTv, "tv")}
             </section>
           </>
+        ) : (
+          <div className="text-center py-20 text-gray-400 text-xl">
+            {t("dashboard.no_results") || "Нічого не знайдено..."}
+          </div>
         )}
       </div>
     </div>
