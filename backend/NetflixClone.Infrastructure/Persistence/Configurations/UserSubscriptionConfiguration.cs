@@ -10,14 +10,13 @@ public class UserSubscriptionConfiguration : IEntityTypeConfiguration<UserSubscr
     {
         builder.HasKey(us => us.Id);
 
+        builder.Property(us => us.IsAutoRenew).HasDefaultValue(true);
+
         builder.HasOne(us => us.User)
             .WithMany(u => u.Subscriptions)
             .HasForeignKey(us => us.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(us => us.Plan)
-            .WithMany(p => p.UserSubscriptions)
-            .HasForeignKey(us => us.PlanId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(us => us.PaymentProviderTransactionId).HasMaxLength(255);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Identity;
 using NetflixClone.Application.Interfaces;
+using NetflixClone.Domain.Constants;
 using NetflixClone.Domain.Entities;
 
 namespace NetflixClone.Application.UseCases.Users.Profile.Commands.DeleteMyAccount;
@@ -23,7 +24,7 @@ public class DeleteMyAccountHandler : IRequestHandler<DeleteMyAccountCommand>
 
         if (!string.IsNullOrEmpty(user.AvatarUrl))
         {
-            await _imageService.DeleteImageAsync(user.AvatarUrl);
+            await _imageService.DeleteAsync(user.AvatarUrl);
         }
 
         var result = await _userManager.DeleteAsync(user);

@@ -51,22 +51,39 @@ public static class DependencyInjection
         return services;
     }
 
-    public static IApplicationBuilder UseImagesStaticFiles(this IApplicationBuilder app, IConfiguration configuration)
+    public static IApplicationBuilder UseMediaStaticFiles(this IApplicationBuilder app, IConfiguration configuration)
     {
-        var dirImageName = configuration.GetValue<string>("DirImageName") ?? "duplo";
-        var path = Path.Combine(Directory.GetCurrentDirectory(), dirImageName);
+        var rootPath = Directory.GetCurrentDirectory();
+        var rootMediaFolder = "media";
 
+        var dirImageName = configuration["DirImageName"] ?? "images";
+        var imagesPath = Path.Combine(rootPath, rootMediaFolder, dirImageName);
+        EnsureDirectoryExists(imagesPath);
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(imagesPath),
+            RequestPath = $"/{dirImageName}"
+        });
+
+        var dirVideoName = configuration["DirVideoName"] ?? "videos";
+        var videosPath = Path.Combine(rootPath, rootMediaFolder, dirVideoName);
+        EnsureDirectoryExists(videosPath);
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(videosPath),
+            RequestPath = $"/{dirVideoName}"
+        });
+
+        return app;
+    }
+
+    private static void EnsureDirectoryExists(string path)
+    {
         if (!Directory.Exists(path))
         {
             Directory.CreateDirectory(path);
         }
-
-        app.UseStaticFiles(new StaticFileOptions
-        {
-            FileProvider = new PhysicalFileProvider(path),
-            RequestPath = $"/{dirImageName}"
-        });
-
-        return app;
     }
 }

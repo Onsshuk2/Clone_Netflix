@@ -9,81 +9,73 @@ namespace NetflixClone.Infrastructure.Services;
 
 public class ImageService(IConfiguration configuration) : IImageService
 {
-    public async Task<string> UploadImageAsync(IFormFile file)
+    private const string RootMediaFolder = "media";
+    private string DirImageName => configuration["DirImageName"] ?? "images";
+
+    public async Task<string> UploadAsync(IFormFile file, string subFolder, int? width = null, int? height = null)
+    {
+        if (file == null || file.Length == 0) return string.Empty;
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            return await SaveBytesAsync(ms.ToArray(), subFolder, width, height);
+        }
+        catch { return string.Empty; }
+    }
+
+    private async Task<string> SaveBytesAsync(byte[] bytes, string subFolder, int? width = null, int? height = null)
     {
         try
         {
-            using var memoryStream = new MemoryStream();
-            await file.CopyToAsync(memoryStream);
-            var fileName = Path.GetRandomFileName() + ".webp";
-            var bytes = memoryStream.ToArray();
+            var fileName = $"{Path.GetRandomFileName()}.webp";
+            // Шлях для БД: "images/posters/name.webp"
+            var pathInDb = Path.Combine(DirImageName, subFolder, fileName).Replace("\\", "/");
+            var fullPath = GetFullDiskPath(pathInDb);
+
             using var image = Image.Load(bytes);
-            image.Mutate(imgc =>
+
+            if (width.HasValue || height.HasValue)
             {
-                imgc.Resize(new ResizeOptions
+                image.Mutate(x => x.Resize(new ResizeOptions
                 {
-                    Size = new Size(600, 600),
+                    Size = new Size(width ?? 0, height ?? 0),
                     Mode = ResizeMode.Max
-                });
-            });
-            var dirImageName = configuration["DirImageName"] ?? "images";
-            var path = Path.Combine(Directory.GetCurrentDirectory(), 
-                dirImageName, fileName);
-            await image.SaveAsync(path, new WebpEncoder());
-            return fileName;
+                }));
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+            await image.SaveAsync(fullPath, new WebpEncoder());
+
+            return pathInDb;
         }
-        catch
-        {
-            return String.Empty;
-        }
+        catch { return string.Empty; }
     }
-    public async Task<string> SaveImageAsync(byte[] bytes)
+
+    public async Task DeleteAsync(string pathInDb)
+    {
+        if (string.IsNullOrEmpty(pathInDb)) return;
+
+        var fullPath = GetFullDiskPath(pathInDb);
+
+        await Task.Run(() =>
+        {
+            if (File.Exists(fullPath)) File.Delete(fullPath);
+        });
+    }
+
+    public async Task<string> SaveFromUrlAsync(string url, string subFolder, int? width = null, int? height = null)
     {
         try
         {
-            var fileName = Path.GetRandomFileName() + ".webp";
-            using var image = Image.Load(bytes);
-            image.Mutate(imgc =>
-            {
-                imgc.Resize(new ResizeOptions
-                {
-                    Size = new Size(600, 600),
-                    Mode = ResizeMode.Max
-                });
-            });
-            var dirImageName = configuration["DirImageName"] ?? "images";
-            var path = Path.Combine(Directory.GetCurrentDirectory(), dirImageName, fileName);
-            await image.SaveAsync(path, new WebpEncoder());
-
-            return fileName;
+            using var client = new HttpClient();
+            var bytes = await client.GetByteArrayAsync(url);
+            return await SaveBytesAsync(bytes, subFolder, width, height);
         }
-        catch
-        {
-            return string.Empty;
-        }
+        catch { return string.Empty; }
     }
 
-    private void DeleteImage(string fileName)
-    {
-        if (string.IsNullOrEmpty(fileName)) return;
-
-        var dirImageName = configuration["DirImageName"] ?? "images";
-        var filePath = Path.Combine(Directory.GetCurrentDirectory(), dirImageName, fileName);
-        if (File.Exists(filePath))
-        {
-            File.Delete(filePath);
-        }
-    }
-
-    public async Task DeleteImageAsync(string fileName)
-    {
-        await Task.Run(() => DeleteImage(fileName));
-    }
-
-    public async Task<string> SaveImageFromUrlAsync(string imageUrl)
-    {
-        using var httpClient = new HttpClient();
-        var imageBytes = await httpClient.GetByteArrayAsync(imageUrl);
-        return await SaveImageAsync(imageBytes);
-    }
+    private string GetFullDiskPath(string pathInDb) =>
+        Path.Combine(Directory.GetCurrentDirectory(), RootMediaFolder, pathInDb);
 }

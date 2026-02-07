@@ -22,6 +22,36 @@ namespace NetflixClone.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CollectionContent", b =>
+                {
+                    b.Property<Guid>("CollectionsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContentsId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CollectionsId", "ContentsId");
+
+                    b.HasIndex("ContentsId");
+
+                    b.ToTable("ContentCollections", (string)null);
+                });
+
+            modelBuilder.Entity("ContentGenre", b =>
+                {
+                    b.Property<Guid>("ContentsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GenresId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ContentsId", "GenresId");
+
+                    b.HasIndex("GenresId");
+
+                    b.ToTable("ContentGenres", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
                 {
                     b.Property<Guid>("Id")
@@ -118,21 +148,6 @@ namespace NetflixClone.Infrastructure.Migrations
                     b.ToTable("AspNetUserLogins", (string)null);
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetUserRoles", (string)null);
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -152,6 +167,195 @@ namespace NetflixClone.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("NetflixClone.Domain.Entities.ApplicationUserRole", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetUserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("NetflixClone.Domain.Entities.Collection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Collections", (string)null);
+                });
+
+            modelBuilder.Entity("NetflixClone.Domain.Entities.Content", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AgeLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("DetailsPosterUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("Duration")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("FranchiseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FullVideoUrl")
+                        .HasColumnType("text");
+
+                    b.Property<int>("OrderInFranchise")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("PosterUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Rating")
+                        .HasPrecision(3, 1)
+                        .HasColumnType("numeric(3,1)");
+
+                    b.Property<int>("ReleaseYear")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("TrailerUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FranchiseId");
+
+                    b.ToTable("Contents", (string)null);
+                });
+
+            modelBuilder.Entity("NetflixClone.Domain.Entities.Episode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VideoUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContentId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("Episodes", (string)null);
+                });
+
+            modelBuilder.Entity("NetflixClone.Domain.Entities.Franchise", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Franchises", (string)null);
+                });
+
+            modelBuilder.Entity("NetflixClone.Domain.Entities.Genre", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Genres", (string)null);
+                });
+
             modelBuilder.Entity("NetflixClone.Domain.Entities.SubscriptionPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -168,7 +372,9 @@ namespace NetflixClone.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<int>("MaxDevices")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -181,7 +387,10 @@ namespace NetflixClone.Infrastructure.Migrations
 
                     b.Property<string>("Quality")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("HD");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -282,10 +491,13 @@ namespace NetflixClone.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsAutoRenew")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("PaymentProviderTransactionId")
-                        .HasColumnType("text");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<Guid>("PlanId")
                         .HasColumnType("uuid");
@@ -306,6 +518,36 @@ namespace NetflixClone.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserSubscriptions");
+                });
+
+            modelBuilder.Entity("CollectionContent", b =>
+                {
+                    b.HasOne("NetflixClone.Domain.Entities.Collection", null)
+                        .WithMany()
+                        .HasForeignKey("CollectionsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NetflixClone.Domain.Entities.Content", null)
+                        .WithMany()
+                        .HasForeignKey("ContentsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ContentGenre", b =>
+                {
+                    b.HasOne("NetflixClone.Domain.Entities.Content", null)
+                        .WithMany()
+                        .HasForeignKey("ContentsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NetflixClone.Domain.Entities.Genre", null)
+                        .WithMany()
+                        .HasForeignKey("GenresId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -335,9 +577,18 @@ namespace NetflixClone.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
+                    b.HasOne("NetflixClone.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NetflixClone.Domain.Entities.ApplicationUserRole", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", "Role")
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -348,15 +599,29 @@ namespace NetflixClone.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
+            modelBuilder.Entity("NetflixClone.Domain.Entities.Content", b =>
                 {
-                    b.HasOne("NetflixClone.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
+                    b.HasOne("NetflixClone.Domain.Entities.Franchise", "Franchise")
+                        .WithMany("Contents")
+                        .HasForeignKey("FranchiseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Franchise");
+                });
+
+            modelBuilder.Entity("NetflixClone.Domain.Entities.Episode", b =>
+                {
+                    b.HasOne("NetflixClone.Domain.Entities.Content", "Content")
+                        .WithMany("Episodes")
+                        .HasForeignKey("ContentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Content");
                 });
 
             modelBuilder.Entity("NetflixClone.Domain.Entities.UserSubscription", b =>
@@ -364,7 +629,7 @@ namespace NetflixClone.Infrastructure.Migrations
                     b.HasOne("NetflixClone.Domain.Entities.SubscriptionPlan", "Plan")
                         .WithMany("UserSubscriptions")
                         .HasForeignKey("PlanId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("NetflixClone.Domain.Entities.User", "User")
@@ -376,6 +641,16 @@ namespace NetflixClone.Infrastructure.Migrations
                     b.Navigation("Plan");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("NetflixClone.Domain.Entities.Content", b =>
+                {
+                    b.Navigation("Episodes");
+                });
+
+            modelBuilder.Entity("NetflixClone.Domain.Entities.Franchise", b =>
+                {
+                    b.Navigation("Contents");
                 });
 
             modelBuilder.Entity("NetflixClone.Domain.Entities.SubscriptionPlan", b =>

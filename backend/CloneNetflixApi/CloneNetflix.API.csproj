@@ -28,7 +28,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="images\" />
+	  <Folder Include="media\images\avatars\" />
+	  <Folder Include="media\images\backdrops\" />
+	  <Folder Include="media\images\posters\" />
+	  <Folder Include="media\videos\movies\" />
+	  <Folder Include="media\videos\episodes\" />
 	</ItemGroup>
 
 </Project>

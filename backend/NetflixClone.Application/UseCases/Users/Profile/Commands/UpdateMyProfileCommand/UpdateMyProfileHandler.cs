@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using NetflixClone.Application.Interfaces;
+using NetflixClone.Domain.Constants;
 using NetflixClone.Domain.Entities;
 
 namespace NetflixClone.Application.UseCases.Users.Profile.Commands.UpdateMyProfile;
@@ -30,14 +31,19 @@ public class UpdateMyProfileHandler : IRequestHandler<UpdateMyProfileCommand>
         if (request.Avatar != null)
         {
             var oldAvatarUrl = user.AvatarUrl;
-            var newAvatarUrl = await _imageService.UploadImageAsync(request.Avatar);
+            var newAvatarUrl = await _imageService.UploadAsync(
+                request.Avatar,
+                MediaFolders.Avatars,
+                ImageSizeConstants.AvatarWidth,
+                ImageSizeConstants.AvatarHeight
+                );
 
             if (!string.IsNullOrEmpty(newAvatarUrl))
             {
                 user.AvatarUrl = newAvatarUrl;
                 if (!string.IsNullOrEmpty(oldAvatarUrl))
                 {
-                    await _imageService.DeleteImageAsync(oldAvatarUrl);
+                    await _imageService.DeleteAsync(oldAvatarUrl);
                 }
             }
         }

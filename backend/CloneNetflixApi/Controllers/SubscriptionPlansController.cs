@@ -21,17 +21,18 @@ public class PlansController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet("all")]
+    [HttpGet("get-all")]
     public async Task<ActionResult<List<SubscriptionPlanDto>>> GetAll()
     {
         var result = await _mediator.Send(new GetAllSubscriptionPlansQuery());
         return Ok(result);
     }
 
-    [HttpGet("details/{id}")]
+    [HttpGet("get/{id}")]
     public async Task<ActionResult<SubscriptionPlanDto>> GetById(Guid id)
     {
-        var result = await _mediator.Send(new GetSubscriptionPlanByIdQuery { Id = id });
+        var query = new GetSubscriptionPlanByIdQuery { Id = id };
+        var result = await _mediator.Send(query);
         return Ok(result);
     }
 
@@ -56,7 +57,8 @@ public class PlansController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _mediator.Send(new DeleteSubscriptionPlanCommand { Id = id });
+        var command = new DeleteSubscriptionPlanCommand { Id = id };
+        await _mediator.Send(command);
         return NoContent();
     }
 }

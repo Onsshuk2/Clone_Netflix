@@ -20,5 +20,11 @@ public class DbInitializer
         await PlanSeeder.SeedAsync(context);
 
         await UserSeeder.SeedAsync(userManager, context);
+
+        await CollectionSeeder.SeedAsync(context);
+
+        await GenreSeeder.SeedAsync(context);
+
+        await FranchiseSeeder.SeedAsync(context);
     }
 }

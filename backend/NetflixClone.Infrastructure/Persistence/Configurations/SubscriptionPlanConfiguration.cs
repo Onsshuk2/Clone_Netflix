@@ -10,6 +10,10 @@ public class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Subscripti
     {
         builder.HasKey(p => p.Id);
         builder.Property(p => p.Name).IsRequired().HasMaxLength(50);
+
         builder.Property(p => p.Price).HasPrecision(18, 2);
+
+        builder.Property(p => p.Quality).HasMaxLength(10).HasDefaultValue("HD");
+        builder.Property(p => p.MaxDevices).HasDefaultValue(1);
     }
 }

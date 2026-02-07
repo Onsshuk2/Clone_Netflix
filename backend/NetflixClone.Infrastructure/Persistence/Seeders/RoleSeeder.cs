@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using NetflixClone.Domain.Constants;
+using NetflixClone.Infrastructure.Persistence.Seeders.Data;
 
 namespace NetflixClone.Infrastructure.Persistence.Seeders
 {
@@ -7,7 +7,7 @@ namespace NetflixClone.Infrastructure.Persistence.Seeders
     {
         public static async Task SeedAsync(RoleManager<IdentityRole<Guid>> roleManager)
         {
-            string[] roleNames = { RoleConstants.Admin, RoleConstants.User };
+            string[] roleNames = { RoleData.Admin, RoleData.User };
 
             foreach (var roleName in roleNames)
             {
