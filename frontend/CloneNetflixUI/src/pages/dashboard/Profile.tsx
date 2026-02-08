@@ -6,6 +6,7 @@ import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { getMyProfile, updateMyProfile } from "../../api/User";
+import SubscriptionManagement from "./SubscriptionManagement";
 
 import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
 
@@ -249,6 +250,11 @@ export default function Profile() {
               </button>
             </div>
           </form>
+
+          {/* Subscription Management Section */}
+          <div className="mt-12 pt-12 border-t border-gray-700">
+            <SubscriptionManagement />
+          </div>
         </div>
       </div>
     </div>

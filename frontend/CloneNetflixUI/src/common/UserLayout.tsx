@@ -49,6 +49,10 @@ export default function UserLayout() {
     }
   })();
 
+  // Дістаємо поточний план підписки з localStorage
+  const userPlanRaw = localStorage.getItem('userPlan');
+  const userPlan = userPlanRaw === 'basic' || userPlanRaw === 'standard' || userPlanRaw === 'premium' ? userPlanRaw : null;
+
   // Функція для коректного src аватара (така ж логіка, як у Profile)
   const getAvatarSrc = () => {
     if (!user?.avatarUrl) return DEFAULT_AVATAR;
@@ -200,7 +204,11 @@ export default function UserLayout() {
                 <div className="absolute right-0 mt-4 w-80 bg-gray-900/96 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-800/60 overflow-hidden">
                   <div className="p-6 bg-gradient-to-r from-indigo-900/70 to-purple-900/70 border-b border-gray-800">
                     <p className="font-bold text-xl text-white">{user?.name || "Гість"}</p>
-                    <p className="text-sm text-indigo-200 mt-1">{t('user.premium')}</p>
+                    {isAuthenticated && userPlan && (
+                      <p className="text-sm text-indigo-200 mt-1">
+                        {t(`subscription.${userPlan}`)}
+                      </p>
+                    )}
                   </div>
                   <div className="py-3">
                     <Link
