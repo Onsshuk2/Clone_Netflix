@@ -10,10 +10,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.ToTable("AspNetUsers");
 
-        builder.Property(u => u.DateOfBirth)
-            .IsRequired();
+        builder.Ignore(u => u.ActiveSubscription);
 
-        builder.Property(u => u.AvatarUrl)
-            .HasMaxLength(500);
+        builder.Property(u => u.DateOfBirth).IsRequired();
+        builder.Property(u => u.AvatarUrl).HasMaxLength(500);
+
+        builder.Property(u => u.CreatedAt).IsRequired();
     }
 }

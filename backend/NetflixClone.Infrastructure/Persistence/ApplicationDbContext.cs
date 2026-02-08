@@ -22,6 +22,11 @@ public class ApplicationDbContext : IdentityDbContext<
 
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
     public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
+    public DbSet<Genre> Genres => Set<Genre>();
+    public DbSet<Collection> Collections => Set<Collection>();
+    public DbSet<Franchise> Franchises => Set<Franchise>();
+    public DbSet<Content> Contents => Set<Content>();
+    public DbSet<Episode> Episodes => Set<Episode>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

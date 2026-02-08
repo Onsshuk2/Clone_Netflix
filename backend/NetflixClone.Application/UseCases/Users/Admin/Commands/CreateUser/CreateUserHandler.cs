@@ -14,14 +14,14 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
     private readonly IImageService _imageService;
     private readonly IMapper _mapper;
     private readonly ISubscriptionRepository _subscriptionRepository;
-    private readonly ISubscriptionPlanRepository _planRepository; // Додаємо репозиторій планів
+    private readonly ISubscriptionPlanRepository _planRepository;
 
     public CreateUserHandler(
         UserManager<User> userManager,
         IImageService imageService,
         IMapper mapper,
         ISubscriptionRepository subscriptionRepository,
-        ISubscriptionPlanRepository planRepository) // Впроваджуємо залежність
+        ISubscriptionPlanRepository planRepository)
     {
         _userManager = userManager;
         _imageService = imageService;
@@ -32,16 +32,17 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
 
     public async Task<Guid> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     { 
-        // 1. Мапінг користувача (UserName генерується з Email у профілі мапінгу)
         var user = _mapper.Map<User>(request);
 
-        // 2. Завантаження аватара
         if (request.Avatar != null)
         {
-            user.AvatarUrl = await _imageService.UploadImageAsync(request.Avatar);
+            user.AvatarUrl = await _imageService.UploadAsync(
+                request.Avatar,
+                MediaFolders.Avatars,
+                ImageSizeConstants.AvatarWidth,
+                ImageSizeConstants.AvatarHeight);
         }
 
-        // 3. Створення користувача в системі Identity
         var result = await _userManager.CreateAsync(user, request.Password);
 
         if (!result.Succeeded)
@@ -50,14 +51,12 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
             throw new Exception($"User creation failed: {errors}");
         }
 
-        // 4. Призначення ролей (за замовчуванням - User)
         var roles = (request.Roles != null && request.Roles.Any())
             ? request.Roles
             : new List<string> { RoleConstants.User };
 
         await _userManager.AddToRolesAsync(user, roles);
 
-        // 5. ЛОГІКА ПІДПИСКИ
         Guid planIdToAssign;
 
         if (request.PlanId.HasValue)
@@ -66,7 +65,6 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
         }
         else
         {
-            // Якщо план не вказано, шукаємо "Basic" у базі
             var allPlans = await _planRepository.GetAllAsync(cancellationToken);
             var basicPlan = allPlans.FirstOrDefault(p => p.Name == "Basic");
 
@@ -78,12 +76,10 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
             planIdToAssign = basicPlan.Id;
         }
 
-        // Створюємо та зберігаємо підписку
         var subscription = _mapper.Map<UserSubscription>(request);
         subscription.UserId = user.Id;
         subscription.PlanId = planIdToAssign;
 
-        // SaveChangesInterceptor автоматично проставить CreatedAt
         await _subscriptionRepository.AddAsync(subscription, cancellationToken);
 
         return user.Id;

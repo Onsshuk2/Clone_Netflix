@@ -32,27 +32,28 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand>
         var user = await _userManager.FindByIdAsync(request.Id.ToString());
         if (user == null) throw new Exception("Користувача не знайдено");
 
-        // 1. Спочатку виконуємо мапінг основних полів
-        // Це важливо зробити ДО обробки фото, щоб мапер не затер нову URL-адресу аватара
         _mapper.Map(request, user);
 
-        // 2. Обробка фото (після основного мапінгу)
         if (request.Avatar != null)
         {
             var oldAvatarUrl = user.AvatarUrl;
-            var newAvatarUrl = await _imageService.UploadImageAsync(request.Avatar);
+            var newAvatarUrl = await _imageService.UploadAsync(
+                request.Avatar, 
+                MediaFolders.Avatars, 
+                ImageSizeConstants.AvatarWidth, 
+                ImageSizeConstants.AvatarHeight
+                );
 
             if (!string.IsNullOrEmpty(newAvatarUrl))
             {
                 user.AvatarUrl = newAvatarUrl;
                 if (!string.IsNullOrEmpty(oldAvatarUrl))
                 {
-                    await _imageService.DeleteImageAsync(oldAvatarUrl);
+                    await _imageService.DeleteAsync(oldAvatarUrl);
                 }
             }
         }
 
-        // Зберігаємо зміни користувача
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
         {
@@ -60,7 +61,6 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand>
             throw new Exception($"Помилка при оновленні користувача: {errors}");
         }
 
-        // 3. Оновлення ролей (без змін)
         var currentRoles = await _userManager.GetRolesAsync(user);
         await _userManager.RemoveFromRolesAsync(user, currentRoles);
         var rolesToAssign = (request.Roles != null && request.Roles.Any())
@@ -68,10 +68,8 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand>
             : new List<string> { RoleConstants.User };
         await _userManager.AddToRolesAsync(user, rolesToAssign);
 
-        // 4. Логіка підписок
         if (request.PlanId.HasValue)
         {
-            // Отримуємо підписки конкретного користувача (замість GetAllAsync для продуктивності)
             var allUserSubs = await _subscriptionRepository.GetAllAsync(cancellationToken);
             var activeSub = allUserSubs
                 .Where(s => s.UserId == user.Id && s.EndDate > DateTime.UtcNow)
@@ -89,11 +87,8 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand>
             }
             else
             {
-                // Створюємо нову підписку
                 var newSubscription = _mapper.Map<UserSubscription>(request);
 
-                // ОБОВ'ЯЗКОВО: Прив'язуємо ID користувача та ID плану вручну, 
-                // оскільки мапер їх зазвичай ігнорує
                 newSubscription.UserId = user.Id;
                 newSubscription.PlanId = request.PlanId.Value;
 

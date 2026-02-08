@@ -2,6 +2,7 @@
 using NetflixClone.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -45,5 +46,17 @@ public class BaseRepository<T> : IGenericRepository<T> where T : class
             _dbSet.Remove(entity);
             await _context.SaveChangesAsync(ct);
         }
+    }
+
+    public async Task<IReadOnlyList<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default)
+    {
+        return await _context.Set<T>()
+            .Where(predicate)
+            .ToListAsync(ct);
+    }
+
+    public IQueryable<T> GetQueryable()
+    {
+        return _context.Set<T>().AsNoTracking();
     }
 }

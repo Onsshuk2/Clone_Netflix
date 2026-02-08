@@ -12,7 +12,6 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
 {
     private readonly UserManager<User> _userManager;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
-    private readonly IImageService _imageService;
     private readonly IMapper _mapper;
     private readonly ISubscriptionRepository _subscriptionRepository;
     private readonly ISubscriptionPlanRepository _planRepository;
@@ -27,7 +26,6 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
     {
         _userManager = userManager;
         _jwtTokenGenerator = jwtTokenGenerator;
-        _imageService = imageService;
         _mapper = mapper;
         _subscriptionRepository = subscriptionRepository;
         _planRepository = planRepository;

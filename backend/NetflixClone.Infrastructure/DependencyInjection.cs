@@ -12,6 +12,7 @@ using NetflixClone.Infrastructure.Persistence;
 using NetflixClone.Infrastructure.Persistence.Interceptors;
 using NetflixClone.Infrastructure.Persistence.Repositories;
 using NetflixClone.Infrastructure.Persistence.Repositoriesl;
+using NetflixClone.Infrastructure.Repositories;
 using NetflixClone.Infrastructure.Services;
 using System.Text;
 
@@ -79,10 +80,16 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
-        services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
-        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
-        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IImageService, ImageService>();
+        services.AddScoped<IVideoService, VideoService>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
+        services.AddScoped<ICollectionRepository, CollectionRepository>();
+        services.AddScoped<IGenreRepository, GenreRepository>();
+        services.AddScoped<IFranchiseRepository, FranchiseRepository>();
+        services.AddScoped<IContentRepository, ContentRepository>();
+        services.AddScoped<IEpisodeRepository, EpisodeRepository>();
 
         return services;
     }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NetflixClone.Domain.Entities;
-using NetflixClone.Domain.Constants;
+using NetflixClone.Infrastructure.Persistence.Seeders.Data;
 
 namespace NetflixClone.Infrastructure.Persistence.Seeders;
 
@@ -14,24 +14,24 @@ public static class PlanSeeder
         {
             new()
             {
-                Name = SubscriptionPlanConstants.Basic.Name,
-                Price = SubscriptionPlanConstants.Basic.Price,
-                Quality = SubscriptionPlanConstants.Basic.Quality,
-                MaxDevices = SubscriptionPlanConstants.Basic.MaxDevices
+                Name = SubscriptionPlanData.Basic.Name,
+                Price = SubscriptionPlanData.Basic.Price,
+                Quality = SubscriptionPlanData.Basic.Quality,
+                MaxDevices = SubscriptionPlanData.Basic.MaxDevices
             },
             new()
             {
-                Name = SubscriptionPlanConstants.Standard.Name,
-                Price = SubscriptionPlanConstants.Standard.Price,
-                Quality = SubscriptionPlanConstants.Standard.Quality,
-                MaxDevices = SubscriptionPlanConstants.Standard.MaxDevices
+                Name = SubscriptionPlanData.Standard.Name,
+                Price = SubscriptionPlanData.Standard.Price,
+                Quality = SubscriptionPlanData.Standard.Quality,
+                MaxDevices = SubscriptionPlanData.Standard.MaxDevices
             },
             new()
             {
-                Name = SubscriptionPlanConstants.Premium.Name,
-                Price = SubscriptionPlanConstants.Premium.Price,
-                Quality = SubscriptionPlanConstants.Premium.Quality,
-                MaxDevices = SubscriptionPlanConstants.Premium.MaxDevices
+                Name = SubscriptionPlanData.Premium.Name,
+                Price = SubscriptionPlanData.Premium.Price,
+                Quality = SubscriptionPlanData.Premium.Quality,
+                MaxDevices = SubscriptionPlanData.Premium.MaxDevices
             }
         };
 

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using NetflixClone.Domain.Constants;
 using NetflixClone.Domain.Entities;
+using NetflixClone.Infrastructure.Persistence.Seeders.Data;
 
 namespace NetflixClone.Infrastructure.Persistence.Seeders;
 
@@ -13,60 +13,60 @@ public static class UserSeeder
         var user = await SeedUser(userManager);
 
         if (admin != null)
-            await EnsureSubscription(admin.Id, SubscriptionPlanConstants.Premium.Name, context);
+            await EnsureSubscription(admin.Id, SubscriptionPlanData.Premium.Name, context);
 
         if (user != null)
-            await EnsureSubscription(user.Id, SubscriptionPlanConstants.Standard.Name, context);
+            await EnsureSubscription(user.Id, SubscriptionPlanData.Standard.Name, context);
     }
 
     private static async Task<User?> SeedAdmin(UserManager<User> userManager)
     {
-        var admin = await userManager.FindByEmailAsync(UserConstants.Admin.Email);
+        var admin = await userManager.FindByEmailAsync(UserData.Admin.Email);
 
         if (admin == null)
         {
             admin = new User
             {
-                UserName = UserConstants.Admin.UserName,
-                Email = UserConstants.Admin.Email,
+                UserName = UserData.Admin.UserName,
+                Email = UserData.Admin.Email,
                 DateOfBirth = new DateOnly(1990, 1, 1),
                 EmailConfirmed = true
             };
 
-            var result = await userManager.CreateAsync(admin, UserConstants.Admin.Password);
+            var result = await userManager.CreateAsync(admin, UserData.Admin.Password);
             if (!result.Succeeded)
             {
 
                 return null;
             }
 
-            await userManager.AddToRoleAsync(admin, RoleConstants.Admin);
+            await userManager.AddToRoleAsync(admin, RoleData.Admin);
         }
         return admin;
     }
 
     private static async Task<User?> SeedUser(UserManager<User> userManager)
     {
-        var user = await userManager.FindByEmailAsync(UserConstants.TestUser.Email);
+        var user = await userManager.FindByEmailAsync(UserData.TestUser.Email);
 
         if (user == null)
         {
             user = new User
             {
-                UserName = UserConstants.TestUser.UserName,
-                Email = UserConstants.TestUser.Email,
+                UserName = UserData.TestUser.UserName,
+                Email = UserData.TestUser.Email,
                 DateOfBirth = new DateOnly(1990, 1, 1),
                 EmailConfirmed = true,
                 AvatarUrl = ""
             };
 
-            var result = await userManager.CreateAsync(user, UserConstants.TestUser.Password);
+            var result = await userManager.CreateAsync(user, UserData.TestUser.Password);
             if (!result.Succeeded)
             {
                 return null;
             }
 
-            await userManager.AddToRoleAsync(user, RoleConstants.User);
+            await userManager.AddToRoleAsync(user, RoleData.User);
         }
         return user;
     }
@@ -86,9 +86,9 @@ public static class UserSeeder
                     UserId = userId,
                     PlanId = plan.Id,
                     StartDate = DateTime.UtcNow,
-                    EndDate = DateTime.UtcNow.AddDays(UserConstants.Technical.DefaultSubscriptionDays),
+                    EndDate = DateTime.UtcNow.AddDays(UserData.Technical.DefaultSubscriptionDays),
                     IsAutoRenew = true,
-                    PaymentProviderTransactionId = UserConstants.Technical.MockTransactionId
+                    PaymentProviderTransactionId = UserData.Technical.MockTransactionId
                 };
 
                 await context.UserSubscriptions.AddAsync(subscription);

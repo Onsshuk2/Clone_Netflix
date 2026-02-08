@@ -4,8 +4,7 @@ namespace NetflixClone.Application.Interfaces;
 
 public interface IImageService
 {
-    public Task<string> UploadImageAsync(IFormFile file);
-    Task<string> SaveImageAsync(byte[] bytes);
-    Task DeleteImageAsync(string fileName);
-    Task<string> SaveImageFromUrlAsync(string imageUrl);
+    Task<string> UploadAsync(IFormFile file, string subFolder, int? width = null, int? height = null);
+    Task DeleteAsync(string pathInDb);
+    Task<string> SaveFromUrlAsync(string url, string subFolder, int? width = null, int? height = null);
 }

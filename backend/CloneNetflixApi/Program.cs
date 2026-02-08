@@ -3,6 +3,7 @@ using CloneNetflix.API;
 using NetflixClone.Application;
 using NetflixClone.Infrastructure;
 using NetflixClone.Infrastructure.Persistence;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +23,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseImagesStaticFiles(builder.Configuration);
+app.UseStaticFiles();
+
+app.UseMediaStaticFiles(app.Configuration);
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");

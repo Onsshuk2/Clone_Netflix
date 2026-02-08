@@ -1,6 +1,6 @@
 ﻿namespace NetflixClone.Domain.Constants;
 
-public class SubscriptionPlanConstants
+public static class SubscriptionPlanConstants
 {
     public static class Basic
     {
