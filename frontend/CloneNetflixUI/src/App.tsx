@@ -9,6 +9,8 @@ import NotFound from "./pages/NotFound";
 import PublicHomePage from "./pages/public/LandingPage";
 import TermsOfService from "./pages/public/TermsOfService";
 
+import AboutHelp from "./pages/public/AboutHelp";
+
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import PasswordRecovery from "./pages/auth/PasswordRecovery";
@@ -61,6 +63,7 @@ function App() {
             <Route path="/password-recovery" element={<PasswordRecovery />} />
             <Route path="/reset-password" element={<NewPassword />} />
             <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/about-help" element={<AboutHelp />} />
             <Route
               path="/confirmation-sent"
               element={<ConfirmationEmailSent />}
@@ -80,6 +83,8 @@ function App() {
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/watch-history" element={<WatchHistory />} />
             <Route path="/subscriptions" element={<SubscriptionManagement />} />
+            <Route path="/about-help" element={<AboutHelp />} />
+            <Route path="/dashboard/about-help" element={<AboutHelp />} />
             <Route path="*" element={<NotFound />} />
           </Route>
 

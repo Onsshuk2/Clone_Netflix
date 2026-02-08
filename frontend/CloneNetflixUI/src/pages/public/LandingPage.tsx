@@ -164,6 +164,12 @@ const LandingPage: React.FC = () => {
             >
               {t('landing.register_free')}
             </Link>
+            <Link
+              to="/about-help"
+              className="px-12 py-5 bg-gradient-to-r from-indigo-400 to-purple-500 hover:from-indigo-500 hover:to-purple-600 rounded-2xl font-bold text-xl shadow-2xl transition-all duration-300 transform hover:scale-105"
+            >
+              {t('aboutHelp.title')}
+            </Link>
           </div>
 
           <p className="text-gray-400 text-lg">
