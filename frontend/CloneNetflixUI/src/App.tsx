@@ -7,7 +7,6 @@ import AuthLayout from "./common/AuthLayout";
 import NotFound from "./pages/NotFound";
 
 import PublicHomePage from "./pages/public/LandingPage";
-import SubscriptionPlansPage from "./pages/dashboard/SubscriptionPlansPage";
 import TermsOfService from "./pages/public/TermsOfService";
 
 import Login from "./pages/auth/Login";
@@ -27,6 +26,7 @@ import DashboardSeries from "./pages/dashboard/DashboardSeries";
 import WelcomeDashboard from "./pages/dashboard/DashboardMain";
 import MovieDetails from "./pages/dashboard/MovieDetails";
 import { LoaderProvider } from "./components/GlobalLoader";
+import SubscriptionManagement from "./pages/dashboard/SubscriptionManagement";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
@@ -79,7 +79,8 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/watch-history" element={<WatchHistory />} />
-            <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
+            <Route path="/subscriptions" element={<SubscriptionManagement />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
 
           {/* 404 */}
