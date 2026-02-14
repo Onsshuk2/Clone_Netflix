@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NetflixClone.Domain.Entities;
 using NetflixClone.Infrastructure.Persistence.Seeders;
@@ -14,7 +15,7 @@ public class DbInitializer
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-
+        context.Database.Migrate();
         await RoleSeeder.SeedAsync(roleManager);
 
         await PlanSeeder.SeedAsync(context);
