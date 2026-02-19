@@ -23,7 +23,6 @@ public class DeleteContentHandler : IRequestHandler<DeleteContentCommand>
 
     public async Task Handle(DeleteContentCommand request, CancellationToken ct)
     {
-        // 1. Шукаємо контент у базі
         var content = await _contentRepository.GetByIdAsync(request.Id, ct);
 
         if (content == null)
@@ -31,19 +30,15 @@ public class DeleteContentHandler : IRequestHandler<DeleteContentCommand>
             throw new Exception("Контент не знайдено.");
         }
 
-        // 2. Видаляємо зображення з диска
-        // Пам'ятаєш, ми передавали папки "posters" та "backdrops" при створенні?
         if (!string.IsNullOrEmpty(content.PosterUrl))
             await _imageService.DeleteAsync(content.PosterUrl);
 
         if (!string.IsNullOrEmpty(content.DetailsPosterUrl))
             await _imageService.DeleteAsync(content.DetailsPosterUrl);
 
-        // 3. Видаляємо відео, якщо воно є (для фільмів)
         if (!string.IsNullOrEmpty(content.FullVideoUrl))
             await _videoService.DeleteAsync(content.FullVideoUrl);
 
-        // 4. Видаляємо запис із бази даних
         await _contentRepository.DeleteAsync(content.Id, ct);
     }
 }

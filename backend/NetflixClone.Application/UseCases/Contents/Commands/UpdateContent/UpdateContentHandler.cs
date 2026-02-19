@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using Hangfire;
 using MediatR;
 using NetflixClone.Application.Interfaces;
 using NetflixClone.Domain.Constants;
 using NetflixClone.Domain.Entities;
+using NetflixClone.Domain.Enums;
 using NetflixClone.Domain.Interfaces;
 
 namespace NetflixClone.Application.UseCases.Contents.Commands.UpdateContent;
@@ -72,18 +74,24 @@ public class UpdateContentHandler : IRequestHandler<UpdateContentCommand>
             if (!string.IsNullOrEmpty(content.FullVideoUrl))
                 await _videoService.DeleteAsync(content.FullVideoUrl);
 
-            content.FullVideoUrl = await _videoService.UploadAsync(request.NewVideoFile, "movies");
+            content.OriginalVideoPath = await _videoService.UploadAsync(request.NewVideoFile, "movies");
+
+            content.FullVideoUrl = null;
+            content.VideoStatus = VideoStatus.Pending;
+
+            BackgroundJob.Enqueue<IVideoService>(x =>
+                x.ProcessVideoHlsAsync(content.Id, content.OriginalVideoPath, false));
         }
 
         content.Genres.Clear();
-        if (request.GenreIds.Any())
+        if (request.GenreIds != null && request.GenreIds.Any())
         {
             var genres = await _genreRepository.FindAsync(g => request.GenreIds.Contains(g.Id), ct);
             foreach (var genre in genres) content.Genres.Add(genre);
         }
 
         content.Collections.Clear();
-        if (request.CollectionIds.Any())
+        if (request.CollectionIds != null && request.CollectionIds.Any())
         {
             var collections = await _collectionRepository.FindAsync(c => request.CollectionIds.Contains(c.Id), ct);
             foreach (var col in collections) content.Collections.Add(col);

@@ -1,4 +1,6 @@
-﻿namespace NetflixClone.Application.UseCases.Contents.Queries.GetContents;
+﻿using NetflixClone.Domain.Enums;
+
+namespace NetflixClone.Application.UseCases.Contents.Queries.GetContents;
 
 public class ContentDto
 {
@@ -7,4 +9,5 @@ public class ContentDto
     public string PosterUrl { get; set; } = null!;
     public decimal Rating { get; set; }
     public int ReleaseYear { get; set; }
+    public VideoStatus VideoStatus { get; set; }
 }

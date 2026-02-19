@@ -1,14 +1,29 @@
 ﻿using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.StaticFiles;
+using FFMpegCore;
 
 namespace CloneNetflix.API;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddPresentation(this IServiceCollection services)
+    public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers();
         services.AddEndpointsApiExplorer();
+
+        var ffmpegPath = configuration["FFmpegSettings:BinaryPath"];
+        if (!string.IsNullOrEmpty(ffmpegPath))
+        {
+            var folder = Path.GetDirectoryName(ffmpegPath);
+            if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
+            {
+                // Ось цей красень, якого ми шукали
+                GlobalFFOptions.Configure(options => options.BinaryFolder = folder);
+
+                Console.WriteLine($"[FFMPEG] Path successfully set to: {folder}");
+            }
+        }
 
         services.AddSwaggerGen(options =>
         {
@@ -59,7 +74,6 @@ public static class DependencyInjection
         var dirImageName = configuration["DirImageName"] ?? "images";
         var imagesPath = Path.Combine(rootPath, rootMediaFolder, dirImageName);
         EnsureDirectoryExists(imagesPath);
-
         app.UseStaticFiles(new StaticFileOptions
         {
             FileProvider = new PhysicalFileProvider(imagesPath),
@@ -70,10 +84,17 @@ public static class DependencyInjection
         var videosPath = Path.Combine(rootPath, rootMediaFolder, dirVideoName);
         EnsureDirectoryExists(videosPath);
 
+        var contentTypeProvider = new FileExtensionContentTypeProvider();
+
+        contentTypeProvider.Mappings[".m3u8"] = "application/x-mpegURL";
+
+        contentTypeProvider.Mappings[".ts"] = "video/MP2T";
+
         app.UseStaticFiles(new StaticFileOptions
         {
             FileProvider = new PhysicalFileProvider(videosPath),
-            RequestPath = $"/{dirVideoName}"
+            RequestPath = $"/{dirVideoName}",
+            ContentTypeProvider = contentTypeProvider
         });
 
         return app;

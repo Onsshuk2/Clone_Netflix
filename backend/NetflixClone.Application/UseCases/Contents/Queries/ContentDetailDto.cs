@@ -17,8 +17,7 @@ public class ContentDetailDto
     public int AgeLimit { get; set; }
     public int ReleaseYear { get; set; }
     public ContentType Type { get; set; }
-
-    // Вкладені дані
+    public VideoStatus VideoStatus { get; set; }
     public List<string> Genres { get; set; } = new();
     public List<EpisodeDto> Episodes { get; set; } = new();
 }

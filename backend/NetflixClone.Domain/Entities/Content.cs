@@ -11,14 +11,14 @@ public class Content : BaseEntity
     public string DetailsPosterUrl { get; set; } = string.Empty;
     public string TrailerUrl { get; set; } = string.Empty;
     public string? FullVideoUrl { get; set; }
+    public string? OriginalVideoPath { get; set; }
     public int? Duration { get; set; }
-
     public decimal Rating { get; set; }
     public int AgeLimit { get; set; }
     public int ReleaseYear { get; set; }
     public ContentType Type { get; set; }
     public int OrderInFranchise { get; set; }
-
+    public VideoStatus? VideoStatus { get; set; }
     public Guid? FranchiseId { get; set; }
     public virtual Franchise? Franchise { get; set; }
 
