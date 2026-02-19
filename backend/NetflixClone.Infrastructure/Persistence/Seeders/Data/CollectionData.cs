@@ -8,7 +8,6 @@ public static class CollectionData
         "Серіали",        
         "Аніме",       
         "Мультфільми",
-        
         "Новинки",
         "Популярне"
     };

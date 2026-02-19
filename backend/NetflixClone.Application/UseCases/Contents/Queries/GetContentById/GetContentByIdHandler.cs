@@ -20,7 +20,9 @@ public class GetContentByIdHandler : IRequestHandler<GetContentByIdQuery, Conten
         var content = await _contentRepository.GetByIdWithDetailsAsync(request.Id, ct);
 
         if (content == null)
-            throw new Exception("Контент не знайдено.");
+        {
+            throw new KeyNotFoundException($"Контент з ID {request.Id} не знайдено.");
+        }
 
         return _mapper.Map<ContentDetailDto>(content);
     }

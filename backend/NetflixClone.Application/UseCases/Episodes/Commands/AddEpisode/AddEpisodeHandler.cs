@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using MediatR;
+using Hangfire; // Додаємо для черги завдань
 using NetflixClone.Application.Interfaces;
 using NetflixClone.Domain.Constants;
 using NetflixClone.Domain.Entities;
+using NetflixClone.Domain.Enums;
 using NetflixClone.Domain.Interfaces;
 
 namespace NetflixClone.Application.UseCases.Episodes.Commands.AddEpisode;
@@ -30,14 +32,26 @@ public class AddEpisodeHandler : IRequestHandler<AddEpisodeCommand, Guid>
     {
         var content = await _contentRepository.GetByIdAsync(request.ContentId, ct);
         if (content == null)
-            throw new Exception("Контент (сезон) не знайдено.");
+            throw new KeyNotFoundException("Контент (серіал) не знайдено.");
 
         var episode = _mapper.Map<Episode>(request);
 
         string folder = $"{MediaFolders.Episodes}/{request.ContentId}";
-        episode.VideoUrl = await _videoService.UploadAsync(request.VideoFile, folder);
+
+        episode.OriginalVideoPath = await _videoService.UploadAsync(request.VideoFile, folder);
+
+        if (string.IsNullOrEmpty(episode.OriginalVideoPath))
+        {
+            throw new Exception("Помилка завантаження відеофайлу епізоду.");
+        }
+
+        episode.VideoStatus = VideoStatus.Pending;
+        episode.FullVideoUrl = null;
 
         await _episodeRepository.AddAsync(episode, ct);
+
+        BackgroundJob.Enqueue<IVideoService>(x =>
+            x.ProcessVideoHlsAsync(episode.Id, episode.OriginalVideoPath, true));
 
         return episode.Id;
     }

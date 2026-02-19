@@ -22,6 +22,7 @@ public class ContentsController : ControllerBase
 
     [HttpPost("create")]
     [Consumes("multipart/form-data")] // Чітко вказуємо тип запиту для Swagger
+    [DisableRequestSizeLimit]
     public async Task<ActionResult<Guid>> Create([FromForm] CreateContentCommand command, CancellationToken ct)
     {
         var id = await _mediator.Send(command, ct);
@@ -40,6 +41,7 @@ public class ContentsController : ControllerBase
 
     [HttpPut("update/{id:guid}")]
     [Consumes("multipart/form-data")]
+    [DisableRequestSizeLimit]
     public async Task<IActionResult> Update(Guid id, [FromForm] UpdateContentCommand command, CancellationToken ct)
     {
         if (id != command.Id)

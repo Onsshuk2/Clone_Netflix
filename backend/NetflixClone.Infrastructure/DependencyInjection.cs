@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Hangfire;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,7 @@ using NetflixClone.Infrastructure.Persistence.Repositoriesl;
 using NetflixClone.Infrastructure.Repositories;
 using NetflixClone.Infrastructure.Services;
 using System.Text;
+using Hangfire.PostgreSql;
 
 namespace NetflixClone.Infrastructure;
 
@@ -79,6 +81,16 @@ public static class DependencyInjection
             };
         });
 
+        services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(options =>
+            {
+                // Використовуємо твою рядок підключення з appsettings.json
+                options.UseNpgsqlConnection(configuration.GetConnectionString("DefaultConnection"));
+            }));
+
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IImageService, ImageService>();
         services.AddScoped<IVideoService, VideoService>();
@@ -90,6 +102,8 @@ public static class DependencyInjection
         services.AddScoped<IFranchiseRepository, FranchiseRepository>();
         services.AddScoped<IContentRepository, ContentRepository>();
         services.AddScoped<IEpisodeRepository, EpisodeRepository>();
+
+        services.AddHangfireServer();
 
         return services;
     }

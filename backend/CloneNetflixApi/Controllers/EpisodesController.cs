@@ -23,6 +23,7 @@ public class EpisodesController : ControllerBase
     [Consumes("multipart/form-data")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [DisableRequestSizeLimit]
     public async Task<ActionResult<Guid>> AddEpisode([FromForm] AddEpisodeCommand command)
     {
         var id = await _mediator.Send(command);
@@ -42,6 +43,7 @@ public class EpisodesController : ControllerBase
 
     [HttpPut("update/{id:guid}")]
     [Consumes("multipart/form-data")]
+    [DisableRequestSizeLimit]
     public async Task<IActionResult> UpdateEpisode(Guid id, [FromForm] UpdateEpisodeCommand command)
     {
         if (id != command.Id) return BadRequest("ID mismatch");

@@ -19,6 +19,8 @@ public class GetEpisodesByContentIdHandler : IRequestHandler<GetEpisodesByConten
     {
         var episodes = await _episodeRepository.GetByContentIdAsync(request.ContentId, ct);
 
-        return _mapper.Map<IEnumerable<EpisodeDto>>(episodes);
+        var sortedEpisodes = episodes.OrderBy(e => e.Number);
+
+        return _mapper.Map<IEnumerable<EpisodeDto>>(sortedEpisodes);
     }
 }

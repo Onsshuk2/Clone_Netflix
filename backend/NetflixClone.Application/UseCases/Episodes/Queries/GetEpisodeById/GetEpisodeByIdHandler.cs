@@ -21,7 +21,7 @@ public class GetEpisodeByIdHandler : IRequestHandler<GetEpisodeByIdQuery, Episod
         var episode = await _episodeRepository.GetByIdAsync(request.Id, ct);
 
         if (episode == null)
-            throw new Exception("Епізод не знайдено.");
+            throw new KeyNotFoundException($"Епізод з ID {request.Id} не знайдено.");
 
         return _mapper.Map<EpisodeDto>(episode);
     }
