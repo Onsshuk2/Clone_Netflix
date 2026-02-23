@@ -6,6 +6,9 @@ import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { getMyProfile, updateMyProfile } from "../../api/User";
+
+import ConfirmModal from "../../components/ConfirmModal";
+import { deleteMyProfile } from "../../api/deleteUser";
 import SubscriptionManagement from "./SubscriptionManagement";
 
 import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
@@ -18,7 +21,7 @@ interface ProfileData {
 }
 
 export default function Profile() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const { withLoading } = useLoading();   // ← ДОДАНО ВИКЛИК ХУКА
 
@@ -34,6 +37,24 @@ export default function Profile() {
     email: "",
     dateOfBirth: "",
   });
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteMyProfile();
+      toast.success(t('profile.deleted_success'));
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/");
+    } catch (err) {
+      toast.error(t('profile.delete_failed'));
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -227,7 +248,7 @@ export default function Profile() {
               />
             </div>
 
-            <div className="flex justify-end gap-5 pt-6">
+            <div className="flex justify-end gap-5 pt-6 flex-wrap">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
@@ -248,6 +269,14 @@ export default function Profile() {
                 )}
                 {t('profile.save')}
               </button>
+
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="px-8 py-3.5 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 rounded-xl font-semibold text-white shadow-lg transition flex items-center gap-2"
+              >
+                 {language === 'uk' ? 'Видалити' : 'Delete'}
+              </button>
             </div>
           </form>
 
@@ -255,6 +284,15 @@ export default function Profile() {
           <div className="mt-12 pt-12 border-t border-gray-700">
             <SubscriptionManagement />
           </div>
+          <ConfirmModal
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={handleDelete}
+            title={t('profile.delete_confirm_title_clear') !== 'profile.delete_confirm_title_clear' ? t('profile.delete_confirm_title_clear') : (language === 'uk' ? 'Видалення акаунта' : 'Delete account')}
+            description={t('profile.delete_confirm_desc_clear') !== 'profile.delete_confirm_desc_clear' ? t('profile.delete_confirm_desc_clear') : (language === 'uk' ? 'Після видалення акаунта всі ваші дані буде втрачено. Ви впевнені, що хочете продовжити?' : 'After deleting your account, all your data will be lost. Are you sure you want to continue?')}
+            confirmText={deleting ? (t('profile.deleting') !== 'profile.deleting' ? t('profile.deleting') : (language === 'uk' ? 'Видалення...' : 'Deleting...')) : (t('profile.confirm_delete_clear') !== 'profile.confirm_delete_clear' ? t('profile.confirm_delete_clear') : (language === 'uk' ? 'Видалити назавжди' : 'Delete permanently'))}
+            cancelText={t('profile.cancel') !== 'profile.cancel' ? t('profile.cancel') : (language === 'uk' ? 'Скасувати' : 'Cancel')}
+          />
         </div>
       </div>
     </div>

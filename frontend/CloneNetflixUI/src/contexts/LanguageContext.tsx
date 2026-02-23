@@ -1,3 +1,4 @@
+// ...existing code...
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type Language = 'uk' | 'en';
@@ -199,6 +200,14 @@ export const translations: Record<Language, Record<string, string>> = {
     'profile.cancel_btn': 'Скасувати',
     'profile.save_btn': 'Зберегти зміни',
     'profile.profile_updated': 'Профіль успішно оновлено!',
+    'profile.delete_account': 'Видалити акаунт',
+    'profile.delete_confirm_title': 'Видалити акаунт?',
+    'profile.delete_confirm_desc': 'Ви впевнені, що хочете видалити акаунт? Цю дію не можна скасувати.',
+    'profile.confirm_delete': 'Видалити',
+    'profile.deleting': 'Видалення...',
+    'profile.deleted_success': 'Акаунт видалено',
+    'profile.delete_failed': 'Не вдалося видалити акаунт',
+    // ...existing code...
     'common.year': 'рік',
     'landing.tagline': 'Тисячі фільмів, серіалів, мультфільмів та аніме — українською, в один клік.',
     'landing.login': 'Увійти',
