@@ -11,7 +11,7 @@ import ConfirmModal from "../../components/ConfirmModal";
 import { deleteMyProfile } from "../../api/deleteUser";
 import SubscriptionManagement from "./SubscriptionManagement";
 
-import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
+import { useLoading } from "../../lib/useLoading";
 
 interface ProfileData {
   userName: string;
@@ -23,7 +23,7 @@ interface ProfileData {
 export default function Profile() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
-  const { withLoading } = useLoading();   // ← ДОДАНО ВИКЛИК ХУКА
+  const { withLoading } = useLoading();
 
   const [profile, setProfile] = useState<ProfileData>({
     userName: "Користувач",
@@ -64,7 +64,6 @@ export default function Profile() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Дефолтний аватар
   const DEFAULT_AVATAR =
     "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
 
@@ -171,20 +170,20 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-10 px-5">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-4xl font-black text-center mb-10 bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-indigo-950/30 to-black py-10 px-4 sm:px-6">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-center mb-12 bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent tracking-tight">
           {t("profile.title") || "Мій профіль"}
         </h1>
 
-        <div className="bg-gray-900/70 backdrop-blur-xl rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
-          {/* Аватар + верхня частина */}
-          <div className="relative pt-12 pb-10 bg-gradient-to-b from-indigo-950/40 to-transparent text-center">
-            <div className="relative inline-block mx-auto">
+        <div className="bg-gray-900/70 backdrop-blur-xl rounded-3xl border border-gray-800/80 shadow-2xl shadow-black/50 overflow-hidden">
+          {/* Аватар + заголовок */}
+          <div className="relative px-6 pt-16 pb-12 text-center bg-gradient-to-b from-indigo-950/40 to-transparent">
+            <div className="relative inline-block group mx-auto">
               <img
                 src={getAvatarSrc()}
                 alt="Аватар користувача"
-                className="w-44 h-44 rounded-full object-cover ring-8 ring-indigo-500/30 shadow-2xl cursor-pointer hover:scale-105 transition"
+                className="w-40 h-40 sm:w-48 sm:h-48 rounded-full object-cover ring-8 ring-indigo-600/30 shadow-2xl transition-transform duration-300 group-hover:scale-105 cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
@@ -195,9 +194,9 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-3 right-3 bg-gray-900/90 p-4 rounded-full border border-indigo-500/40 hover:bg-gray-800 transition"
+                className="absolute -bottom-2 -right-2 bg-gray-900 p-3.5 rounded-full border-2 border-indigo-500/50 shadow-lg hover:bg-gray-800 transition"
               >
-                <Camera className="w-7 h-7 text-indigo-400" />
+                <Camera className="w-6 h-6 text-indigo-400" />
               </button>
 
               <input
@@ -209,50 +208,62 @@ export default function Profile() {
               />
             </div>
 
-            <h2 className="mt-6 text-3xl font-bold text-white">{form.username || profile.userName}</h2>
-            <p className="mt-2 text-gray-400">{form.email || profile.email || "—"}</p>
+            <h2 className="mt-8 text-3xl sm:text-4xl font-bold text-white">
+              {form.username || profile.userName}
+            </h2>
+            <p className="mt-3 text-lg text-gray-400">
+              {form.email || profile.email || "—"}
+            </p>
           </div>
 
           {/* Форма */}
-          <form onSubmit={handleSubmit} className="p-8 space-y-7">
-            <div>
-              <label className="block text-gray-300 font-medium mb-2">{t('profile.full_name')}</label>
-              <input
-                type="text"
-                value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
-                className="w-full px-5 py-3.5 bg-gray-800/60 border border-gray-700 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
-                placeholder={t('profile.enter_name')}
-                required
-              />
+          <form onSubmit={handleSubmit} className="px-6 sm:px-10 py-10 space-y-8">
+            <div className="grid gap-7 md:grid-cols-2">
+              <div>
+                <label className="block text-gray-300 font-medium mb-2.5">
+                  {t('profile.full_name')}
+                </label>
+                <input
+                  type="text"
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  className="w-full px-5 py-4 bg-gray-800/60 border border-gray-700 rounded-2xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                  placeholder={t('profile.enter_name')}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-2.5">
+                  {t('profile.email')}
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full px-5 py-4 bg-gray-800/60 border border-gray-700 rounded-2xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                  placeholder={t('auth.email_placeholder')}
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-gray-300 font-medium mb-2">{t('profile.email')}</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-5 py-3.5 bg-gray-800/60 border border-gray-700 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
-                placeholder={t('auth.email_placeholder')}
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-300 font-medium mb-2">{t('profile.date_of_birth')}</label>
+              <label className="block text-gray-300 font-medium mb-2.5">
+                {t('profile.date_of_birth')}
+              </label>
               <input
                 type="date"
                 value={form.dateOfBirth}
                 onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
-                className="w-full px-5 py-3.5 bg-gray-800/60 border border-gray-700 rounded-xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                className="w-full px-5 py-4 bg-gray-800/60 border border-gray-700 rounded-2xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
               />
             </div>
 
-            <div className="flex justify-end gap-5 pt-6 flex-wrap">
+            <div className="flex flex-col sm:flex-row gap-4 pt-10 border-t border-gray-800">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="px-8 py-3.5 border border-gray-600 rounded-xl text-gray-300 hover:bg-gray-800/50 transition flex items-center gap-2"
+                className="flex-1 py-4 px-6 border border-gray-600 rounded-2xl text-gray-300 hover:bg-gray-800/60 transition flex items-center justify-center gap-2 order-2 sm:order-1"
               >
                 <X size={18} /> {t('profile.cancel')}
               </button>
@@ -260,7 +271,7 @@ export default function Profile() {
               <button
                 type="submit"
                 disabled={loading || !form.username.trim()}
-                className="px-10 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-semibold shadow-lg shadow-indigo-900/40 transition disabled:opacity-60 flex items-center gap-2"
+                className="flex-1 py-4 px-8 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl font-semibold text-white shadow-lg shadow-indigo-900/40 transition disabled:opacity-60 flex items-center justify-center gap-2 order-1 sm:order-2"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -273,28 +284,29 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(true)}
-                className="px-8 py-3.5 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 rounded-xl font-semibold text-white shadow-lg transition flex items-center gap-2"
+                className="flex-1 py-4 px-6 bg-gradient-to-r from-red-700 to-rose-700 hover:from-red-600 hover:to-rose-600 rounded-2xl font-semibold text-white shadow-lg transition order-3"
               >
-                 {language === 'uk' ? 'Видалити' : 'Delete'}
+                {language === 'uk' ? 'Видалити акаунт' : 'Delete account'}
               </button>
             </div>
           </form>
 
-          {/* Subscription Management Section */}
-          <div className="mt-12 pt-12 border-t border-gray-700">
+
+          <div className="border-t border-gray-800 bg-gray-950/30 px-6 sm:px-10 py-12">
             <SubscriptionManagement />
           </div>
-          <ConfirmModal
-            isOpen={showDeleteModal}
-            onClose={() => setShowDeleteModal(false)}
-            onConfirm={handleDelete}
-            title={t('profile.delete_confirm_title_clear') !== 'profile.delete_confirm_title_clear' ? t('profile.delete_confirm_title_clear') : (language === 'uk' ? 'Видалення акаунта' : 'Delete account')}
-            description={t('profile.delete_confirm_desc_clear') !== 'profile.delete_confirm_desc_clear' ? t('profile.delete_confirm_desc_clear') : (language === 'uk' ? 'Після видалення акаунта всі ваші дані буде втрачено. Ви впевнені, що хочете продовжити?' : 'After deleting your account, all your data will be lost. Are you sure you want to continue?')}
-            confirmText={deleting ? (t('profile.deleting') !== 'profile.deleting' ? t('profile.deleting') : (language === 'uk' ? 'Видалення...' : 'Deleting...')) : (t('profile.confirm_delete_clear') !== 'profile.confirm_delete_clear' ? t('profile.confirm_delete_clear') : (language === 'uk' ? 'Видалити назавжди' : 'Delete permanently'))}
-            cancelText={t('profile.cancel') !== 'profile.cancel' ? t('profile.cancel') : (language === 'uk' ? 'Скасувати' : 'Cancel')}
-          />
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title={t('profile.delete_confirm_title_clear') !== 'profile.delete_confirm_title_clear' ? t('profile.delete_confirm_title_clear') : (language === 'uk' ? 'Видалення акаунта' : 'Delete account')}
+        description={t('profile.delete_confirm_desc_clear') !== 'profile.delete_confirm_desc_clear' ? t('profile.delete_confirm_desc_clear') : (language === 'uk' ? 'Після видалення акаунта всі ваші дані буде втрачено. Ви впевнені, що хочете продовжити?' : 'After deleting your account, all your data will be lost. Are you sure you want to continue?')}
+        confirmText={deleting ? (t('profile.deleting') !== 'profile.deleting' ? t('profile.deleting') : (language === 'uk' ? 'Видалення...' : 'Deleting...')) : (t('profile.confirm_delete_clear') !== 'profile.confirm_delete_clear' ? t('profile.confirm_delete_clear') : (language === 'uk' ? 'Видалити назавжди' : 'Delete permanently'))}
+        cancelText={t('profile.cancel') !== 'profile.cancel' ? t('profile.cancel') : (language === 'uk' ? 'Скасувати' : 'Cancel')}
+      />
     </div>
   );
 }

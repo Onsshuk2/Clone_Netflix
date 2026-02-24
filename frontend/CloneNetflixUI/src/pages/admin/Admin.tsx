@@ -323,7 +323,7 @@ const AdminUsers = () => {
                         <img
                           src={
                             user.avatarUrl && user.avatarUrl.trim() !== ""
-                              ? `${API_URL}/images/${user.avatarUrl}`
+                              ? `${API_URL}/${user.avatarUrl}`
                               : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=6366f1&color=fff&size=128`
                           }
                           alt={user.userName}

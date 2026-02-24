@@ -5,6 +5,7 @@ import { LogOut, User, CreditCard, ArrowUp, Heart } from "lucide-react";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
 import AnimatedOutlet from "../components/AnimatedOutlet";
+import AdminFabButton from "../pages/admin/AdminFabButton";
 
 export default function UserLayout() {
   const navigate = useNavigate();
@@ -270,6 +271,7 @@ export default function UserLayout() {
             </div>
           </div>
         </div>
+        <AdminFabButton />
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
@@ -295,6 +297,7 @@ export default function UserLayout() {
           <ArrowUp className="w-7 h-7 text-white" />
         </button>
       )}
+
     </div>
   );
 }
