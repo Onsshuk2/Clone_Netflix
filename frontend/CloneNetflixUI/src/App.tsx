@@ -37,20 +37,7 @@ import { LoaderProvider } from "./components/GlobalLoader";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
-const getUserRole = () => {
-  const token = localStorage.getItem("token");
-  if (!token) return null;
 
-  try {
-    const [, payloadBase64] = token.split(".");
-    if (!payloadBase64) return null;
-
-    const payload = JSON.parse(atob(payloadBase64));
-    return payload.role || payload.user?.role || null;
-  } catch {
-    return null;
-  }
-};
 
 // ────────────────────────────────────────────────
 // Компоненти-обгортки для маршрутів
