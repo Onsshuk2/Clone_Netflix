@@ -94,6 +94,8 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IImageService, ImageService>();
         services.AddScoped<IVideoService, VideoService>();
+        services.AddScoped<ISmtpService, SmtpService>();
+
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
