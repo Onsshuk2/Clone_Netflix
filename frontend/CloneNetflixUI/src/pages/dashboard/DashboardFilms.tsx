@@ -4,20 +4,20 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useFavorites } from "../../lib/useFavorites";
 import { Heart } from "lucide-react";
+import { Clock } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { fetchTopRatedMovies, searchMoviesOnly } from "../../api/tmdbDashboard";
-import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
+import { useLoading } from "../../lib/useLoading";
 
 const DashboardMovies: React.FC = () => {
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { withLoading } = useLoading();   // ← ДОДАНО ВИКЛИК ХУКА
+  const { withLoading } = useLoading();
 
   const [displayMovies, setDisplayMovies] = useState<any[]>([]);
   const [allMovies, setAllMovies] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
-  const [loading, setLoading] = useState(true);
   const [searchMode, setSearchMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [displaySearchTerm, setDisplaySearchTerm] = useState("");
@@ -26,9 +26,9 @@ const DashboardMovies: React.FC = () => {
 
   const language = getTMDBLanguage();
 
+  // Завантаження топ-100
   useEffect(() => {
     withLoading(async () => {
-      setLoading(true);
       setError(null);
       setSearchMode(false);
       setSearchTerm("");
@@ -42,32 +42,30 @@ const DashboardMovies: React.FC = () => {
         setVisibleCount(20);
         setDisplayMovies(results.slice(0, 20));
       } catch (err) {
-        console.error("Помилка завантаження топ-100:", err);
-        setError(t("movies.loading_error") || "Не вдалося завантажити фільми");
+        console.error("Помилка завантаження:", err);
+        setError(t("movies.loading_error"));
         setAllMovies([]);
         setDisplayMovies([]);
-      } finally {
-        setLoading(false);
       }
     });
-  }, [language, t]);
+  }, [language]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  // Пошук
   const searchMovies = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
 
     const term = searchTerm.trim();
     if (term.length < 2) {
-      setError(t("movies.search_min_chars") || "Мінімум 2 символи");
+      setError(t("movies.search_min_chars"));
       return;
     }
 
     await withLoading(async () => {
-      setLoading(true);
       setError(null);
       setSearchMode(true);
       setVisibleCount(20);
@@ -81,11 +79,9 @@ const DashboardMovies: React.FC = () => {
         setDisplayMovies(limited.slice(0, 20));
       } catch (err) {
         console.error("Помилка пошуку:", err);
-        setError(t("movies.connection_error") || "Помилка з'єднання");
+        setError(t("movies.connection_error"));
         setAllMovies([]);
         setDisplayMovies([]);
-      } finally {
-        setLoading(false);
       }
     });
   };
@@ -102,15 +98,33 @@ const DashboardMovies: React.FC = () => {
   };
 
   const loadMore = () => {
-    if (loading) return;
     const nextCount = Math.min(visibleCount + 20, allMovies.length);
     setVisibleCount(nextCount);
     setDisplayMovies(allMovies.slice(0, nextCount));
   };
 
+  const [watchLaterList, setWatchLaterList] = useState<any[]>(() => {
+    return JSON.parse(localStorage.getItem("watchLaterList") || "[]");
+  });
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
+  }, [language]);
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12 max-w-7xl">
+
         <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
           {t("movies.welcome")}
         </h1>
@@ -132,6 +146,7 @@ const DashboardMovies: React.FC = () => {
           </div>
         )}
 
+        {/* SEARCH */}
         <form onSubmit={searchMovies} className="max-w-3xl mx-auto mb-16">
           <div className="flex flex-col sm:flex-row gap-4">
             <input
@@ -143,28 +158,22 @@ const DashboardMovies: React.FC = () => {
             />
             <button
               type="submit"
-              disabled={loading}
-              className="px-12 py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-xl font-bold text-lg transition shadow-lg"
+              className="px-12 py-5 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg transition shadow-lg"
             >
-              {loading && searchMode
-                ? t("common.searching")
-                : t("common.find_button")}
+              {t("common.find_button")}
             </button>
           </div>
         </form>
 
-        {error && !loading && (
+        {error && (
           <div className="text-center text-red-400 text-xl bg-red-900/20 py-6 rounded-lg mb-12">
             {error}
           </div>
         )}
 
-        {/* ← ВИДАЛЕНО локальний {loading ? <GradientLoader /> : ...} */}
-        {/* Тепер лоадер працює тільки глобально через withLoading */}
-
         {displayMovies.length === 0 ? (
           <div className="text-center py-20 text-gray-400 text-xl">
-            {t("movies.no_results") || "Нічого не знайдено..."}
+            {t("movies.no_results")}
           </div>
         ) : (
           <>
@@ -172,7 +181,8 @@ const DashboardMovies: React.FC = () => {
               {displayMovies.map((movie) => {
                 const title = movie.title || movie.original_title || "Без назви";
                 const year = movie.release_date?.slice(0, 4) || t("common.unknown");
-
+                const favorite = isFavorite(movie.id, "movie");
+                const isWatchLater = watchLaterList.some((m: any) => m.id === movie.id);
                 return (
                   <div key={movie.id} className="group relative h-full">
                     <Link
@@ -188,20 +198,20 @@ const DashboardMovies: React.FC = () => {
                         />
                       ) : (
                         <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                          <span className="text-gray-500 text-center px-4">
-                            {t("common.poster_missing")}
-                          </span>
+                          {t("common.poster_missing")}
                         </div>
                       )}
 
-                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
-                        <h3 className="text-lg font-semibold break-words line-clamp-2">
+                      <div className="p-5 flex flex-col justify-between flex-grow">
+                        <h3 className="text-lg font-semibold line-clamp-2">
                           {title}
                         </h3>
+
                         <div>
                           <p className="text-gray-400 text-sm">
                             {year} {t("common.year")}
                           </p>
+
                           {movie.vote_average > 0 && (
                             <p className="text-yellow-400 mt-1 font-bold">
                               ⭐ {movie.vote_average.toFixed(1)}
@@ -211,6 +221,34 @@ const DashboardMovies: React.FC = () => {
                       </div>
                     </Link>
 
+                    {/* Кнопка "на потім" (лівий верх) */}
+                    <button
+                      onClick={() => {
+                        let updated;
+                        if (isWatchLater) {
+                          updated = watchLaterList.filter((m: any) => m.id !== movie.id);
+                        } else {
+                          updated = [...watchLaterList, {
+                            id: movie.id,
+                            title: movie.title || movie.original_title || "",
+                            posterUrl: movie.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${movie.poster_path}` : undefined,
+                          }];
+                        }
+                        setWatchLaterList(updated);
+                        localStorage.setItem("watchLaterList", JSON.stringify(updated));
+                        if (!isWatchLater) {
+                          toast.success(t('watchLater.added'));
+                        } else {
+                          toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
+                        }
+                      }}
+                      className={`absolute top-3 left-3 p-2 rounded-full z-10 bg-blue-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-blue-600"}`}
+                      title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
+                    >
+                      <Clock size={22} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
+                    </button>
+
+                    {/* Кнопка улюблене (правий верх) */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -224,23 +262,21 @@ const DashboardMovies: React.FC = () => {
                           releaseDate: movie.release_date,
                         });
 
-                        const isFav = isFavorite(movie.id, "movie");
-                        toast.success(isFav ? t("favorites.removed") : t("favorites.added"));
+                        toast.success(
+                          favorite
+                            ? t("favorites.removed")
+                            : t("favorites.added")
+                        );
                       }}
-                      className="
-                        absolute top-3 right-3
-                        p-2 bg-black/60 rounded-full
-                        hover:bg-black/80
-                        transition-all duration-300
-                        z-10
-                        opacity-0 group-hover:opacity-100
-                        hover:scale-110
-                        active:scale-90
-                      "
+                      className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition z-10 opacity-0 group-hover:opacity-100"
                     >
                       <Heart
                         size={24}
-                        className={isFavorite(movie.id, "movie") ? "fill-red-500 text-red-500" : "text-white"}
+                        className={
+                          favorite
+                            ? "fill-red-500 text-red-500"
+                            : "text-white"
+                        }
                       />
                     </button>
                   </div>
@@ -252,8 +288,7 @@ const DashboardMovies: React.FC = () => {
               <div className="text-center mt-12">
                 <button
                   onClick={loadMore}
-                  disabled={loading}
-                  className="px-10 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 rounded-xl font-bold text-xl transition shadow-lg"
+                  className="px-12 py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg transition shadow-lg"
                 >
                   {t("common.load_more")}
                 </button>

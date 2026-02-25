@@ -1,7 +1,7 @@
 // src/layouts/UserLayout.tsx
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { LogOut, User, CreditCard, ArrowUp, Heart } from "lucide-react";
+import { LogOut, User, CreditCard, ArrowUp, Heart, Clock } from "lucide-react";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
 import AnimatedOutlet from "../components/AnimatedOutlet";
@@ -227,6 +227,14 @@ export default function UserLayout() {
                     >
                       <Heart className="w-5 h-5 text-red-400" />
                       <span className="font-medium">{t('favorites.title')}</span>
+                    </Link>
+                    <Link
+                      to="/watch-later"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
+                    >
+                      <Clock className="w-5 h-5 text-blue-400" />
+                      <span className="font-medium">{t('watchLater.title')}</span>
                     </Link>
                     <Link
                       to="/watch-history"
