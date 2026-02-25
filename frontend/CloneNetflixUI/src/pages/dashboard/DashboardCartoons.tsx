@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useFavorites } from "../../lib/useFavorites";
-import { Heart } from "lucide-react";
+import { Heart, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { fetchTopCartoons, searchCartoonsOnly } from "../../api/tmdbDashboard";
@@ -25,6 +25,10 @@ const DashboardCartoons: React.FC = () => {
   const [topCartoons, setTopCartoons] = useState<any[]>([]);
 
   const [animatingId, setAnimatingId] = useState<number | null>(null);
+
+  const [watchLaterList, setWatchLaterList] = useState<any[]>(() => {
+    return JSON.parse(localStorage.getItem("watchLaterList") || "[]");
+  });
 
   const language = getTMDBLanguage();
 
@@ -57,6 +61,20 @@ const DashboardCartoons: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
+  }, [language]);
 
   const searchCartoons = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,9 +201,8 @@ const DashboardCartoons: React.FC = () => {
                 const title =
                   item.title || item.original_title || "Без назви";
                 const year =
-                  item.release_date?.slice(0, 4) ||
-                  t("common.unknown");
-
+                  item.release_date?.slice(0, 4) || "";
+                const isWatchLater = watchLaterList.some((m: any) => m.id === item.id);
                 return (
                   <div key={item.id} className="group relative h-full">
                     <Link
@@ -224,6 +241,34 @@ const DashboardCartoons: React.FC = () => {
                       </div>
                     </Link>
 
+                    {/* Кнопка "на потім" (лівий верх) */}
+                    <button
+                      onClick={() => {
+                        let updated;
+                        if (isWatchLater) {
+                          updated = watchLaterList.filter((m: any) => m.id !== item.id);
+                        } else {
+                          updated = [...watchLaterList, {
+                            id: item.id,
+                            title: item.title || item.original_title || "",
+                            posterUrl: item.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}` : undefined,
+                          }];
+                        }
+                        setWatchLaterList(updated);
+                        localStorage.setItem("watchLaterList", JSON.stringify(updated));
+                        if (!isWatchLater) {
+                          toast.success(t('watchLater.added'));
+                        } else {
+                          toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
+                        }
+                      }}
+                      className={`absolute top-3 left-3 p-2 rounded-full z-10 bg-teal-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-teal-600"}`}
+                      title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
+                    >
+                      <Clock size={22} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
+                    </button>
+
+                    {/* Кнопка улюблене (правий верх) */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();

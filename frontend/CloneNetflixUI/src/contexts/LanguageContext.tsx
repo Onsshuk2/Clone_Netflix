@@ -1,4 +1,3 @@
-// ...existing code...
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type Language = 'uk' | 'en';
@@ -55,6 +54,10 @@ export const useLanguage = () => {
 
 export const translations: Record<Language, Record<string, string>> = {
   uk: {
+    'watchLater.title': 'Список на потім',
+    'watchLater.empty': 'Список порожній. Додавайте фільми, які хочете переглянути пізніше.',
+    'watchLater.remove': 'Видалити',
+    'watchLater.added': 'Додано у список на потім',
     'aboutHelp.title': 'Про нас / Допомога',
     'aboutHelp.description': 'CloneNetflixUI — це платформа для перегляду фільмів, серіалів, аніме та мультфільмів. Ми прагнемо надати найкращий досвід для наших користувачів. Якщо у вас виникли питання або потрібна допомога, зверніться до нашої служби підтримки.',
     'aboutHelp.contact': 'Контакти служби підтримки:',
@@ -86,10 +89,6 @@ export const translations: Record<Language, Record<string, string>> = {
     'auth.register': 'Реєстрація',
     'auth.password_recovery': 'Відновлення пароля',
     'auth.new_password': 'Новий пароль',
-    'auth.email_sent': 'Email відправлено',
-    'auth.create_account': 'Створити новий акаунт',
-    'auth.email_placeholder': 'example@gmail.com',
-    'auth.password_placeholder': '••••••••',
     'auth.confirm_password_placeholder': 'Повторіть пароль',
     'auth.login_button': 'Увійти',
     'auth.logging_in': 'Вхід...',
@@ -207,7 +206,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'profile.deleting': 'Видалення...',
     'profile.deleted_success': 'Акаунт видалено',
     'profile.delete_failed': 'Не вдалося видалити акаунт',
-    // ...existing code...
+  
     'common.year': 'рік',
     'landing.tagline': 'Тисячі фільмів, серіалів, мультфільмів та аніме — українською, в один клік.',
     'landing.login': 'Увійти',
@@ -274,6 +273,10 @@ export const translations: Record<Language, Record<string, string>> = {
     'subscriptionManagement.choosePlan': 'Обрати',
   },
   en: {
+     'watchLater.title': 'Watch Later List',
+    'watchLater.empty': 'Your list is empty. Add movies you want to watch later.',
+    'watchLater.remove': 'Remove',
+    'watchLater.added': 'Added to Watch Later',
     'aboutHelp.title': 'About Us / Help',
     'aboutHelp.description': 'CloneNetflixUI is a platform for watching movies, series, anime, and cartoons. We strive to provide the best experience for our users. If you have any questions or need help, please contact our support service.',
     'aboutHelp.contact': 'Support contacts:',

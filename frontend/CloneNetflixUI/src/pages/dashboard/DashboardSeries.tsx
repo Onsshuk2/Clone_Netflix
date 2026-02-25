@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useFavorites } from "../../lib/useFavorites";
-import { Heart } from "lucide-react";
+import { Heart, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { fetchTopRatedSeries, searchSeriesOnly } from "../../api/tmdbDashboard";
@@ -23,6 +23,10 @@ const DashboardSeries: React.FC = () => {
   const [displaySearchTerm, setDisplaySearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [topSeries, setTopSeries] = useState<any[]>([]);
+
+  const [watchLaterList, setWatchLaterList] = useState<any[]>(() => {
+    return JSON.parse(localStorage.getItem("watchLaterList") || "[]");
+  });
 
   const language = getTMDBLanguage();
 
@@ -55,6 +59,20 @@ const DashboardSeries: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
+  }, [language]);
 
   const searchSeries = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,68 +190,97 @@ const DashboardSeries: React.FC = () => {
               {displaySeries.map((series) => {
                 const title = series.name || series.title || "Без назви";
                 const year = series.first_air_date?.slice(0, 4) || t("common.unknown");
+                const isWatchLater = watchLaterList.some((m: any) => m.id === series.id);
 
                 return (
-                  <div key={series.id} className="group relative h-full">
-                    <Link
-                      to={`/details/tv/${series.id}`}
-                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
-                    >
-                      {series.poster_path ? (
-                        <img
-                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${series.poster_path}`}
-                          alt={title}
-                          className="w-full h-80 object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                          <span className="text-gray-500 text-center px-4">
-                            {t("common.poster_missing")}
-                          </span>
-                        </div>
-                      )}
+                                  <div key={series.id} className="group relative h-full">
+                                    <Link
+                                      to={`/details/tv/${series.id}`}
+                                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
+                                    >
+                                      {series.poster_path ? (
+                                        <img
+                                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${series.poster_path}`}
+                                          alt={title}
+                                          className="w-full h-80 object-cover"
+                                          loading="lazy"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
+                                          <span className="text-gray-500 text-center px-4">
+                                            {t("common.poster_missing")}
+                                          </span>
+                                        </div>
+                                      )}
 
-                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
-                        <h3 className="text-lg font-semibold break-words line-clamp-2">
-                          {title}
-                        </h3>
-                        <div>
-                          <p className="text-gray-400 text-sm">
-                            {year} {t("common.year")}
-                          </p>
-                          {series.vote_average > 0 && (
-                            <p className="text-blue-400 mt-1 font-bold">
-                              ⭐ {series.vote_average.toFixed(1)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
+                                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
+                                        <h3 className="text-lg font-semibold break-words line-clamp-2">
+                                          {title}
+                                        </h3>
+                                        <div>
+                                          <p className="text-gray-400 text-sm">
+                                            {year} {t("common.year")}
+                                          </p>
+                                          {series.vote_average > 0 && (
+                                            <p className="text-blue-400 mt-1 font-bold">
+                                              ⭐ {series.vote_average.toFixed(1)}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </Link>
 
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        toggleFavorite({
-                          id: series.id,
-                          mediaType: "tv",
-                          title,
-                          posterPath: series.poster_path,
-                          voteAverage: series.vote_average,
-                          releaseDate: series.first_air_date,
-                        });
-                        const isFav = isFavorite(series.id, "tv");
-                        toast.success(isFav ? t("favorites.removed") : t("favorites.added"));
-                      }}
-                      className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
-                    >
-                      <Heart
-                        size={24}
-                        className={isFavorite(series.id, "tv") ? "fill-red-500 text-red-500" : "text-white"}
-                      />
-                    </button>
-                  </div>
-                );
+                                    {/* Кнопка "на потім" (лівий верх) */}
+                                    <button
+                                      onClick={() => {
+                                        let updated;
+                                        if (isWatchLater) {
+                                          updated = watchLaterList.filter((m: any) => m.id !== series.id);
+                                        } else {
+                                          updated = [...watchLaterList, {
+                                            id: series.id,
+                                            title: series.name || series.title || "",
+                                            posterUrl: series.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${series.poster_path}` : undefined,
+                                          }];
+                                        }
+                                        setWatchLaterList(updated);
+                                        localStorage.setItem("watchLaterList", JSON.stringify(updated));
+                                        if (!isWatchLater) {
+                                          toast.success(t('watchLater.added'));
+                                        } else {
+                                          toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
+                                        }
+                                      }}
+                                      className={`absolute top-3 left-3 p-2 rounded-full z-10 bg-blue-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-blue-600"}`}
+                                      title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
+                                    >
+                                      <Clock size={22} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
+                                    </button>
+
+                                    {/* Кнопка улюблене (правий верх) */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        toggleFavorite({
+                                          id: series.id,
+                                          mediaType: "tv",
+                                          title,
+                                          posterPath: series.poster_path,
+                                          voteAverage: series.vote_average,
+                                          releaseDate: series.first_air_date,
+                                        });
+                                        const isFav = isFavorite(series.id, "tv");
+                                        toast.success(isFav ? t("favorites.removed") : t("favorites.added"));
+                                      }}
+                                      className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                                    >
+                                      <Heart
+                                        size={24}
+                                        className={isFavorite(series.id, "tv") ? "fill-red-500 text-red-500" : "text-white"}
+                                      />
+                                    </button>
+                                  </div>
+                                );
               })}
             </div>
 

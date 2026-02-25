@@ -20,6 +20,7 @@ import DashboardMovies from "./pages/dashboard/DashboardFilms";
 import DashboardAnime from "./pages/dashboard/DashboardAnime";
 import DashboardCartoons from "./pages/dashboard/DashboardCartoons";
 import Profile from "./pages/dashboard/Profile";
+import WatchLater from "./pages/dashboard/WatchLater";
 import Favorites from "./pages/dashboard/Favorites";
 import WatchHistory from "./pages/dashboard/WatchHistory";
 import DashboardSeries from "./pages/dashboard/DashboardSeries";
@@ -108,6 +109,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/watch-history" element={<WatchHistory />} />
+            <Route path="/watch-later" element={<WatchLater />} />
             <Route path="/subscriptions" element={<SubscriptionManagement />} />
             <Route path="/about-help" element={<AboutHelp />} />
             <Route path="/dashboard/about-help" element={<AboutHelp />} />
