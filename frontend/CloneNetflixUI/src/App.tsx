@@ -30,6 +30,7 @@ import SubscriptionManagement from "./pages/dashboard/SubscriptionManagement";
 import AdminUsers from "./pages/admin/Admin";
 import { GlobalToaster } from "./lib/toast";
 import { LoaderProvider } from "./components/GlobalLoader";
+import AdminContents from "./pages/admin/AdminContents";
 
 // ────────────────────────────────────────────────
 // Функції перевірки авторизації та ролі
@@ -118,7 +119,8 @@ function App() {
 
           {/* Окремий маршрут ТІЛЬКИ для адмінів */}
           <Route element={<AdminRoute />}>
-            <Route path="/admin" element={<AdminUsers />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/contents" element={<AdminContents />} />
           </Route>
 
           {/* Глобальний 404 (для неіснуючих шляхів поза захищеними) */}
