@@ -12,6 +12,7 @@ import {
     fetchSimilarContent,
 } from "../../api/tmdbDashboard";
 import { GradientLoader } from "../../components/Loader";
+import CommentsSection from '../../components/CommentsSection';
 
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
 const TMDB_BACKDROP_BASE = "https://image.tmdb.org/t/p/w1280";
@@ -32,6 +33,31 @@ const MovieDetails: React.FC = () => {
     const language = getTMDBLanguage();
 
     const { addToHistory } = useWatchHistory();
+
+    // DEMO: currentUser (замініть на реального користувача з контексту)
+    const currentUser = localStorage.getItem('username') || null;
+    // DEMO: comments (можна замінити на API)
+    const [comments, setComments] = useState<any[]>(() => {
+        const saved = localStorage.getItem(`comments_${id}`);
+        return saved ? JSON.parse(saved) : [];
+    });
+    
+    const handleEditComment = (edited: any) => {
+        const updated = comments.map(c => c.id === edited.id ? edited : c);
+        setComments(updated);
+        localStorage.setItem(`comments_${id}`, JSON.stringify(updated));
+    };
+    
+    const handleDeleteComment = (commentId: number) => {
+        const updated = comments.filter(c => c.id !== commentId);
+        setComments(updated);
+        localStorage.setItem(`comments_${id}`, JSON.stringify(updated));
+    };
+    const handleAddComment = (comment: any) => {
+        const updated = [comment, ...comments];
+        setComments(updated);
+        localStorage.setItem(`comments_${id}`, JSON.stringify(updated));
+    };
 
 
     // Прокрутка вгору при зміні id
@@ -211,6 +237,14 @@ const MovieDetails: React.FC = () => {
                         </div>
                     </div>
                 )}
+            {/* Comments Section */}
+            <CommentsSection
+                comments={comments}
+                currentUser={currentUser || undefined}
+                onAddComment={handleAddComment}
+                onEditComment={handleEditComment}
+                onDeleteComment={handleDeleteComment}
+            />
             </div>
         </div>
     );
