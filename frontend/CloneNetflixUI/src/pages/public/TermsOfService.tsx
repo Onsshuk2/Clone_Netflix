@@ -1,101 +1,122 @@
 // src/pages/TermsOfService.tsx
 import React from "react";
 import { Link } from "react-router-dom";
+import { useLanguage } from '../../contexts/LanguageContext';
+import { User, ShieldCheck, Film, AlertTriangle, RefreshCcw, Mail } from 'lucide-react';
 
 const TermsOfService: React.FC = () => {
+    const { t } = useLanguage();
     return (
-        <div className="min-h-screen bg-black text-white py-20 px-6">
-            <div className="max-w-4xl mx-auto">
-                {/* Заголовок */}
-                <div className="text-center mb-16">
-                    <h1 className="text-5xl md:text-7xl font-black mb-6 bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                        Умови використання
+        <div className="min-h-screen w-full bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 flex items-center justify-center px-2 py-10">
+            <div className="max-w-3xl w-full mx-auto shadow-2xl rounded-3xl bg-gray-900/80 border border-gray-800 backdrop-blur-xl p-0 md:p-0 overflow-hidden">
+                {/* Header */}
+                <div className="relative text-center py-12 px-6 md:px-12 bg-gradient-to-r from-cyan-900 via-purple-900 to-pink-900">
+                    <h1 className="text-4xl md:text-6xl font-black mb-4 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg">
+                        {t('terms.title')}
                     </h1>
-                    <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                        Останнє оновлення: 22 грудня 2025 року
+                    <p className="text-lg text-gray-200 max-w-2xl mx-auto">
+                        {t('terms.last_update')}
                     </p>
                 </div>
 
-                {/* Вступ */}
-                <section className="mb-12 bg-gray-900/50 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-gray-800">
+                {/* Intro */}
+                <section className="px-6 md:px-12 py-8 md:py-10 bg-gray-950/80 border-b border-gray-800">
                     <p className="text-lg leading-relaxed text-gray-300">
-                        Ласкаво просимо до <span className="font-bold text-white">Nexo Cinema</span> — онлайн-платформи для перегляду фільмів, серіалів, мультфільмів та аніме українською мовою.
+                        {t('terms.intro1')}
                     </p>
                     <p className="mt-4 text-lg leading-relaxed text-gray-300">
-                        Використовуючи наш сервіс (веб-сайт, мобільні додатки або будь-які інші засоби доступу), ви погоджуєтесь з цими Умовами використання. Якщо ви не згодні з ними — будь ласка, не використовуйте Nexo Cinema.
+                        {t('terms.intro2')}
                     </p>
                 </section>
 
-                {/* Розділи */}
-                <div className="space-y-12">
-                    {/* 1. Реєстрація та акаунт */}
-                    <section>
-                        <h2 className="text-3xl md:text-4xl font-bold mb-6 text-cyan-400">
-                            1. Реєстрація та обліковий запис
-                        </h2>
-                        <ul className="space-y-4 text-gray-300 text-lg leading-relaxed ml-6 list-disc">
-                            <li>Для повного доступу до контенту потрібна реєстрація.</li>
-                            <li>Ви зобов’язані надавати правдиву та актуальну інформацію під час реєстрації.</li>
-                            <li>Ви несете відповідальність за збереження конфіденційності пароля та всі дії, виконані з вашого акаунту.</li>
-                            <li>Ми залишаємо за собою право блокувати або видаляти акаунти за порушення правил.</li>
+                {/* Sections */}
+                <div className="space-y-10 px-6 md:px-12 py-8 md:py-10">
+                    {/* 1. Registration & Account */}
+                    <section className="rounded-2xl bg-gradient-to-r from-cyan-900/30 to-cyan-800/10 p-6 border border-cyan-700/30 shadow-md">
+                        <div className="flex items-center gap-3 mb-4">
+                            <User className="w-7 h-7 text-cyan-400" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-cyan-300">
+                                {t('terms.section1.title')}
+                            </h2>
+                        </div>
+                        <ul className="space-y-3 text-gray-300 text-base leading-relaxed ml-6 list-disc">
+                            <li>{t('terms.section1.item1')}</li>
+                            <li>{t('terms.section1.item2')}</li>
+                            <li>{t('terms.section1.item3')}</li>
+                            <li>{t('terms.section1.item4')}</li>
                         </ul>
                     </section>
 
-                    {/* 2. Використання сервісу */}
-                    <section>
-                        <h2 className="text-3xl md:text-4xl font-bold mb-6 text-purple-400">
-                            2. Правила використання сервісу
-                        </h2>
-                        <ul className="space-y-4 text-gray-300 text-lg leading-relaxed ml-6 list-disc">
-                            <li>Сервіс призначений виключно для особистого, некомерційного використання.</li>
-                            <li>Заборонено поширювати, копіювати, завантажувати або транслювати контент поза межами платформи.</li>
-                            <li>Заборонено використовувати боти, скрипти або інші автоматизовані засоби для доступу до сервісу.</li>
-                            <li>Заборонено будь-які дії, що можуть зашкодити роботі сервісу (DDoS, спам тощо).</li>
+                    {/* 2. Service Usage Rules */}
+                    <section className="rounded-2xl bg-gradient-to-r from-purple-900/30 to-purple-800/10 p-6 border border-purple-700/30 shadow-md">
+                        <div className="flex items-center gap-3 mb-4">
+                            <ShieldCheck className="w-7 h-7 text-purple-400" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-purple-300">
+                                {t('terms.section2.title')}
+                            </h2>
+                        </div>
+                        <ul className="space-y-3 text-gray-300 text-base leading-relaxed ml-6 list-disc">
+                            <li>{t('terms.section2.item1')}</li>
+                            <li>{t('terms.section2.item2')}</li>
+                            <li>{t('terms.section2.item3')}</li>
+                            <li>{t('terms.section2.item4')}</li>
                         </ul>
                     </section>
 
-                    {/* 3. Інтелектуальна власність */}
-                    <section>
-                        <h2 className="text-3xl md:text-4xl font-bold mb-6 text-pink-400">
-                            3. Інтелектуальна власність
-                        </h2>
-                        <p className="text-lg leading-relaxed text-gray-300">
-                            Весь контент (фільми, серіали, переклади, дизайн, логотипи) є об’єктом авторського права та захищений законом. Nexo Cinema не претендує на права власності на оригінальний контент, а надає доступ до нього в межах ліцензій та добросовісного використання.
+                    {/* 3. Intellectual Property */}
+                    <section className="rounded-2xl bg-gradient-to-r from-pink-900/30 to-pink-800/10 p-6 border border-pink-700/30 shadow-md">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Film className="w-7 h-7 text-pink-400" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-pink-300">
+                                {t('terms.section3.title')}
+                            </h2>
+                        </div>
+                        <p className="text-base leading-relaxed text-gray-300">
+                            {t('terms.section3.desc')}
                         </p>
                     </section>
 
-                    {/* 4. Обмеження відповідальності */}
-                    <section>
-                        <h2 className="text-3xl md:text-4xl font-bold mb-6 text-cyan-400">
-                            4. Обмеження відповідальності
-                        </h2>
-                        <ul className="space-y-4 text-gray-300 text-lg leading-relaxed ml-6 list-disc">
-                            <li>Сервіс надається «як є» без гарантій безперебійної роботи.</li>
-                            <li>Ми не несемо відповідальності за можливі блокування доступу до контенту з боку правовласників.</li>
-                            <li>Ви використовуєте сервіс на власний ризик.</li>
+                    {/* 4. Limitation of Liability */}
+                    <section className="rounded-2xl bg-gradient-to-r from-cyan-900/20 to-cyan-800/5 p-6 border border-cyan-700/20 shadow-md">
+                        <div className="flex items-center gap-3 mb-4">
+                            <AlertTriangle className="w-7 h-7 text-cyan-400" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-cyan-300">
+                                {t('terms.section4.title')}
+                            </h2>
+                        </div>
+                        <ul className="space-y-3 text-gray-300 text-base leading-relaxed ml-6 list-disc">
+                            <li>{t('terms.section4.item1')}</li>
+                            <li>{t('terms.section4.item2')}</li>
+                            <li>{t('terms.section4.item3')}</li>
                         </ul>
                     </section>
 
-                    {/* 5. Зміни умов */}
-                    <section>
-                        <h2 className="text-3xl md:text-4xl font-bold mb-6 text-purple-400">
-                            5. Зміни в Умовах використання
-                        </h2>
-                        <p className="text-lg leading-relaxed text-gray-300">
-                            Ми можемо оновлювати ці Умови. Про значні зміни ми повідомимо на сайті або електронною поштою. Продовження використання сервісу після змін означає вашу згоду з ними.
+                    {/* 5. Changes to Terms */}
+                    <section className="rounded-2xl bg-gradient-to-r from-purple-900/20 to-purple-800/5 p-6 border border-purple-700/20 shadow-md">
+                        <div className="flex items-center gap-3 mb-4">
+                            <RefreshCcw className="w-7 h-7 text-purple-400" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-purple-300">
+                                {t('terms.section5.title')}
+                            </h2>
+                        </div>
+                        <p className="text-base leading-relaxed text-gray-300">
+                            {t('terms.section5.desc')}
                         </p>
                     </section>
 
-                    {/* 6. Контакти */}
-                    <section>
-                        <h2 className="text-3xl md:text-4xl font-bold mb-6 text-pink-400">
-                            6. Зв’язок з нами
-                        </h2>
-                        <p className="text-lg leading-relaxed text-gray-300">
-                            Якщо у вас є питання щодо Умов використання — пишіть на:{" "}
+                    {/* 6. Contact Us */}
+                    <section className="rounded-2xl bg-gradient-to-r from-pink-900/20 to-pink-800/5 p-6 border border-pink-700/20 shadow-md">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Mail className="w-7 h-7 text-pink-400" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-pink-300">
+                                {t('terms.section6.title')}
+                            </h2>
+                        </div>
+                        <p className="text-base leading-relaxed text-gray-300">
+                            {t('terms.section6.desc')} {" "}
                             <a
                                 href="mailto:support@nexocinema.com"
-                                className="text-cyan-400 hover:text-cyan-300 underline transition"
+                                className="text-cyan-400 hover:text-cyan-300 underline transition duration-150"
                             >
                                 support@nexocinema.com
                             </a>
@@ -103,14 +124,14 @@ const TermsOfService: React.FC = () => {
                     </section>
                 </div>
 
-                {/* Футер */}
-                <div className="mt-20 pt-12 border-t border-gray-800 text-center text-gray-500">
-                    <p className="text-lg">
-                        Дякуємо, що ви з нами! 🎬
+                {/* Footer */}
+                <div className="w-full py-8 px-6 md:px-12 bg-gray-950/80 border-t border-gray-800 text-center">
+                    <p className="text-lg text-gray-300">
+                        {t('terms.footer')}
                     </p>
                     <p className="mt-4">
-                        <Link to="/" className="text-cyan-400 hover:text-cyan-300 underline transition">
-                            ← Повернутися на головну
+                        <Link to="/" className="text-cyan-400 hover:text-cyan-300 underline transition duration-150 font-semibold">
+                            {t('terms.back_home')}
                         </Link>
                     </p>
                 </div>

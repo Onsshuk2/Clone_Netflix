@@ -12,27 +12,34 @@ interface Subscription {
     startDate: string;
 }
 
-const PLAN_FEATURES: Record<Subscription['plan'], string[]> = {
-    basic: [
-        'Доступ до тисяч фільмів',
-        'Класика та хіти',
-        'Персональні рекомендації',
-        'HD, без реклами, офлайн, 4K',
-    ],
-    standard: [
-        'Все з Базового',
-        'Full HD 1080p',
-        'Без реклами',
-        'Офлайн завантаження',
-        'До 2 пристроїв одночасно',
-        'Батьківський контроль',
-    ],
-    premium: [
-        'Все зі Стандарту',
-        '4K Ultra HD + HDR',
-        'До 4 пристроїв одночасно',
-        "Ексклюзивні прем'єри",
-    ],
+const getPlanFeatures = (t: (key: string) => string, plan: Subscription['plan']) => {
+    switch (plan) {
+        case 'basic':
+            return [
+                t('subscription.basic_access'),
+                t('subscription.basic_access_desc'),
+                t('subscription.basic_recommendations'),
+                t('subscription.basic_no_features'),
+            ];
+        case 'standard':
+            return [
+                t('subscription.standard_all_basic'),
+                t('subscription.standard_full_hd'),
+                t('subscription.standard_no_ads'),
+                t('subscription.standard_offline'),
+                t('subscription.standard_devices'),
+                t('subscription.standard_parental'),
+            ];
+        case 'premium':
+            return [
+                t('subscription.premium_all_standard'),
+                t('subscription.premium_4k'),
+                t('subscription.premium_devices'),
+                t('subscription.premium_exclusive'),
+            ];
+        default:
+            return [];
+    }
 };
 
 const PLAN_PRICES: Record<Subscription['plan'], number> = {
@@ -163,7 +170,7 @@ const SubscriptionManagement = () => {
         }
     };
 
-    const getPlanFeatures = (plan: Subscription['plan']) => PLAN_FEATURES[plan];
+    // ...existing code...
     const getPlanPrice = (plan: Subscription['plan']) => PLAN_PRICES[plan];
 
     return (
@@ -195,7 +202,7 @@ const SubscriptionManagement = () => {
                                 <>
                                     <CheckCircle className={`w-4 h-4 ${getStatusColor()}`} />
                                     <span className={`font-medium ${getStatusColor()}`}>
-                                        Активна
+                                        {t('subscription.active') || 'Активна'}
                                     </span>
                                 </>
                             ) : (
@@ -211,16 +218,16 @@ const SubscriptionManagement = () => {
                         {/* Plan Info */}
                         <div className="space-y-3 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-gray-400">Вартість:</span>
+                                <span className="text-gray-400">{t('subscription.cost') || 'Вартість:'}</span>
                                 <span className="text-white font-medium">{subscription.price} грн/міс</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-400">Дата початку:</span>
+                                <span className="text-gray-400">{t('subscription.start_date') || 'Дата початку:'}</span>
                                 <span className="text-white font-medium">{subscription.startDate}</span>
                             </div>
                             {subscription.status === 'active' && (
                                 <div className="flex justify-between">
-                                    <span className="text-gray-400">Наступне списання:</span>
+                                    <span className="text-gray-400">{t('subscription.next_billing') || 'Наступне списання:'}</span>
                                     <span className="text-white font-medium">{subscription.nextBillingDate}</span>
                                 </div>
                             )}
@@ -231,9 +238,9 @@ const SubscriptionManagement = () => {
                     <div className="flex flex-col justify-between">
                         {/* Features Summary */}
                         <div className="bg-gray-900/50 rounded-xl p-4 mb-4">
-                            <p className="text-xs text-gray-400 mb-3 font-semibold uppercase">Включено в плані:</p>
+                            <p className="text-xs text-gray-400 mb-3 font-semibold uppercase">{t('subscription.included_features') || 'Включено в плані:'}</p>
                             <ul className="space-y-2 text-sm">
-                                {getPlanFeatures(subscription.plan).map((feature, idx) => (
+                                {getPlanFeatures(t, subscription.plan).map((feature, idx) => (
                                     <li key={idx} className="text-gray-300">✓ {feature}</li>
                                 ))}
                             </ul>
@@ -296,7 +303,7 @@ const SubscriptionManagement = () => {
                                 <h4 className="font-bold">{getPlanName(plan)}</h4>
                                 <p className="text-white font-black text-2xl">{getPlanPrice(plan)} грн</p>
                                 <ul className="space-y-1 text-xs text-gray-300 mt-2 mb-3 text-left">
-                                    {getPlanFeatures(plan).map((feature, idx) => (
+                                    {getPlanFeatures(t, plan).map((feature, idx) => (
                                         <li key={idx}>✓ {feature}</li>
                                     ))}
                                 </ul>
