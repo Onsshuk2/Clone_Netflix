@@ -54,6 +54,8 @@ export const useLanguage = () => {
 
 export const translations: Record<Language, Record<string, string>> = {
   uk: {
+    'details.no_overview': 'Опис фільму недоступний.',
+      'details.rating_hint': 'Середня оцінка, ваша оцінка у дужках',
     'watchLater.title': 'Список на потім',
     'watchLater.empty': 'Список порожній. Додавайте фільми, які хочете переглянути пізніше.',
     'watchLater.remove': 'Видалити',
@@ -325,8 +327,14 @@ export const translations: Record<Language, Record<string, string>> = {
     'comments.confirm_delete': 'Видалити',
     'comments.edit_button': 'Редагувати',
     'comments.delete_button': 'Видалити',
+    'details.your_rating': 'Ваша оцінка',
+    'details.rated': 'Ви вже оцінили цей фільм',
   },
   en: {
+    'details.no_overview': 'Movie description is not available.',
+      'details.rating_hint': 'Average rating, your rating in brackets',
+    'details.your_rating': 'Your rating',
+    'details.rated': 'You have already rated this movie',
     'comments.delete_button': 'Deleted',
     'comments.edit_button': 'Edit',
     'comments.delete_confirm_title': 'Delete comment?',
