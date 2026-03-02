@@ -163,30 +163,41 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
     };
 
     const addEpisode = async () => {
-        if (!episodeForm.title.trim() || !episodeForm.number || !initialData?.id) {
-            alert('Назва, номер та ID серіалу обов’язкові');
+        if (!episodeForm.title.trim()) {
+            alert('Назва епізоду обов’язкова');
+            return;
+        }
+        if (!episodeForm.number || episodeForm.number < 1) {
+            alert('Номер епізоду повинен бути > 0');
+            return;
+        }
+        if (!initialData?.id) {
+            alert('Спочатку створіть серіал!');
             return;
         }
 
-        setEpisodeLoading(true);
         const fd = new FormData();
+
         fd.append('ContentId', initialData.id);
-        fd.append('Number', episodeForm.number);
+        fd.append('Number', episodeForm.number.toString());
         fd.append('Title', episodeForm.title);
         fd.append('Description', episodeForm.description || '');
-        fd.append('Duration', episodeForm.duration || 0);
+        fd.append('Duration', episodeForm.duration?.toString() || '0');
+
         if (episodeVideoFileRef.current?.files?.[0]) {
             fd.append('VideoFile', episodeVideoFileRef.current.files[0]);
         }
 
+        setEpisodeLoading(true);
+
         try {
-            await ApiAdminFilms.episodes.addToContent(initialData.id, fd); // ← змінено
-            alert('Епізод додано успішно');
+            await ApiAdminFilms.episodes.addToContentMultipart(initialData.id, fd);
+            alert('Епізод успішно додано!');
             setEpisodeForm({ number: '', title: '', description: '', duration: '' });
             if (episodeVideoFileRef.current) episodeVideoFileRef.current.value = '';
             setShowEpisodeForm(false);
-        } catch (err) {
-            alert('Помилка створення епізоду: ' + err.message);
+        } catch (err: any) {
+            alert('Помилка додавання епізоду:\n' + (err.message || 'Невідома помилка'));
         } finally {
             setEpisodeLoading(false);
         }
@@ -199,25 +210,68 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
         }
 
         const fd = new FormData();
-        fd.append('Title', form.title);
-        fd.append('Description', form.description || '');
-        fd.append('TrailerUrl', form.trailerUrl || '');
-        fd.append('ReleaseYear', form.releaseYear || 0);
-        fd.append('Rating', form.rating || 0);
-        fd.append('AgeLimit', form.ageLimit || 0);
-        fd.append('Type', form.type);
-        fd.append('Duration', form.duration || 0);
-        fd.append('OrderInFranchise', form.orderInFranchise || 0);
 
+        // Обов’язкові
+        fd.append('Title', form.title.trim());
+        fd.append('Type', form.type.toString());
+
+        // Опціональні текстові
+        if (form.description?.trim()) fd.append('Description', form.description.trim());
+        if (form.trailerUrl?.trim()) fd.append('TrailerUrl', form.trailerUrl.trim());
+
+        // Числові — додаємо тільки якщо значення є і не порожнє
+        if (form.releaseYear !== '' && form.releaseYear !== null) {
+            fd.append('ReleaseYear', form.releaseYear.toString());
+        }
+        if (form.duration !== '' && form.duration !== null) {
+            fd.append('Duration', form.duration.toString());
+        }
+        if (form.rating !== '' && form.rating !== null) {
+            fd.append('Rating', form.rating.toString());
+        }
+        if (form.ageLimit !== '' && form.ageLimit !== null) {
+            fd.append('AgeLimit', form.ageLimit.toString());
+        }
+        if (form.orderInFranchise !== '' && form.orderInFranchise !== null) {
+            fd.append('OrderInFranchise', form.orderInFranchise.toString());
+        }
+
+        // Франшиза
         if (selectedFranchiseId) fd.append('FranchiseId', selectedFranchiseId);
-        selectedGenreIds.forEach((id) => fd.append('GenreIds', id));
-        selectedCollectionIds.forEach((id) => fd.append('CollectionIds', id));
 
-        if (posterFileRef.current?.files?.[0]) fd.append('PosterFile', posterFileRef.current.files[0]);
-        if (detailsPosterFileRef.current?.files?.[0]) fd.append('DetailsPosterFile', detailsPosterFileRef.current.files[0]);
-        if (videoFileRef.current?.files?.[0]) fd.append('VideoFile', videoFileRef.current.files[0]);
+        // Масиви — додаємо тільки якщо є значення
+        if (selectedGenreIds.length > 0) {
+            selectedGenreIds.forEach((id) => fd.append('GenreIds', id));
+        }
+        if (selectedCollectionIds.length > 0) {
+            selectedCollectionIds.forEach((id) => fd.append('CollectionIds', id));
+        }
 
-        onSave(fd);
+        // Файли
+        if (posterFileRef.current?.files?.[0]) {
+            fd.append('PosterFile', posterFileRef.current.files[0]);
+        }
+        if (detailsPosterFileRef.current?.files?.[0]) {
+            fd.append('DetailsPosterFile', detailsPosterFileRef.current.files[0]);
+        }
+        if (videoFileRef.current?.files?.[0]) {
+            fd.append('VideoFile', videoFileRef.current.files[0]);
+        }
+
+        // ДЕБАГ: виводимо все, що відправляємо
+        console.log('FormData перед відправкою:');
+        for (const [key, value] of fd.entries()) {
+            console.log(`${key}:`, value instanceof File ? `[File: ${value.name}, size: ${value.size}]` : value);
+        }
+
+        try {
+            await onSave(fd);
+            alert('Контент успішно створено!');
+            onClose();
+        } catch (err: any) {
+            console.error('Помилка створення:', err);
+            alert('Помилка створення контенту:\n' + (err.message || 'Bad Request'));
+        }
     };
 
     if (!isOpen) return null;
@@ -249,8 +303,8 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
                             type="button"
                             onClick={() => setActiveTab(idx)}
                             className={`flex-1 py-4 text-center font-medium transition-colors ${activeTab === idx
-                                    ? 'border-b-2 border-blue-500 text-blue-400 bg-gray-800'
-                                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                ? 'border-b-2 border-blue-500 text-blue-400 bg-gray-800'
+                                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
                                 }`}
                         >
                             {tab}

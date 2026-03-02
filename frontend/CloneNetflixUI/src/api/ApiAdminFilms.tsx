@@ -1,8 +1,7 @@
-// src/services/api.js
 const BaseApi = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const BASE_URL = BaseApi + "/api"
+const BASE_URL = BaseApi.endsWith('/api') ? BaseApi : `${BaseApi}/api`; // ← фікс дублювання /api
 
-const getHeaders = () => {
+const getJsonHeaders = () => {
   const token = localStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
@@ -10,11 +9,49 @@ const getHeaders = () => {
   };
 };
 
-async function apiRequest(endpoint, options = {}) {
+const getMultipartHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+async function multipartRequest(endpoint: string, formData: FormData, method = 'POST') {
+  const url = `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const token = localStorage.getItem('token');
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+  // ДЕБАГ: виводимо в консоль, що відправляємо
+  console.log(`Відправка ${method} на ${url}`);
+  for (const [key, value] of formData.entries()) {
+    console.log(`  ${key}:`, value instanceof File ? `[File: ${value.name}]` : value);
+  }
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    let errorBody = '';
+    try {
+      errorBody = await response.text();
+      const json = JSON.parse(errorBody);
+      errorMessage = json.message || errorMessage;
+    } catch {
+      errorMessage = errorBody || errorMessage;
+    }
+    console.error('Сервер відповів помилкою:', response.status, errorMessage);
+    throw new Error(`${response.status} ${errorMessage}`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+async function jsonRequest(endpoint: string, options = {}) {
   const url = `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
   const response = await fetch(url, {
     ...options,
-    headers: { ...getHeaders(), ...options.headers },
+    headers: { ...getJsonHeaders(), ...options.headers },
   });
 
   if (!response.ok) {
@@ -31,59 +68,58 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 export const ApiAdminFilms = {
-
   // ────────────────────────────────────────────────
-  // Collections
+  // Collections (JSON)
   // ────────────────────────────────────────────────
   collections: {
-    getAll: () => apiRequest('/collections/get-all'),
-    getById: (id) => apiRequest(`/collections/get/${id}`),
-    create: (data) => apiRequest('/collections/create', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id, data) => apiRequest(`/collections/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id) => apiRequest(`/collections/delete/${id}`, { method: 'DELETE' }),
+    getAll: () => jsonRequest('/collections/get-all'),
+    getById: (id) => jsonRequest(`/collections/get/${id}`),
+    create: (data) => jsonRequest('/collections/create', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => jsonRequest(`/collections/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => jsonRequest(`/collections/delete/${id}`, { method: 'DELETE' }),
   },
 
   // ────────────────────────────────────────────────
-  // Contents (фільми / серіали)
+  // Contents (multipart для create/update)
   // ────────────────────────────────────────────────
   contents: {
-    create: (data) => apiRequest('/contents/create', { method: 'POST', body: JSON.stringify(data) }),
-    delete: (id) => apiRequest(`/contents/delete/${id}`, { method: 'DELETE' }),
-    update: (id, data) => apiRequest(`/contents/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    getAll: () => apiRequest('/contents/get'),
-    getById: (id) => apiRequest(`/contents/get-details/${id}`),
+    createMultipart: (formData: FormData) => multipartRequest('/contents/create', formData),
+    updateMultipart: (id: string, formData: FormData) => multipartRequest(`/contents/update/${id}`, formData, 'PUT'),
+    delete: (id) => jsonRequest(`/contents/delete/${id}`, { method: 'DELETE' }),
+    getAll: () => jsonRequest('/contents/get'),
+    getById: (id) => jsonRequest(`/contents/get-details/${id}`),
   },
 
   // ────────────────────────────────────────────────
-  // Episodes
+  // Episodes (multipart для add)
   // ────────────────────────────────────────────────
   episodes: {
-    addToContent: (contentId, data) => apiRequest(`/episodes/add/${contentId}`, { method: 'POST', body: JSON.stringify(data) }),
-    delete: (id) => apiRequest(`/episodes/delete/${id}`, { method: 'DELETE' }),
-    update: (id, data) => apiRequest(`/episodes/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    getByContent: (contentId) => apiRequest(`/episodes/get-episodes/content-id/${contentId}`),
-    getById: (id) => apiRequest(`/episodes/get/${id}`),
+    addToContentMultipart: (contentId: string, formData: FormData) => multipartRequest(`/episodes/add/${contentId}`, formData),
+    delete: (id) => jsonRequest(`/episodes/delete/${id}`, { method: 'DELETE' }),
+    update: (id, data) => jsonRequest(`/episodes/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    getByContent: (contentId) => jsonRequest(`/episodes/get-episodes/content-id/${contentId}`),
+    getById: (id) => jsonRequest(`/episodes/get/${id}`),
   },
 
   // ────────────────────────────────────────────────
-  // Franchises
+  // Franchises (JSON)
   // ────────────────────────────────────────────────
   franchises: {
-    getAll: () => apiRequest('/franchises/get-all'),
-    getById: (id) => apiRequest(`/franchises/get/${id}`),
-    create: (data) => apiRequest('/franchises/create', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id, data) => apiRequest(`/franchises/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id) => apiRequest(`/franchises/delete/${id}`, { method: 'DELETE' }),
+    getAll: () => jsonRequest('/franchises/get-all'),
+    getById: (id) => jsonRequest(`/franchises/get/${id}`),
+    create: (data) => jsonRequest('/franchises/create', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => jsonRequest(`/franchises/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => jsonRequest(`/franchises/delete/${id}`, { method: 'DELETE' }),
   },
 
   // ────────────────────────────────────────────────
-  // Genres
+  // Genres (JSON)
   // ────────────────────────────────────────────────
   genres: {
-    getAll: () => apiRequest('/genres/get-all'),
-    getById: (id) => apiRequest(`/genres/get/${id}`),
-    create: (data) => apiRequest('/genres/create', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id, data) => apiRequest(`/genres/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id) => apiRequest(`/genres/delete/${id}`, { method: 'DELETE' }),
+    getAll: () => jsonRequest('/genres/get-all'),
+    getById: (id) => jsonRequest(`/genres/get/${id}`),
+    create: (data) => jsonRequest('/genres/create', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => jsonRequest(`/genres/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => jsonRequest(`/genres/delete/${id}`, { method: 'DELETE' }),
   },
 };
