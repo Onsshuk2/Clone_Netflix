@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import YouTube from "react-youtube";
-import VideoPlayer from "../../components/VideoPlayer";
+
 
 import { useLanguage } from "../../contexts/LanguageContext";
 
@@ -163,7 +163,17 @@ const MovieDetails: React.FC = () => {
                         </p>
                         {/* Відеоплеєр для фільму/серії */}
                         {details.videoUrl && (
-                            <VideoPlayer src={details.videoUrl} />
+                            <div className="aspect-video">
+                                <YouTube
+                                    videoId={details.videoUrl}
+                                    opts={{
+                                        width: "100%",
+                                        height: "100%",
+                                        playerVars: { autoplay: 0 },
+                                    }}
+                                    className="w-full h-full"
+                                />
+                            </div>
                         )}
                     </div>
                 </div>
