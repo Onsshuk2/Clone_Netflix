@@ -1,14 +1,33 @@
+
 import { useState, useEffect } from 'react';
 import { ApiAdminFilms } from '../../api/ApiAdminFilms'; // твій шлях
 import ContentModal from '../../components/ContentModal';
 
+interface ContentItem {
+    id: string;
+    title: string;
+    description?: string;
+    type: number;
+    releaseYear?: number;
+    duration?: number;
+    rating?: number;
+    ageLimit?: number;
+    posterUrl?: string;
+    detailsPosterUrl?: string;
+    trailerUrl?: string;
+    genreIds?: string[];
+    franchiseId?: string;
+    collectionIds?: string[];
+}
+
+const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 export default function AdminContents() {
-    const [contents, setContents] = useState([]); // завжди масив!
+    const [contents, setContents] = useState<ContentItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const [modalOpen, setModalOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState(null);
+    const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
 
     useEffect(() => {
         loadContents();
@@ -21,45 +40,45 @@ export default function AdminContents() {
 
             const data = await ApiAdminFilms.contents.getAll();
 
-            console.log('Отримані дані з сервера:', data); // ← подивись в консоль, що саме повертає
+            console.log('Повна відповідь сервера:', data);
 
-            // Захищаємося від будь-якої фігні з сервера
-            const safeContents = Array.isArray(data)
-                ? data
-                : Array.isArray(data?.results) // якщо пагінація
-                    ? data.results
-                    : Array.isArray(data?.data)
-                        ? data.data
-                        : [];
+            // Беремо саме масив контенту з поля items
+            const items = data?.items || [];
 
-            setContents(safeContents);
+            console.log('Масив контенту (items):', items);
+            console.log('posterUrl першого елемента:', items[0]?.posterUrl);
+
+            // Якщо items не масив — ставимо порожній
+            setContents(Array.isArray(items) ? items : []);
         } catch (err: any) {
             console.error('Помилка завантаження:', err);
             setError(err.message || 'Не вдалося завантажити контент');
-            setContents([]); // на випадок помилки — порожній масив
+            setContents([]);
         } finally {
             setLoading(false);
+
         }
     };
-
     const handleSave = async (formData: FormData) => {
         try {
             if (editingItem) {
-                // Якщо update теж multipart — адаптуй, або використовуй JSON якщо потрібно
-                await ApiAdminFilms.contents.update(editingItem.id, formData);
+                // Якщо update теж multipart — використовуй updateMultipart
+                await ApiAdminFilms.contents.updateMultipart(editingItem.id, formData);
             } else {
-                await ApiAdminFilms.contents.createMultipart(formData); // ← використовуй multipart!
+                await ApiAdminFilms.contents.createMultipart(formData);  // ← правильний метод
             }
             setModalOpen(false);
             setEditingItem(null);
-            loadContents(); // оновлюємо список
+            loadContents();
+            alert('Збережено успішно!');
         } catch (err: any) {
+            console.error('Помилка в handleSave:', err);
             alert('Помилка збереження:\n' + (err.message || 'Невідома помилка'));
         }
     };
-
     const handleDelete = async (id: string) => {
         if (!window.confirm('Видалити цей контент назавжди?')) return;
+
 
         try {
             await ApiAdminFilms.contents.delete(id);
@@ -106,52 +125,63 @@ export default function AdminContents() {
                             <tr>
                                 <th className="px-5 py-4">Постер</th>
                                 <th className="px-5 py-4">Назва</th>
-                                <th className="px-5 py-4">Тип</th>
+                                <th className="px-5 py-4">Рейтинг</th>
                                 <th className="px-5 py-4">Рік</th>
-                                <th className="px-5 py-4">Тривалість</th>
+
                                 <th className="px-5 py-4 text-right">Дії</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {contents.map((item) => (
-                                <tr key={item.id} className="border-t border-gray-800 hover:bg-gray-900/40">
-                                    <td className="px-5 py-4">
-                                        {item.posterUrl ? (
-                                            <img
-                                                src={item.posterUrl}
-                                                alt={item.title}
-                                                className="w-16 h-24 object-cover rounded shadow-sm"
-                                                loading="lazy"
-                                            />
-                                        ) : (
-                                            <div className="w-16 h-24 bg-gray-800 rounded flex items-center justify-center text-xs text-gray-500">
-                                                немає
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-5 py-4 font-medium">{item.title || 'Без назви'}</td>
-                                    <td className="px-5 py-4">{item.type === 1 ? 'Фільм' : item.type === 2 ? 'Серіал' : '—'}</td>
-                                    <td className="px-5 py-4">{item.releaseYear || '—'}</td>
-                                    <td className="px-5 py-4">{item.duration ? `${item.duration} хв` : '—'}</td>
-                                    <td className="px-5 py-4 text-right space-x-4">
-                                        <button
-                                            onClick={() => {
-                                                setEditingItem(item);
-                                                setModalOpen(true);
-                                            }}
-                                            className="text-blue-400 hover:text-blue-300"
-                                        >
-                                            ✎
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(item.id)}
-                                            className="text-red-400 hover:text-red-300"
-                                        >
-                                            🗑
-                                        </button>
+                            {contents.length > 0 ? (
+                                contents.map((item, index) => (
+                                    <tr key={item.id || `item-${index}`} className="border-t border-gray-800 hover:bg-gray-900/40">
+                                        <td className="px-5 py-4">
+                                            {item.posterUrl ? (
+                                                <img
+                                                    src={baseUrl + '/' + item.posterUrl}
+                                                    alt={item.title || 'Без назви'}
+                                                    className="w-16 h-24 object-cover rounded shadow-sm"
+                                                    loading="lazy"
+                                                    onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/64x96?text=Немає')} // якщо постер не завантажується
+                                                />
+                                            ) : (
+                                                <div className="w-16 h-24 bg-gray-800 rounded flex items-center justify-center text-xs text-gray-500">
+                                                    немає
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-5 py-4 font-medium">{item.title || 'Без назви'}</td>
+                                        <td className="px-5 py-4">
+                                            {item.type === 1 ? 'Фільм' : item.rating}
+                                        </td>
+                                        <td className="px-5 py-4">{item.releaseYear || '—'}</td>
+
+                                        <td className="px-5 py-4 text-right space-x-4">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingItem(item);
+                                                    setModalOpen(true);
+                                                }}
+                                                className="text-blue-400 hover:text-blue-300"
+                                            >
+                                                ✎
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(item.id)}
+                                                className="text-red-400 hover:text-red-300"
+                                            >
+                                                🗑
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={6} className="p-10 text-center text-gray-500">
+                                        Контенту ще немає
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -170,6 +200,6 @@ export default function AdminContents() {
                 initialData={editingItem}
                 onSave={handleSave}
             />
-        </div>
+        </div >
     );
 }
