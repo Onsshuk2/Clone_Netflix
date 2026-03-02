@@ -12,6 +12,8 @@ namespace CloneNetflix.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IMediator _mediator;
+    
+    private readonly UserManager<User> userManager, 
 
     public AuthController(IMediator mediator)
     {
