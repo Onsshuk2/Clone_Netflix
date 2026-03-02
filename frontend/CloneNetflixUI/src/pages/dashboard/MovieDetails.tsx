@@ -5,6 +5,17 @@ import YouTube from "react-youtube";
 
 import { useLanguage } from "../../contexts/LanguageContext";
 
+// VideoPlayer component for inline video playback
+const VideoPlayer: React.FC<{ src: string }> = ({ src }) => (
+    <div className="aspect-video rounded-lg overflow-hidden shadow-lg">
+        <video
+            src={src}
+            controls
+            className="w-full h-full bg-black"
+        />
+    </div>
+);
+
 import { useWatchHistory } from "../../lib/useWatchHistory";
 import {
     fetchContentDetails,
@@ -201,6 +212,16 @@ const MovieDetails: React.FC = () => {
                     )}
 
                     <div className="md:col-span-2 space-y-6">
+
+                        <h2 className="text-3xl font-bold">{t("details.overview")}</h2>
+                        <p className="text-gray-300 text-lg leading-relaxed">
+                            {details.overview || t("details.no_overview")}
+                        </p>
+                        {/* Відеоплеєр для фільму/серії */}
+                        {details.videoUrl && (
+                            <VideoPlayer src={details.videoUrl} />
+                        )}
+
                             {/* Rating Section (moved after poster) */}
                             <div className="mb-10 flex flex-col items-center justify-center">
                                 <MinimalRating
@@ -215,6 +236,7 @@ const MovieDetails: React.FC = () => {
                             <p className="text-gray-300 text-lg leading-relaxed">
                                 {details.overview || t("details.no_overview")}
                             </p>
+
                     </div>
                 </div>
 
