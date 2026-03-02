@@ -38,7 +38,7 @@ const AdminFabButton = () => {
             onClick={(e) => {
                 e.preventDefault();     // блокує submit форми
                 e.stopPropagation();    // блокує спливання події
-                navigate("/admin");
+                navigate("/admin/users");
             }}
             className="
     fixed top-6 left-6 z-[100]

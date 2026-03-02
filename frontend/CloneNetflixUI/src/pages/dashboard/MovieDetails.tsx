@@ -23,6 +23,8 @@ import {
     fetchSimilarContent,
 } from "../../api/tmdbDashboard";
 import { GradientLoader } from "../../components/Loader";
+import CommentsSection from '../../components/CommentsSection';
+import MinimalRating from '../../components/MinimalRating';
 
 const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
 const TMDB_BACKDROP_BASE = "https://image.tmdb.org/t/p/w1280";
@@ -43,6 +45,49 @@ const MovieDetails: React.FC = () => {
     const language = getTMDBLanguage();
 
     const { addToHistory } = useWatchHistory();
+
+    // DEMO: currentUser (замініть на реального користувача з контексту)
+    const currentUser = localStorage.getItem('username') || null;
+    // DEMO: comments (можна замінити на API)
+    const [comments, setComments] = useState<any[]>(() => {
+        const saved = localStorage.getItem(`comments_${id}`);
+        return saved ? JSON.parse(saved) : [];
+    });
+    // Rating logic (зберігаємо всі оцінки)
+    const [ratings, setRatings] = useState<{user: string, rating: number}[]>(() => {
+        const saved = localStorage.getItem(`ratings_${id}`);
+        return saved ? JSON.parse(saved) : [];
+    });
+    const userKey = currentUser || localStorage.getItem('guestName') || 'anonymous';
+    const userRating = ratings.find(r => r.user === userKey)?.rating || 0;
+    const average = ratings.length ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length : 0;
+    const handleRatingChange = (val: number) => {
+        let updated;
+        if (ratings.some(r => r.user === userKey)) {
+            updated = ratings.map(r => r.user === userKey ? { ...r, rating: val } : r);
+        } else {
+            updated = [...ratings, { user: userKey, rating: val }];
+        }
+        setRatings(updated);
+        localStorage.setItem(`ratings_${id}`, JSON.stringify(updated));
+    };
+    
+    const handleEditComment = (edited: any) => {
+        const updated = comments.map(c => c.id === edited.id ? edited : c);
+        setComments(updated);
+        localStorage.setItem(`comments_${id}`, JSON.stringify(updated));
+    };
+    
+    const handleDeleteComment = (commentId: number) => {
+        const updated = comments.filter(c => c.id !== commentId);
+        setComments(updated);
+        localStorage.setItem(`comments_${id}`, JSON.stringify(updated));
+    };
+    const handleAddComment = (comment: any) => {
+        const updated = [comment, ...comments];
+        setComments(updated);
+        localStorage.setItem(`comments_${id}`, JSON.stringify(updated));
+    };
 
 
     // Прокрутка вгору при зміні id
@@ -167,6 +212,7 @@ const MovieDetails: React.FC = () => {
                     )}
 
                     <div className="md:col-span-2 space-y-6">
+
                         <h2 className="text-3xl font-bold">{t("details.overview")}</h2>
                         <p className="text-gray-300 text-lg leading-relaxed">
                             {details.overview || t("details.no_overview")}
@@ -175,6 +221,22 @@ const MovieDetails: React.FC = () => {
                         {details.videoUrl && (
                             <VideoPlayer src={details.videoUrl} />
                         )}
+
+                            {/* Rating Section (moved after poster) */}
+                            <div className="mb-10 flex flex-col items-center justify-center">
+                                <MinimalRating
+                                    average={average}
+                                    userRating={userRating}
+                                    onRate={handleRatingChange}
+                                    editable={true}
+                                />
+                                <span className="text-xs text-gray-400 mt-2">{t('details.rating_hint') || 'Середня оцінка, ваша оцінка у дужках'}</span>
+                            </div>
+                            <h2 className="text-3xl font-bold">{t("details.overview")}</h2>
+                            <p className="text-gray-300 text-lg leading-relaxed">
+                                {details.overview || t("details.no_overview")}
+                            </p>
+
                     </div>
                 </div>
 
@@ -226,6 +288,14 @@ const MovieDetails: React.FC = () => {
                         </div>
                     </div>
                 )}
+            {/* Comments Section */}
+            <CommentsSection
+                comments={comments}
+                currentUser={currentUser || undefined}
+                onAddComment={handleAddComment}
+                onEditComment={handleEditComment}
+                onDeleteComment={handleDeleteComment}
+            />
             </div>
         </div>
     );

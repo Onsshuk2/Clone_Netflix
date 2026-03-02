@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@google-pay/button-react": "^3.2.1",
+    "@headlessui/react": "^2.2.9",
     "@tailwindcss/vite": "^4.1.17",
     "@types/react-router-dom": "^5.3.3",
     "antd": "^5.29.1",
