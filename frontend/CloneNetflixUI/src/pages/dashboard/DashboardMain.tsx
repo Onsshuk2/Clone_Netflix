@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import SimpleHeroSlider from "../../lib/Slider";
 import { Heart } from "lucide-react";
+import FilterBar from "../../components/FilterBar";
 import { Clock } from "lucide-react";
 
 import toast from "react-hot-toast";
@@ -11,6 +12,9 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { useFavorites } from "../../lib/useFavorites";
 import { fetchDashboardInitialData, searchMulti } from "../../api/tmdbDashboard";
 import { useLoading } from "../../lib/useLoading";
+import { fetchGenres } from "../../api/tmdbGenres";
+
+const fetchTvGenres = fetchGenres;
 
 interface Movie {
   id: number;
@@ -21,11 +25,16 @@ interface Movie {
   release_date?: string;
   first_air_date?: string;
   media_type?: "movie" | "tv";
+  genre_names?: string[];
 }
 
 const WATCH_LATER_KEY = "watchLaterList";
 
 const DashboardMain: React.FC = () => {
+    // Фільтри
+    const [selectedGenre, setSelectedGenre] = useState("");
+    const [rating, setRating] = useState(0);
+
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { withLoading } = useLoading();
@@ -36,6 +45,14 @@ const DashboardMain: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Movie[]>([]);
   const [searchMode, setSearchMode] = useState(false);
+
+    // Збір унікальних жанрів
+    const allGenres = Array.from(new Set([
+      ...nowPlaying.flatMap(m => m.genre_names || []),
+      ...popularMovies.flatMap(m => m.genre_names || []),
+      ...popularTv.flatMap(m => m.genre_names || []),
+      ...searchResults.flatMap(m => m.genre_names || []),
+    ])).filter(Boolean);
 
   const language = getTMDBLanguage();
   interface WatchLaterItem {
@@ -51,10 +68,22 @@ const DashboardMain: React.FC = () => {
   useEffect(() => {
     withLoading(async () => {
       try {
-        const data = await fetchDashboardInitialData(language);
-        setNowPlaying(data.nowPlaying);
-        setPopularMovies(data.popularMovies);
-        setPopularTv(data.popularTv);
+        // Fetch genres with localization
+        const [movieGenres, seriesGenres, data] = await Promise.all([
+          fetchGenres(language),
+          fetchTvGenres(language),
+          fetchDashboardInitialData(language),
+        ]);
+        // Map genre ids to names
+        const genreMap: { [id: number]: string } = {};
+        movieGenres.forEach(g => { genreMap[g.id] = g.name; });
+        const tvGenreMap: { [id: number]: string } = {};
+        seriesGenres.forEach(g => { tvGenreMap[g.id] = g.name; });
+        // Map genre_ids to genre_names for each item
+        const addGenreNames = (arr: any[], map: any) => arr.map(item => ({ ...item, genre_names: (item.genre_ids || []).map((id: number) => map[id]).filter(Boolean) }));
+        setNowPlaying(addGenreNames(data.nowPlaying, genreMap));
+        setPopularMovies(addGenreNames(data.popularMovies, genreMap));
+        setPopularTv(addGenreNames(data.popularTv, tvGenreMap));
       } catch (err) {
         console.error(err);
       }
@@ -90,9 +119,17 @@ const DashboardMain: React.FC = () => {
     });
   };
 
-  const renderGrid = (items: Movie[], mediaType: "movie" | "tv") => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-      {items.map((item) => {
+  const renderGrid = (items: Movie[], mediaType: "movie" | "tv") => {
+    // Фільтрація
+    const filtered = items.filter(item => {
+      if (selectedGenre && !(item.genre_names || []).includes(selectedGenre)) return false;
+      if (item.vote_average < rating) return false;
+      return true;
+    });
+    return (
+   
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {filtered.map((item) => {
         const type = item.media_type || mediaType;
         const isFav = isFavorite(item.id, type);
         const isWatchLater = watchLaterList.some((m: WatchLaterItem) => m.id === item.id);
@@ -105,7 +142,8 @@ const DashboardMain: React.FC = () => {
                     ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`
                     : "/no-image.png"
                 }
-                className="rounded-xl"
+                className="rounded-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:-translate-y-1"
+                alt={item.title || item.name || "Poster"}
               />
             </Link>
 
@@ -129,11 +167,9 @@ const DashboardMain: React.FC = () => {
               title={isFav ? t("favorites.remove") : t("favorites.add")}
             >
               <Heart
-                className={
-                  isFav
-                    ? "fill-red-500 text-red-500"
-                    : "text-white"
-                }
+                className={`transition-all duration-300 group-hover:scale-125 group-hover:rotate-12
+                  ${isFav ? "fill-red-500 text-red-500" : "text-white"}
+                `}
               />
             </button>
 
@@ -167,10 +203,18 @@ const DashboardMain: React.FC = () => {
         );
       })}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
+      <FilterBar
+        genres={allGenres}
+        selectedGenre={selectedGenre}
+        onGenreChange={setSelectedGenre}
+        rating={rating}
+        onRatingChange={setRating}
+      />
       {!searchMode && nowPlaying.length > 0 && (
         <SimpleHeroSlider movies={nowPlaying} />
       )}

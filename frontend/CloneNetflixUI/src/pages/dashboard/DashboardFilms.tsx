@@ -272,11 +272,9 @@ const DashboardMovies: React.FC = () => {
                     >
                       <Heart
                         size={24}
-                        className={
-                          favorite
-                            ? "fill-red-500 text-red-500"
-                            : "text-white"
-                        }
+                        className={`transition-all duration-300 group-hover:scale-125 group-hover:rotate-12
+                          ${favorite ? "fill-red-500 text-red-500" : "text-white"}
+                        `}
                       />
                     </button>
                   </div>

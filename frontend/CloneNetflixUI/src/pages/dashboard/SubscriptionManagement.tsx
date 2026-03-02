@@ -50,14 +50,45 @@ const PLAN_PRICES: Record<Subscription['plan'], number> = {
 
 const SubscriptionManagement = () => {
     const { t } = useLanguage();
-    const [subscription, setSubscription] = useState<Subscription>({
-        plan: 'standard',
-        status: 'active',
-        price: 199,
-        billingCycle: 'month',
-        nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
-        startDate: new Date().toISOString().split('T')[0],
+    // Read initial plan from localStorage if exists
+    const getInitialPlan = () => {
+        const plan = localStorage.getItem('userPlan');
+        if (plan === 'basic' || plan === 'standard' || plan === 'premium') return plan;
+        return 'standard';
+    };
+    const [subscription, setSubscription] = useState<Subscription>(() => {
+        const plan = getInitialPlan();
+        const price = PLAN_PRICES[plan];
+        // Try to read more info from localStorage if needed
+        const stored = localStorage.getItem('userSubscription');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                return {
+                    plan: parsed.plan || plan,
+                    status: parsed.status || 'active',
+                    price: parsed.price || price,
+                    billingCycle: parsed.billingCycle || 'month',
+                    nextBillingDate: parsed.nextBillingDate || new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+                    startDate: parsed.startDate || new Date().toISOString().split('T')[0],
+                };
+            } catch {}
+        }
+        return {
+            plan,
+            status: 'active',
+            price,
+            billingCycle: 'month',
+            nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+            startDate: new Date().toISOString().split('T')[0],
+        };
     });
+
+    // Sync subscription changes to localStorage for all consumers
+    useEffect(() => {
+        localStorage.setItem('userPlan', subscription.plan);
+        localStorage.setItem('userSubscription', JSON.stringify(subscription));
+    }, [subscription]);
 
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancelling, setCancelling] = useState(false);
