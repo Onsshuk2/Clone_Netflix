@@ -3,8 +3,18 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import YouTube from "react-youtube";
 
-
 import { useLanguage } from "../../contexts/LanguageContext";
+
+// VideoPlayer component for inline video playback
+const VideoPlayer: React.FC<{ src: string }> = ({ src }) => (
+    <div className="aspect-video rounded-lg overflow-hidden shadow-lg">
+        <video
+            src={src}
+            controls
+            className="w-full h-full bg-black"
+        />
+    </div>
+);
 
 import { useWatchHistory } from "../../lib/useWatchHistory";
 import {
@@ -163,17 +173,7 @@ const MovieDetails: React.FC = () => {
                         </p>
                         {/* Відеоплеєр для фільму/серії */}
                         {details.videoUrl && (
-                            <div className="aspect-video">
-                                <YouTube
-                                    videoId={details.videoUrl}
-                                    opts={{
-                                        width: "100%",
-                                        height: "100%",
-                                        playerVars: { autoplay: 0 },
-                                    }}
-                                    className="w-full h-full"
-                                />
-                            </div>
+                            <VideoPlayer src={details.videoUrl} />
                         )}
                     </div>
                 </div>

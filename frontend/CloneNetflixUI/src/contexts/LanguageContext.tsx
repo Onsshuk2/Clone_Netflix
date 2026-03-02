@@ -54,7 +54,6 @@ export const useLanguage = () => {
 
 export const translations: Record<Language, Record<string, string>> = {
   uk: {
-    'filter.genres_all': 'Всі жанри',
     'watchLater.title': 'Список на потім',
     'watchLater.empty': 'Список порожній. Додавайте фільми, які хочете переглянути пізніше.',
     'watchLater.remove': 'Видалити',
@@ -310,11 +309,8 @@ export const translations: Record<Language, Record<string, string>> = {
     'details.overview': 'Огляд',
     'details.similar': 'Схожі',
     'details.trailers': 'Трейлери',
-    'details.no_overview': 'Опис недоступний.',
   },
   en: {
-    'filter.genres_all': 'All genres',
-    'details.no_overview': 'No overview available.',
     'details.trailers': 'Trailers',
     'details.similar': 'Similar',
     'details.overview': 'Overview',
