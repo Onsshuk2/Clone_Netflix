@@ -50,13 +50,18 @@ const PLAN_PRICES: Record<Subscription['plan'], number> = {
 
 const SubscriptionManagement = () => {
     const { t } = useLanguage();
-    const [subscription, setSubscription] = useState<Subscription>({
-        plan: 'standard',
-        status: 'active',
-        price: 199,
-        billingCycle: 'month',
-        nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
-        startDate: new Date().toISOString().split('T')[0],
+    const [subscription, setSubscription] = useState<Subscription>(() => {
+        // Initialize from localStorage if available
+        const raw = localStorage.getItem('userPlan');
+        const plan = raw === 'basic' || raw === 'standard' || raw === 'premium' ? raw : 'standard';
+        return {
+            plan,
+            status: 'active',
+            price: PLAN_PRICES[plan],
+            billingCycle: 'month',
+            nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+            startDate: new Date().toISOString().split('T')[0],
+        };
     });
 
     const [showCancelModal, setShowCancelModal] = useState(false);
@@ -73,6 +78,8 @@ const SubscriptionManagement = () => {
             setSubscription(prev => {
                 const updated: Subscription = { ...prev, status: 'cancelled' };
                 localStorage.setItem('userPlan', updated.plan);
+                // Dispatch custom event for sync
+                window.dispatchEvent(new Event('userPlanChanged'));
                 return updated;
             });
             setShowCancelModal(false);
@@ -91,6 +98,7 @@ const SubscriptionManagement = () => {
             setSubscription((prev) => {
                 const updated: Subscription = { ...prev, status: 'active' };
                 localStorage.setItem('userPlan', updated.plan);
+                window.dispatchEvent(new Event('userPlanChanged'));
                 return updated;
             });
             toast.success(t('subscriptionManagement.subscriptionRestored') || 'Subscription restored');
@@ -121,6 +129,7 @@ const SubscriptionManagement = () => {
                     nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
                 };
                 localStorage.setItem('userPlan', plan);
+                window.dispatchEvent(new Event('userPlanChanged'));
                 return updated;
             });
             setShowChangePlanModal(false);

@@ -1,5 +1,6 @@
 // src/pages/DashboardMain.tsx
 import { useState, useEffect } from "react";
+import FilterBar from "../../components/FilterBar";
 import { Link } from "react-router-dom";
 import SimpleHeroSlider from "../../lib/Slider";
 import { Heart } from "lucide-react";
@@ -21,11 +22,15 @@ interface Movie {
   release_date?: string;
   first_air_date?: string;
   media_type?: "movie" | "tv";
+  genre_ids?: number[];
 }
 
 const WATCH_LATER_KEY = "watchLaterList";
 
 const DashboardMain: React.FC = () => {
+    // Filter state
+    const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
+    const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { withLoading } = useLoading();
@@ -90,22 +95,37 @@ const DashboardMain: React.FC = () => {
     });
   };
 
+  // Filtering logic
+  const filterItems = (items: Movie[]) => {
+    return items.filter((item) => {
+      const genreMatch = selectedGenre === null || (item.genre_ids && item.genre_ids.includes(selectedGenre));
+      const ratingMatch = selectedRating === null || item.vote_average >= selectedRating;
+      return genreMatch && ratingMatch;
+    });
+  };
+
   const renderGrid = (items: Movie[], mediaType: "movie" | "tv") => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-      {items.map((item) => {
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      {filterItems(items).map((item) => {
         const type = item.media_type || mediaType;
         const isFav = isFavorite(item.id, type);
         const isWatchLater = watchLaterList.some((m: WatchLaterItem) => m.id === item.id);
         return (
-          <div key={item.id} className="relative group">
-            <Link to={`/details/${type}/${item.id}`}>
+          <div
+            key={item.id}
+            className="relative group bg-gradient-to-br from-gray-900/80 via-gray-800/60 to-gray-900/90 rounded-3xl shadow-2xl p-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-3xl"
+          >
+            <Link to={`/details/${type}/${item.id}`}
+              className="block overflow-hidden rounded-2xl poster-hover"
+            >
               <img
                 src={
                   item.poster_path
                     ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`
                     : "/no-image.png"
                 }
-                className="rounded-xl"
+                className="rounded-2xl w-full h-auto object-cover transition-transform duration-500 poster-img"
+                alt={item.title || item.name || "Poster"}
               />
             </Link>
 
@@ -125,15 +145,17 @@ const DashboardMain: React.FC = () => {
                     : t("favorites.removed")
                 );
               }}
-              className="absolute top-2 right-2 z-10"
+              className="absolute top-4 right-4 z-10 heart-hover"
               title={isFav ? t("favorites.remove") : t("favorites.add")}
             >
               <Heart
                 className={
-                  isFav
+                  (isFav
                     ? "fill-red-500 text-red-500"
-                    : "text-white"
+                    : "text-white") +
+                  " transition-transform duration-300 heart-anim drop-shadow-lg"
                 }
+                size={28}
               />
             </button>
 
@@ -158,10 +180,10 @@ const DashboardMain: React.FC = () => {
                   toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
                 }
               }}
-              className={`absolute top-3 left-3 p-2 rounded-full z-10 bg-blue-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-blue-600"}`}
+              className={`absolute top-4 left-4 p-2 rounded-full z-10 bg-blue-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-blue-600"}`}
               title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
             >
-              <Clock size={22} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
+              <Clock size={24} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
             </button>
           </div>
         );
@@ -183,6 +205,16 @@ const DashboardMain: React.FC = () => {
           className="px-4 py-2 text-black rounded"
         />
       </form>
+
+      {/* Filter Bar */}
+      <div className="mb-8">
+        <FilterBar
+          selectedGenre={selectedGenre}
+          setSelectedGenre={setSelectedGenre}
+          selectedRating={selectedRating}
+          setSelectedRating={setSelectedRating}
+        />
+      </div>
 
       {searchMode
         ? renderGrid(searchResults, "movie")

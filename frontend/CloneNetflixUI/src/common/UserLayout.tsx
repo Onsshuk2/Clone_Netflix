@@ -25,20 +25,17 @@ export default function UserLayout() {
     "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
 
   // Об'єкт користувача
-  const user = (() => {
+  // user object should update when userPlan changes
+  const [user, setUser] = useState(() => {
     if (!isAuthenticated) return null;
-
     const userJson = localStorage.getItem("user");
     if (!userJson) return null;
-
     try {
       const parsed = JSON.parse(userJson);
-
       const displayName =
         parsed.userName?.trim() ||
         (parsed.email || "").split("@")[0]?.trim() ||
         "Користувач";
-
       return {
         name: displayName,
         avatarUrl: parsed.avatarUrl || parsed.avatar || null,
@@ -48,11 +45,61 @@ export default function UserLayout() {
       console.error("Не вдалося розпарсити user з localStorage", e);
       return null;
     }
-  })();
+  });
+
+  useEffect(() => {
+    // update user object when userPlan changes
+    const syncUser = () => {
+      if (!isAuthenticated) {
+        setUser(null);
+        return;
+      }
+      const userJson = localStorage.getItem("user");
+      if (!userJson) {
+        setUser(null);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(userJson);
+        const displayName =
+          parsed.userName?.trim() ||
+          (parsed.email || "").split("@")[0]?.trim() ||
+          "Користувач";
+        setUser({
+          name: displayName,
+          avatarUrl: parsed.avatarUrl || parsed.avatar || null,
+          email: parsed.email || "",
+        });
+      } catch (e) {
+        setUser(null);
+      }
+    };
+    window.addEventListener('userPlanChanged', syncUser);
+    window.addEventListener('storage', syncUser);
+    return () => {
+      window.removeEventListener('userPlanChanged', syncUser);
+      window.removeEventListener('storage', syncUser);
+    };
+  }, [isAuthenticated]);
 
   // Дістаємо поточний план підписки з localStorage
-  const userPlanRaw = localStorage.getItem('userPlan');
-  const userPlan = userPlanRaw === 'basic' || userPlanRaw === 'standard' || userPlanRaw === 'premium' ? userPlanRaw : null;
+  const [userPlan, setUserPlan] = useState(() => {
+    const raw = localStorage.getItem('userPlan');
+    return raw === 'basic' || raw === 'standard' || raw === 'premium' ? raw : null;
+  });
+
+  useEffect(() => {
+    const syncPlan = () => {
+      const raw = localStorage.getItem('userPlan');
+      setUserPlan(raw === 'basic' || raw === 'standard' || raw === 'premium' ? raw : null);
+    };
+    window.addEventListener('storage', syncPlan);
+    window.addEventListener('userPlanChanged', syncPlan);
+    return () => {
+      window.removeEventListener('storage', syncPlan);
+      window.removeEventListener('userPlanChanged', syncPlan);
+    };
+  }, []);
 
   // Функція для коректного src аватара (така ж логіка, як у Profile)
   const getAvatarSrc = () => {
