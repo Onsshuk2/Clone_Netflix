@@ -16,6 +16,7 @@ public class ContentDetailDto
     public decimal Rating { get; set; }
     public int AgeLimit { get; set; }
     public int ReleaseYear { get; set; }
+    public bool CanWatch { get; set; }
     public ContentType Type { get; set; }
     public VideoStatus VideoStatus { get; set; }
     public List<string> Genres { get; set; } = new();

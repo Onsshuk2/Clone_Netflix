@@ -12,6 +12,8 @@ namespace NetflixClone.WebApi.Controllers;
 
 [ApiController]
 [Route("api/genres")]
+//[Authorize(Roles = "Admin")] 
+
 public class GenresController : ControllerBase
 {
     private readonly IMediator _mediator;
