@@ -1,5 +1,6 @@
 // src/App.tsx
 import "./App.css";
+import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import UserLayout from "./common/UserLayout";
@@ -45,15 +46,17 @@ const isAuthenticated = () => !!localStorage.getItem("token");
 // Компоненти-обгортки для маршрутів
 // ────────────────────────────────────────────────
 
-const ProtectedRoute = () => {
-  return isAuthenticated() ? <UserLayout /> : <Navigate to="/login" replace />;
+const ProtectedRoute = ({ selectedGenres, setSelectedGenres, selectedRating, setSelectedRating }: any) => {
+  return isAuthenticated()
+    ? <UserLayout selectedGenres={selectedGenres} setSelectedGenres={setSelectedGenres} selectedRating={selectedRating} setSelectedRating={setSelectedRating} />
+    : <Navigate to="/login" replace />;
 };
 
 const GuestRoute = () => {
   return isAuthenticated() ? <Navigate to="/dashboard" replace /> : <AuthLayout />;
 };
 
-const AdminRoute = () => {
+const AdminRoute = ({ selectedGenres, setSelectedGenres, selectedRating, setSelectedRating }: any) => {
   console.log("AdminRoute викликався");
 
   const token = localStorage.getItem("token");
@@ -79,10 +82,13 @@ const AdminRoute = () => {
   }
 
   console.log("Роль admin → рендеримо children");
-  return <UserLayout />;
+  return <UserLayout selectedGenres={selectedGenres} setSelectedGenres={setSelectedGenres} selectedRating={selectedRating} setSelectedRating={setSelectedRating} />;
 };
 
 function App() {
+  // Global filter state
+  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
   return (
     <>
       <LoaderProvider>
@@ -100,12 +106,12 @@ function App() {
           </Route>
 
           {/* Захищені маршрути для всіх авторизованих користувачів */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<WelcomeDashboard />} />
-            <Route path="/dashboard-films" element={<DashboardMovies />} />
-            <Route path="/dashboard-anime" element={<DashboardAnime />} />
-            <Route path="/dashboard-series" element={<DashboardSeries />} />
-            <Route path="/dashboard-cartoons" element={<DashboardCartoons />} />
+          <Route element={<ProtectedRoute selectedGenres={selectedGenres} setSelectedGenres={setSelectedGenres} selectedRating={selectedRating} setSelectedRating={setSelectedRating} />}>
+            <Route path="/dashboard" element={<WelcomeDashboard selectedGenres={selectedGenres} selectedRating={selectedRating} />} />
+            <Route path="/dashboard-films" element={<DashboardMovies selectedGenres={selectedGenres} selectedRating={selectedRating} />} />
+            <Route path="/dashboard-anime" element={<DashboardAnime selectedGenres={selectedGenres} selectedRating={selectedRating} />} />
+            <Route path="/dashboard-series" element={<DashboardSeries selectedGenres={selectedGenres} selectedRating={selectedRating} />} />
+            <Route path="/dashboard-cartoons" element={<DashboardCartoons selectedGenres={selectedGenres} selectedRating={selectedRating} />} />
             <Route path="/details/:type/:id" element={<MovieDetails />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/favorites" element={<Favorites />} />
@@ -120,7 +126,7 @@ function App() {
           </Route>
 
           {/* Окремий маршрут ТІЛЬКИ для адмінів */}
-          <Route element={<AdminRoute />}>
+          <Route element={<AdminRoute selectedGenres={selectedGenres} setSelectedGenres={setSelectedGenres} selectedRating={selectedRating} setSelectedRating={setSelectedRating} />}>
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/contents" element={<AdminContents />} />
           </Route>

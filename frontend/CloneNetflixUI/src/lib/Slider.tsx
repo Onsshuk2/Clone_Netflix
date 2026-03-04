@@ -110,11 +110,12 @@ const SimpleHeroSlider: React.FC<SimpleHeroSliderProps> = ({ movies }) => {
                                         <img
                                             src={`${TMDB_IMG_BASE}${movie.poster_path}`}
                                             alt={movie.title || movie.name}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-110"
+                                            className="w-full h-[220px] md:h-[320px] object-cover object-center transition-transform duration-500 group-hover/item:scale-110"
                                             loading="lazy"
+                                            style={{ aspectRatio: '2/3', minHeight: 220, maxHeight: 320 }}
                                         />
                                     ) : (
-                                        <div className="w-full h-96 bg-gray-700 flex items-center justify-center">
+                                        <div className="w-full h-[220px] md:h-[320px] bg-gray-700 flex items-center justify-center" style={{ aspectRatio: '2/3', minHeight: 220, maxHeight: 320 }}>
                                             <span className="text-gray-500">Постер відсутній</span>
                                         </div>
                                     )}

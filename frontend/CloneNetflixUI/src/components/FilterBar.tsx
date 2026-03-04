@@ -1,96 +1,90 @@
 import React, { useEffect, useState } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
-import { fetchGenres } from "../api/tmdbGenres.tsx";
+// Статичний перелік жанрів
+const STATIC_GENRES = [
+  { id: 28, name: "Бойовик" },
+  { id: 12, name: "Пригоди" },
+  { id: 16, name: "Анімація" },
+  { id: 35, name: "Комедія" },
+  { id: 80, name: "Кримінал" },
+  { id: 99, name: "Документальний" },
+  { id: 18, name: "Драма" },
+  { id: 10751, name: "Сімейний" },
+  { id: 14, name: "Фентезі" },
+  { id: 36, name: "Історія" },
+  { id: 27, name: "Жахи" },
+  { id: 10402, name: "Музика" },
+  { id: 9648, name: "Містика" },
+  { id: 10749, name: "Мелодрама" },
+  { id: 878, name: "Наукова фантастика" },
+  { id: 10770, name: "Телефільм" },
+  { id: 53, name: "Трилер" },
+  { id: 10752, name: "Військовий" },
+  { id: 37, name: "Вестерн" },
+];
 
 interface FilterBarProps {
-  selectedGenre: number | null;
-  setSelectedGenre: (genreId: number | null) => void;
+  selectedGenres: number[];
+  setSelectedGenres: (genreIds: number[]) => void;
   selectedRating: number | null;
   setSelectedRating: (rating: number | null) => void;
 }
 
 
-const FilterBar: React.FC<FilterBarProps> = ({
-  selectedGenre,
-  setSelectedGenre,
-  selectedRating,
-  setSelectedRating,
-}) => {
+const FilterBar: React.FC<FilterBarProps> = (props) => {
+  const {
+    selectedGenres,
+    setSelectedGenres,
+    selectedRating,
+    setSelectedRating,
+  } = {
+    selectedGenres: [],
+    ...props
+  };
   const { t, getTMDBLanguage } = useLanguage();
-  const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
+  const [genres] = useState<{ id: number; name: string }[]>(STATIC_GENRES);
   const [genreDropdownOpen, setGenreDropdownOpen] = useState(false);
 
-  useEffect(() => {
-    fetchGenres(getTMDBLanguage()).then((data: { id: number; name: string }[]) => {
-      setGenres(data);
-    });
-  }, [getTMDBLanguage]);
-
-  // Dropdown for genres, slider for rating
+  // Senior frontend: genre pills, modern colors, smooth transitions, clear separation
   return (
-    <div className="flex flex-row gap-4 items-center justify-center py-3 w-full">
-      {/* Genre Dropdown */}
-      <div className="relative">
-        <button
-          className="px-4 py-2 bg-[#18181b] rounded-xl border border-[#27272a] shadow flex items-center min-w-[120px] justify-between transition-all hover:bg-[#232326] focus:outline-none font-medium text-white text-sm"
-          onClick={() => setGenreDropdownOpen((open) => !open)}
-        >
-          <span className="truncate">
-            {selectedGenre === null
-              ? t("filter.genres_all")
-              : genres.find((g) => g.id === selectedGenre)?.name}
-          </span>
-          <svg
-            className="ml-2 w-4 h-4 text-[#e11d48]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
+    <div className="flex flex-col gap-6">
+      <div>
+        <label className="block text-xs font-semibold text-indigo-300 mb-2 tracking-wide">{t("filter.genres_label") || "Жанри"}</label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${(Array.isArray(selectedGenres) && selectedGenres.length === 0) ? "bg-gradient-to-r from-indigo-500 to-pink-500 text-white border-indigo-500 shadow-lg" : "bg-gray-900 text-indigo-200 border-gray-700 hover:bg-indigo-950/60"}`}
+            onClick={() => setGenreDropdownOpen((v) => !v)}
+            type="button"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
-        {genreDropdownOpen && (
-          <div className="absolute left-0 mt-2 w-full max-h-48 overflow-y-auto bg-[#18181b] border border-[#27272a] rounded-xl shadow z-30 animate-fade-in">
-            <div
-              className={`px-4 py-2 cursor-pointer transition-colors text-white text-sm font-medium ${selectedGenre === null ? "bg-[#e11d48]/80" : "hover:bg-[#232326]"}`}
-              tabIndex={0}
-              role="button"
-              aria-selected={selectedGenre === null}
-              onClick={() => {
-                setSelectedGenre(null);
-                setGenreDropdownOpen(false);
-              }}
-            >
-              {t("filter.genres_all")}
-            </div>
-            {genres.map((genre) => (
-              <div
-                key={genre.id}
-                className={`px-4 py-2 cursor-pointer transition-colors text-white text-sm font-medium ${selectedGenre === genre.id ? "bg-[#e11d48]/80" : "hover:bg-[#232326]"}`}
-                tabIndex={0}
-                role="button"
-                aria-selected={selectedGenre === genre.id}
-                onClick={() => {
-                  setSelectedGenre(genre.id);
-                  setGenreDropdownOpen(false);
-                }}
-              >
-                {genre.name}
+            {t("filter.genres_all")}
+          </button>
+          {genreDropdownOpen && (
+            <div className="absolute mt-2 w-64 bg-gray-900/96 border border-gray-800 rounded-2xl shadow-2xl z-50 p-4 animate-fade-in">
+              <div className="flex flex-wrap gap-2">
+                {genres.map((genre) => (
+                  <button
+                    key={genre.id}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${(Array.isArray(selectedGenres) && selectedGenres.includes(genre.id)) ? "bg-gradient-to-r from-indigo-500 to-pink-500 text-white border-indigo-500 shadow-lg" : "bg-gray-900 text-indigo-200 border-gray-700 hover:bg-indigo-950/60"}`}
+                    onClick={() => {
+                      if (Array.isArray(selectedGenres) && selectedGenres.includes(genre.id)) {
+                        setSelectedGenres(selectedGenres.filter((id) => id !== genre.id));
+                      } else {
+                        setSelectedGenres([...(Array.isArray(selectedGenres) ? selectedGenres : []), genre.id]);
+                      }
+                      setGenreDropdownOpen(false);
+                    }}
+                  >
+                    {genre.name}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
-      {/* Rating Slider */}
-      <div className="flex flex-col items-center gap-1 min-w-[120px]">
-        <label htmlFor="rating-slider" className="text-xs font-medium text-white mb-0 tracking-tight">{t("filter.rating_label")}</label>
-        <div className="flex items-center gap-2 w-full">
+      <div className="pt-2">
+        <label htmlFor="rating-slider" className="block text-xs font-semibold text-indigo-300 mb-2 tracking-wide">{t("filter.rating_label")}</label>
+        <div className="flex items-center gap-3">
           <input
             id="rating-slider"
             type="range"
@@ -99,9 +93,9 @@ const FilterBar: React.FC<FilterBarProps> = ({
             step={1}
             value={selectedRating ?? 5}
             onChange={e => setSelectedRating(Number(e.target.value))}
-            className="accent-[#e11d48] w-full h-1 rounded-full bg-[#232326]"
+            className="accent-pink-500 w-full h-2 rounded-full bg-gradient-to-r from-indigo-900 via-gray-900 to-pink-900 shadow-inner"
           />
-          <span className="px-2 py-0.5 rounded-xl bg-[#e11d48] text-white text-xs font-bold min-w-[28px] text-center border border-[#e11d48]">{selectedRating ?? t("filter.rating_all")}</span>
+          <span className="px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white text-xs font-bold border border-indigo-500 shadow-lg min-w-[32px] text-center">{selectedRating ?? t("filter.rating_all")}</span>
         </div>
       </div>
     </div>

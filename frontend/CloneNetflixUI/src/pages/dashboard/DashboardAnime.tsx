@@ -10,7 +10,12 @@ import toast from "react-hot-toast";
 import { fetchTopAnime, searchAnime } from "../../api/tmdbDashboard";
 import { useLoading } from "../../lib/useLoading";
 
-const DashboardAnime: React.FC = () => {
+interface DashboardAnimeProps {
+  selectedGenres: number[];
+  selectedRating: number | null;
+}
+
+const DashboardAnime: React.FC<DashboardAnimeProps> = ({ selectedGenres, selectedRating }) => {
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { withLoading } = useLoading();
@@ -43,7 +48,15 @@ const DashboardAnime: React.FC = () => {
         const sorted = await fetchTopAnime(language);
 
         setTopAnime(sorted);
-        setDisplayItems(sorted.slice(0, 20));
+        // Local filtering for top anime only
+        let filtered = sorted;
+        if (selectedGenres.length > 0) {
+          filtered = filtered.filter((item) => item.genre_ids && selectedGenres.some((gid) => item.genre_ids.includes(gid)));
+        }
+        if (selectedRating !== null) {
+          filtered = filtered.filter((item) => item.vote_average >= selectedRating);
+        }
+        setDisplayItems(filtered.slice(0, 20));
       } catch (err) {
         console.error("Помилка завантаження топ-аніме:", err);
         setError(t("anime.loading_error") || "Не вдалося завантажити аніме");
@@ -175,131 +188,146 @@ const DashboardAnime: React.FC = () => {
             {t("anime.no_results") || "Нічого не знайдено..."}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-            {displayItems.map((item) => {
-              const title = item.title || item.name || "Без назви";
-              const year =
-                item.release_date?.slice(0, 4) ||
-                item.first_air_date?.slice(0, 4) ||
-                t("common.unknown");
-              const mediaType =
-                item.media_type || (item.first_air_date ? "tv" : "movie");
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+              {displayItems.map((item) => {
+                const title = item.title || item.name || "Без назви";
+                const year =
+                  item.release_date?.slice(0, 4) ||
+                  item.first_air_date?.slice(0, 4) ||
+                  t("common.unknown");
+                const mediaType =
+                  item.media_type || (item.first_air_date ? "tv" : "movie");
 
-              const isWatchLater = watchLaterList.some((m: any) => m.id === item.id);
+                const isWatchLater = watchLaterList.some((m: any) => m.id === item.id);
 
-              return (
-                <div
-                  key={`${item.id}-${mediaType}`}
-                  className="group relative h-full"
-                >
-                                    <Link
-                                      to={`/details/${mediaType}/${item.id}`}
-                                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
-                                    >
-                                      {item.poster_path ? (
-                                        <img
-                                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`}
-                                          alt={title}
-                                          className="w-full h-80 object-cover"
-                                          loading="lazy"
-                                        />
-                                      ) : (
-                                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                                          <span className="text-gray-500 text-center px-4">
-                                            {t("common.poster_missing")}
-                                          </span>
-                                        </div>
-                                      )}
+                return (
+                  <div
+                    key={`${item.id}-${mediaType}`}
+                    className="group relative h-full"
+                  >
+                    <Link
+                      to={`/details/${mediaType}/${item.id}`}
+                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
+                    >
+                      {item.poster_path ? (
+                        <img
+                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`}
+                          alt={title}
+                          className="w-full h-80 object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
+                          <span className="text-gray-500 text-center px-4">
+                            {t("common.poster_missing")}
+                          </span>
+                        </div>
+                      )}
 
-                                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
-                                        <h3 className="text-lg font-semibold break-words line-clamp-2">
-                                          {title}
-                                        </h3>
-                                        <div>
-                                          <p className="text-gray-400 text-sm">
-                                            {year} {t("common.year")}
-                                          </p>
-                                          {item.vote_average > 0 && (
-                                            <p className="text-purple-400 mt-1 font-bold">
-                                              ⭐ {item.vote_average.toFixed(1)}
-                                            </p>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </Link>
+                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
+                        <h3 className="text-lg font-semibold break-words line-clamp-2">
+                          {title}
+                        </h3>
+                        <div>
+                          <p className="text-gray-400 text-sm">
+                            {year} {t("common.year")}
+                          </p>
+                          {item.vote_average > 0 && (
+                            <p className="text-purple-400 mt-1 font-bold">
+                              ⭐ {item.vote_average.toFixed(1)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
 
-                                    {/* Кнопка "на потім" (лівий верх) */}
-                                    <button
-                                      onClick={() => {
-                                        let updated;
-                                        if (isWatchLater) {
-                                          updated = watchLaterList.filter((m: any) => m.id !== item.id);
-                                        } else {
-                                          updated = [...watchLaterList, {
-                                            id: item.id,
-                                            title: item.title || item.name || "",
-                                            posterUrl: item.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}` : undefined,
-                                          }];
-                                        }
-                                        setWatchLaterList(updated);
-                                        localStorage.setItem("watchLaterList", JSON.stringify(updated));
-                                        if (!isWatchLater) {
-                                          toast.success(t('watchLater.added'));
-                                        } else {
-                                          toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
-                                        }
-                                      }}
-                                      className={`absolute top-3 left-3 p-2 rounded-full z-10 bg-purple-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-purple-600"}`}
-                                      title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
-                                    >
-                                      <Clock size={22} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
-                                    </button>
+                    {/* Кнопка "на потім" (лівий верх) */}
+                    <button
+                      onClick={() => {
+                        let updated;
+                        if (isWatchLater) {
+                          updated = watchLaterList.filter((m: any) => m.id !== item.id);
+                        } else {
+                          updated = [...watchLaterList, {
+                            id: item.id,
+                            title: item.title || item.name || "",
+                            posterUrl: item.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}` : undefined,
+                          }];
+                        }
+                        setWatchLaterList(updated);
+                        localStorage.setItem("watchLaterList", JSON.stringify(updated));
+                        if (!isWatchLater) {
+                          toast.success(t('watchLater.added'));
+                        } else {
+                          toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
+                        }
+                      }}
+                      className={`absolute top-3 left-3 p-2 rounded-full z-10 bg-purple-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-purple-600"}`}
+                      title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
+                    >
+                      <Clock size={22} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
+                    </button>
 
-                                    {/* Кнопка улюблене (правий верх) */}
-                                    <button
-                                      onClick={(e) => {
-                                        e.preventDefault();
+                    {/* Кнопка улюблене (правий верх) */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
 
-                                        setAnimatingId(item.id);
+                        setAnimatingId(item.id);
 
-                                        toggleFavorite({
-                                          id: item.id,
-                                          mediaType,
-                                          title,
-                                          posterPath: item.poster_path,
-                                          voteAverage: item.vote_average,
-                                          releaseDate: item.release_date || item.first_air_date,
-                                        });
+                        toggleFavorite({
+                          id: item.id,
+                          mediaType,
+                          title,
+                          posterPath: item.poster_path,
+                          voteAverage: item.vote_average,
+                          releaseDate: item.release_date || item.first_air_date,
+                        });
 
-                                        const isFav = isFavorite(item.id, mediaType);
-                                        toast.success(isFav ? t("favorites.removed") : t("favorites.added"));
+                        const isFav = isFavorite(item.id, mediaType);
+                        toast.success(isFav ? t("favorites.removed") : t("favorites.added"));
 
-                                        setTimeout(() => setAnimatingId(null), 300);
-                                      }}
-                                      className="
-                                        absolute top-3 right-3
-                                        p-2 bg-black/60 rounded-full
-                                        hover:bg-black/80
-                                        transition-all duration-300
-                                        z-10
-                                        opacity-0 group-hover:opacity-100
-                                        hover:scale-110
-                                        active:scale-90
-                                      "
-                                    >
-                                      <Heart
-                                        size={24}
-                                        className={`
-                                          transition-all duration-300
-                                          ${isFavorite(item.id, mediaType) ? "fill-red-500 text-red-500 scale-110" : "text-white"}
-                                          ${animatingId === item.id ? "scale-125 rotate-12" : ""}
-                                        `}
-                                      />
+                        setTimeout(() => setAnimatingId(null), 300);
+                      }}
+                      className="
+                        absolute top-3 right-3
+                        p-2 bg-black/60 rounded-full
+                        hover:bg-black/80
+                        transition-all duration-300
+                        z-10
+                        opacity-0 group-hover:opacity-100
+                        hover:scale-110
+                        active:scale-90
+                      "
+                    >
+                      <Heart
+                        size={24}
+                        className={`
+                          transition-all duration-300
+                          ${isFavorite(item.id, mediaType) ? "fill-red-500 text-red-500 scale-110" : "text-white"}
+                          ${animatingId === item.id ? "scale-125 rotate-12" : ""}
+                        `}
+                      />
                     </button>
                   </div>
                 );
             })}
-          </div>
+            </div>
+            {displayItems.length < topAnime.length && !searchMode && (
+              <div className="text-center mt-12">
+                <button
+                  onClick={() => {
+                    const nextCount = Math.min(displayItems.length + 20, topAnime.length);
+                    setDisplayItems(topAnime.slice(0, nextCount));
+                  }}
+                  className="px-10 py-4 bg-purple-600 hover:bg-purple-700 rounded-xl font-bold text-xl transition shadow-lg"
+                >
+                  {t("common.load_more")}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

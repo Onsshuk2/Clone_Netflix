@@ -10,7 +10,12 @@ import toast from "react-hot-toast";
 import { fetchTopRatedMovies, searchMoviesOnly } from "../../api/tmdbDashboard";
 import { useLoading } from "../../lib/useLoading";
 
-const DashboardMovies: React.FC = () => {
+interface DashboardMoviesProps {
+  selectedGenres: number[];
+  selectedRating: number | null;
+}
+
+const DashboardMovies: React.FC<DashboardMoviesProps> = ({ selectedGenres, selectedRating }) => {
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { withLoading } = useLoading();
@@ -40,7 +45,15 @@ const DashboardMovies: React.FC = () => {
         setTop100Movies(results);
         setAllMovies(results);
         setVisibleCount(20);
-        setDisplayMovies(results.slice(0, 20));
+        // Local filtering for top movies only
+        let filtered = results;
+        if (selectedGenres.length > 0) {
+          filtered = filtered.filter((movie) => movie.genre_ids && selectedGenres.some((gid) => movie.genre_ids.includes(gid)));
+        }
+        if (selectedRating !== null) {
+          filtered = filtered.filter((movie) => movie.vote_average >= selectedRating);
+        }
+        setDisplayMovies(filtered.slice(0, 20));
       } catch (err) {
         console.error("Помилка завантаження:", err);
         setError(t("movies.loading_error"));
@@ -74,7 +87,6 @@ const DashboardMovies: React.FC = () => {
       try {
         const results = await searchMoviesOnly(term, language, 1);
         const limited = results.slice(0, 100);
-
         setAllMovies(limited);
         setDisplayMovies(limited.slice(0, 20));
       } catch (err) {

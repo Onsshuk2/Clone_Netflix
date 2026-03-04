@@ -6,8 +6,23 @@ import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
 import AnimatedOutlet from "../components/AnimatedOutlet";
 import AdminFabButton from "../pages/admin/AdminFabButton";
+import FilterBar from "../components/FilterBar";
 
-export default function UserLayout() {
+interface UserLayoutProps {
+  selectedGenres: number[];
+  setSelectedGenres: (genreIds: number[]) => void;
+  selectedRating: number | null;
+  setSelectedRating: (rating: number | null) => void;
+}
+
+const UserLayout: React.FC<UserLayoutProps> = ({
+  selectedGenres,
+  setSelectedGenres,
+  selectedRating,
+  setSelectedRating,
+}) => {
+  // Dropdown state for filter icon
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
@@ -222,6 +237,25 @@ export default function UserLayout() {
           </nav>
 
           <div className="flex items-center gap-6">
+            <div className="relative">
+              <button
+                className="p-2 rounded-xl bg-gray-800/70 border border-gray-700 hover:bg-indigo-900/40 transition flex items-center"
+                onClick={() => setShowFilterDropdown((v) => !v)}
+                aria-label="Фільтри"
+              >
+                <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17V13.414a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
+              </button>
+              {showFilterDropdown && (
+                <div className="absolute right-0 mt-2 w-72 bg-gray-900/96 border border-gray-800 rounded-2xl shadow-2xl z-50 p-4 animate-fade-in">
+                  <FilterBar
+                    selectedGenres={selectedGenres}
+                    setSelectedGenres={setSelectedGenres}
+                    selectedRating={selectedRating}
+                    setSelectedRating={setSelectedRating}
+                  />
+                </div>
+              )}
+            </div>
             <LanguageSwitcher />
             <div className="relative" ref={dropdownRef}>
               <button
@@ -356,3 +390,5 @@ export default function UserLayout() {
     </div>
   );
 }
+
+export default UserLayout;

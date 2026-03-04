@@ -1,6 +1,5 @@
 // src/pages/DashboardMain.tsx
 import { useState, useEffect } from "react";
-import FilterBar from "../../components/FilterBar";
 import { Link } from "react-router-dom";
 import SimpleHeroSlider from "../../lib/Slider";
 import { Heart } from "lucide-react";
@@ -27,10 +26,14 @@ interface Movie {
 
 const WATCH_LATER_KEY = "watchLaterList";
 
-const DashboardMain: React.FC = () => {
-    // Filter state
-    const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
-    const [selectedRating, setSelectedRating] = useState<number | null>(null);
+
+interface DashboardMainProps {
+  selectedGenres: number[];
+  selectedRating: number | null;
+}
+
+const DashboardMain: React.FC<DashboardMainProps> = ({ selectedGenres, selectedRating }) => {
+
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { withLoading } = useLoading();
@@ -38,6 +41,8 @@ const DashboardMain: React.FC = () => {
   const [nowPlaying, setNowPlaying] = useState<Movie[]>([]);
   const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
   const [popularTv, setPopularTv] = useState<Movie[]>([]);
+  const [popularAnime, setPopularAnime] = useState<Movie[]>([]);
+  const [popularCartoons, setPopularCartoons] = useState<Movie[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Movie[]>([]);
   const [searchMode, setSearchMode] = useState(false);
@@ -60,11 +65,47 @@ const DashboardMain: React.FC = () => {
         setNowPlaying(data.nowPlaying);
         setPopularMovies(data.popularMovies);
         setPopularTv(data.popularTv);
+        // Fetch anime and cartoons
+        const [anime, cartoons] = await Promise.all([
+          (await import("../../api/tmdbDashboard")).fetchTopAnime(language),
+          (await import("../../api/tmdbDashboard")).fetchTopCartoons(language)
+        ]);
+        setPopularAnime(anime);
+        setPopularCartoons(cartoons);
       } catch (err) {
         console.error(err);
       }
     });
   }, [language]);
+
+  // Фільтрація по жанрах тільки по локальних даних
+  useEffect(() => {
+    if (selectedGenres.length === 0) {
+      setSearchMode(false);
+      setSearchResults([]);
+      return;
+    }
+    // Фільтруємо всі типи: фільми, серіали, аніме, мультфільми
+    const filteredMovies = popularMovies.filter((item) =>
+      item.genre_ids && selectedGenres.some((gid) => item.genre_ids?.includes(gid))
+    );
+    const filteredTv = popularTv.filter((item) =>
+      item.genre_ids && selectedGenres.some((gid) => item.genre_ids?.includes(gid))
+    );
+    const filteredAnime = popularAnime.filter((item) =>
+      item.genre_ids && selectedGenres.some((gid) => item.genre_ids?.includes(gid))
+    );
+    const filteredCartoons = popularCartoons.filter((item) =>
+      item.genre_ids && selectedGenres.some((gid) => item.genre_ids?.includes(gid))
+    );
+    setSearchResults([
+      ...filteredMovies,
+      ...filteredTv,
+      ...filteredAnime,
+      ...filteredCartoons
+    ]);
+    setSearchMode(true);
+  }, [selectedGenres, popularMovies, popularTv, popularAnime, popularCartoons]);
 
   useEffect(() => {
     const handleStorage = () => {
@@ -98,7 +139,9 @@ const DashboardMain: React.FC = () => {
   // Filtering logic
   const filterItems = (items: Movie[]) => {
     return items.filter((item) => {
-      const genreMatch = selectedGenre === null || (item.genre_ids && item.genre_ids.includes(selectedGenre));
+      const genreMatch =
+        selectedGenres.length === 0 ||
+        (item.genre_ids && selectedGenres.some((gid) => item.genre_ids?.includes(gid)));
       const ratingMatch = selectedRating === null || item.vote_average >= selectedRating;
       return genreMatch && ratingMatch;
     });
@@ -116,7 +159,7 @@ const DashboardMain: React.FC = () => {
             className="relative group bg-gradient-to-br from-gray-900/80 via-gray-800/60 to-gray-900/90 rounded-3xl shadow-2xl p-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-3xl"
           >
             <Link to={`/details/${type}/${item.id}`}
-              className="block overflow-hidden rounded-2xl poster-hover"
+              className="block overflow-hidden rounded-2xl poster-hover relative"
             >
               <img
                 src={
@@ -124,9 +167,28 @@ const DashboardMain: React.FC = () => {
                     ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`
                     : "/no-image.png"
                 }
-                className="rounded-2xl w-full h-auto object-cover transition-transform duration-500 poster-img"
+                className="rounded-2xl w-full h-[340px] md:h-[440px] object-cover object-center transition-transform duration-500 poster-img"
                 alt={item.title || item.name || "Poster"}
+                style={{ aspectRatio: '2/3', minHeight: 220, maxHeight: 320 }}
               />
+              {/* Hover overlay for title, year, rating */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
+                <h3 className="text-lg md:text-xl font-bold text-white mb-2 line-clamp-2">
+                  {item.title || item.name}
+                </h3>
+                <div className="flex items-center justify-between">
+                  <p className="text-gray-300 text-sm">
+                    {(item.release_date || item.first_air_date || "").slice(0, 4) || "Невідомо"}
+                  </p>
+                  {item.vote_average > 0 && (
+                    <p className="text-yellow-400 font-bold flex items-center gap-1">
+                      ⭐ {item.vote_average.toFixed(1)}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {/* Smooth shadow on hover */}
+              <div className="absolute inset-0 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </Link>
 
             {/* Кнопка улюблене (правий верх) */}
@@ -192,41 +254,50 @@ const DashboardMain: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      {!searchMode && nowPlaying.length > 0 && (
-        <SimpleHeroSlider movies={nowPlaying} />
-      )}
+    <div className="min-h-screen bg-gray-900 text-white p-0">
+      <header className="w-full px-0 py-0 bg-gray-950/80 border-b border-gray-800/60 shadow-lg sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
+          <div className="flex-1 flex items-center gap-4">
+            <span className="text-2xl font-black bg-gradient-to-r from-indigo-400 to-pink-400 bg-clip-text text-transparent tracking-tight">Nexo Cinema</span>
+          </div>
+          <div className="flex-1 flex justify-end">
+            <form onSubmit={searchContent} className="flex items-center gap-2">
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t('dashboard.search') || "Пошук..."}
+                className="px-4 py-2 rounded-xl bg-gray-800/80 border border-gray-700 text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition w-48 md:w-64"
+              />
+            </form>
+          </div>
+        </div>
+      </header>
 
-      <form onSubmit={searchContent} className="my-8">
-        <input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search..."
-          className="px-4 py-2 text-black rounded"
-        />
-      </form>
-
-      {/* Filter Bar */}
-      <div className="mb-8">
-        <FilterBar
-          selectedGenre={selectedGenre}
-          setSelectedGenre={setSelectedGenre}
-          selectedRating={selectedRating}
-          setSelectedRating={setSelectedRating}
-        />
-      </div>
-
-      {searchMode
-        ? renderGrid(searchResults, "movie")
-        : (
-          <>
-            <h2 className="text-2xl mb-4">Top Movies</h2>
-            {renderGrid(popularMovies, "movie")}
-
-            <h2 className="text-2xl my-4">Top Series</h2>
-            {renderGrid(popularTv, "tv")}
-          </>
+      <main className="max-w-7xl mx-auto w-full px-6 py-8">
+        {!searchMode && nowPlaying.length > 0 && (
+          <SimpleHeroSlider movies={nowPlaying} />
         )}
+
+        {searchMode
+          ? (
+              searchResults.length > 0
+                ? renderGrid(searchResults, "movie")
+                : <div className="text-center text-lg text-pink-400 font-bold py-12">Нічого не знайдено</div>
+            )
+          : (
+            <>
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 drop-shadow-lg tracking-tight">
+                {t('dashboard.top_movies')}
+              </h2>
+              {renderGrid(popularMovies, "movie")}
+
+              <h2 className="text-3xl md:text-4xl font-extrabold my-8 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-400 drop-shadow-lg tracking-tight">
+                {t('dashboard.top_series')}
+              </h2>
+              {renderGrid(popularTv, "tv")}
+            </>
+          )}
+      </main>
     </div>
   );
 };
