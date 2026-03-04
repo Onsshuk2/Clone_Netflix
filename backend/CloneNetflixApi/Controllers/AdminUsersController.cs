@@ -10,7 +10,7 @@ using NetflixClone.Application.UseCases.Users.Admin.Queries;
 
 [ApiController]
 [Route("api/users/admin")]
-//[Authorize(Roles = "Admin")]
+//[Authorize(Roles = "Admin")] 
 public class AdminUsersController : ControllerBase
 {
     private readonly IMediator _mediator;

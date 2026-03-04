@@ -11,6 +11,8 @@ namespace NetflixClone.WebApi.Controllers;
 
 [ApiController]
 [Route("api/contents/")]
+//[Authorize(Roles = "Admin")] 
+
 public class ContentsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -21,7 +23,7 @@ public class ContentsController : ControllerBase
     }
 
     [HttpPost("create")]
-    [Consumes("multipart/form-data")] // Чітко вказуємо тип запиту для Swagger
+    [Consumes("multipart/form-data")]
     [DisableRequestSizeLimit]
     public async Task<ActionResult<Guid>> Create([FromForm] CreateContentCommand command, CancellationToken ct)
     {

@@ -11,6 +11,8 @@ namespace NetflixClone.Api.Controllers;
 
 [ApiController]
 [Route("api/collections/")]
+//[Authorize(Roles = "Admin")] 
+
 public class CollectionsController : ControllerBase
 {
     private readonly IMediator _mediator;

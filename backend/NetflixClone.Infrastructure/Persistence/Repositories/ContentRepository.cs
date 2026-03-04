@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NetflixClone.Domain.Entities;
+using NetflixClone.Domain.Enums;
 using NetflixClone.Domain.Interfaces;
 using NetflixClone.Infrastructure.Persistence;
 
@@ -13,12 +14,19 @@ public class ContentRepository : BaseRepository<Content>, IContentRepository
 
     public async Task<Content?> GetByIdWithDetailsAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.Contents
+        var content = await _context.Contents
             .Include(c => c.Franchise)
             .Include(c => c.Genres)
             .Include(c => c.Collections)
             .Include(c => c.Episodes.OrderBy(e => e.Number))
             .FirstOrDefaultAsync(c => c.Id == id, ct);
+
+        if (content != null && content.Type != ContentType.Series)
+        {
+            content.Episodes = new List<Episode>();
+        }
+
+        return content;
     }
 
     public async Task<IReadOnlyList<Content>> GetAllWithDetailsAsync(CancellationToken ct = default)
