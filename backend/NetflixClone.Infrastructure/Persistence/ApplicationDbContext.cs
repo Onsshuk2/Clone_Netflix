@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<
     public DbSet<Franchise> Franchises => Set<Franchise>();
     public DbSet<Content> Contents => Set<Content>();
     public DbSet<Episode> Episodes => Set<Episode>();
+    public DbSet<Watchlist> Watchlists => Set<Watchlist>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

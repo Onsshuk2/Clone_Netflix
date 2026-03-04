@@ -104,6 +104,8 @@ public static class DependencyInjection
         services.AddScoped<IFranchiseRepository, FranchiseRepository>();
         services.AddScoped<IContentRepository, ContentRepository>();
         services.AddScoped<IEpisodeRepository, EpisodeRepository>();
+        
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 
         services.AddHangfireServer();
 
