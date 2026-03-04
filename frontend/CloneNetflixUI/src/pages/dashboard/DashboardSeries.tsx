@@ -9,7 +9,12 @@ import toast from "react-hot-toast";
 import { fetchTopRatedSeries, searchSeriesOnly } from "../../api/tmdbDashboard";
 import { useLoading } from "../../lib/useLoading";
 
-const DashboardSeries: React.FC = () => {
+interface DashboardSeriesProps {
+  selectedGenres: number[];
+  selectedRating: number | null;
+}
+
+const DashboardSeries: React.FC<DashboardSeriesProps> = ({ selectedGenres, selectedRating }) => {
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { withLoading } = useLoading();
@@ -44,7 +49,15 @@ const DashboardSeries: React.FC = () => {
         setTopSeries(top100);
         setAllSeries(top100);
         setVisibleCount(20);
-        setDisplaySeries(top100.slice(0, 20));
+        // Local filtering for top series only
+        let filtered = top100;
+        if (selectedGenres.length > 0) {
+          filtered = filtered.filter((series) => series.genre_ids && selectedGenres.some((gid) => series.genre_ids.includes(gid)));
+        }
+        if (selectedRating !== null) {
+          filtered = filtered.filter((series) => series.vote_average >= selectedRating);
+        }
+        setDisplaySeries(filtered.slice(0, 20));
       } catch (err) {
         console.error("Помилка завантаження топ-серіалів:", err);
         setError(t("series.loading_error") || "Не вдалося завантажити серіали");

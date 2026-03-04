@@ -329,10 +329,20 @@ export const translations: Record<Language, Record<string, string>> = {
     'comments.delete_button': 'Видалити',
     'details.your_rating': 'Ваша оцінка',
     'details.rated': 'Ви вже оцінили цей фільм',
+    'filter.genres_all': 'Усі жанри',
+    'filter.rating_all': 'Усі оцінки',
+    'filter.rating_label': 'Оцінка',
+    'filter.genres_label': 'Жанри',
   },
+
   en: {
+
+    'filter.genres_all': 'All Genres',
+    'filter.rating_all': 'All Ratings',
+    'filter.rating_label': 'Rating',
+    'filter.genres_label': 'Genres',
     'details.no_overview': 'Movie description is not available.',
-      'details.rating_hint': 'Average rating, your rating in brackets',
+    'details.rating_hint': 'Average rating, your rating in brackets',
     'details.your_rating': 'Your rating',
     'details.rated': 'You have already rated this movie',
     'comments.delete_button': 'Deleted',

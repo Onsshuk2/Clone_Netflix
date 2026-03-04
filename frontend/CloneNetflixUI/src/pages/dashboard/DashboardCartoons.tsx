@@ -9,7 +9,12 @@ import toast from "react-hot-toast";
 import { fetchTopCartoons, searchCartoonsOnly } from "../../api/tmdbDashboard";
 import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
 
-const DashboardCartoons: React.FC = () => {
+interface DashboardCartoonsProps {
+  selectedGenres: number[];
+  selectedRating: number | null;
+}
+
+const DashboardCartoons: React.FC<DashboardCartoonsProps> = ({ selectedGenres, selectedRating }) => {
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { withLoading } = useLoading();   // ← ДОДАНО ВИКЛИК ХУКА
@@ -46,7 +51,15 @@ const DashboardCartoons: React.FC = () => {
         setTopCartoons(sorted);
         setAllItems(sorted);
         setVisibleCount(20);
-        setDisplayItems(sorted.slice(0, 20));
+        // Local filtering for top cartoons only
+        let filtered = sorted;
+        if (selectedGenres.length > 0) {
+          filtered = filtered.filter((item) => item.genre_ids && selectedGenres.some((gid) => item.genre_ids.includes(gid)));
+        }
+        if (selectedRating !== null) {
+          filtered = filtered.filter((item) => item.vote_average >= selectedRating);
+        }
+        setDisplayItems(filtered.slice(0, 20));
       } catch (err) {
         console.error("Помилка завантаження топ-мультфільмів:", err);
         setError(t("cartoons.loading_error") || "Не вдалося завантажити мультфільми");

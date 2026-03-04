@@ -1,3 +1,13 @@
+// Пошук фільмів за жанром
+export const fetchByGenre = async (genreId: number, language: string): Promise<TmdbItem[]> => {
+    const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+    const res = await fetch(
+        `${TMDB_API_URL}/discover/movie?with_genres=${genreId}&language=${language}&api_key=${apiKey}`
+    );
+    if (!res.ok) throw new Error(`Genre search failed: ${res.status}`);
+    const data: TmdbPagedResponse<TmdbItem> = await res.json();
+    return data.results;
+};
 // src/api/tmdbDashboard.ts
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;

@@ -199,20 +199,31 @@ const MovieDetails: React.FC = () => {
             {/* Основний контент */}
             <div className="max-w-7xl mx-auto px-6 py-16">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-20">
-                    {details.poster_path ? (
-                        <img
-                            src={`${TMDB_IMG_BASE}${details.poster_path}`}
-                            alt={title}
-                            className="rounded-3xl shadow-2xl w-full"
-                        />
-                    ) : (
-                        <div className="w-full aspect-[2/3] bg-gray-800 rounded-3xl flex items-center justify-center text-gray-500">
-                            {t("common.poster_missing")}
+                    <div className="flex flex-col items-center gap-4">
+                        {details.poster_path ? (
+                            <img
+                                src={`${TMDB_IMG_BASE}${details.poster_path}`}
+                                alt={title}
+                                className="rounded-3xl shadow-2xl w-full"
+                            />
+                        ) : (
+                            <div className="w-full aspect-[2/3] bg-gray-800 rounded-3xl flex items-center justify-center text-gray-500">
+                                {t("common.poster_missing")}
+                            </div>
+                        )}
+                        {/* Rating Section directly under poster */}
+                        <div className="mb-2 flex flex-col items-center justify-center">
+                            <MinimalRating
+                                average={average}
+                                userRating={userRating}
+                                onRate={handleRatingChange}
+                                editable={true}
+                            />
+                            <span className="text-xs text-gray-400 mt-2">{t('details.rating_hint') || 'Середня оцінка, ваша оцінка у дужках'}</span>
                         </div>
-                    )}
+                    </div>
 
                     <div className="md:col-span-2 space-y-6">
-
                         <h2 className="text-3xl font-bold">{t("details.overview")}</h2>
                         <p className="text-gray-300 text-lg leading-relaxed">
                             {details.overview || t("details.no_overview")}
@@ -221,22 +232,6 @@ const MovieDetails: React.FC = () => {
                         {details.videoUrl && (
                             <VideoPlayer src={details.videoUrl} />
                         )}
-
-                            {/* Rating Section (moved after poster) */}
-                            <div className="mb-10 flex flex-col items-center justify-center">
-                                <MinimalRating
-                                    average={average}
-                                    userRating={userRating}
-                                    onRate={handleRatingChange}
-                                    editable={true}
-                                />
-                                <span className="text-xs text-gray-400 mt-2">{t('details.rating_hint') || 'Середня оцінка, ваша оцінка у дужках'}</span>
-                            </div>
-                            <h2 className="text-3xl font-bold">{t("details.overview")}</h2>
-                            <p className="text-gray-300 text-lg leading-relaxed">
-                                {details.overview || t("details.no_overview")}
-                            </p>
-
                     </div>
                 </div>
 

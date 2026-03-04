@@ -6,8 +6,23 @@ import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
 import AnimatedOutlet from "../components/AnimatedOutlet";
 import AdminFabButton from "../pages/admin/AdminFabButton";
+import FilterBar from "../components/FilterBar";
 
-export default function UserLayout() {
+interface UserLayoutProps {
+  selectedGenres: number[];
+  setSelectedGenres: (genreIds: number[]) => void;
+  selectedRating: number | null;
+  setSelectedRating: (rating: number | null) => void;
+}
+
+const UserLayout: React.FC<UserLayoutProps> = ({
+  selectedGenres,
+  setSelectedGenres,
+  selectedRating,
+  setSelectedRating,
+}) => {
+  // Dropdown state for filter icon
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
@@ -25,20 +40,17 @@ export default function UserLayout() {
     "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
 
   // Об'єкт користувача
-  const user = (() => {
+  // user object should update when userPlan changes
+  const [user, setUser] = useState(() => {
     if (!isAuthenticated) return null;
-
     const userJson = localStorage.getItem("user");
     if (!userJson) return null;
-
     try {
       const parsed = JSON.parse(userJson);
-
       const displayName =
         parsed.userName?.trim() ||
         (parsed.email || "").split("@")[0]?.trim() ||
         "Користувач";
-
       return {
         name: displayName,
         avatarUrl: parsed.avatarUrl || parsed.avatar || null,
@@ -48,11 +60,61 @@ export default function UserLayout() {
       console.error("Не вдалося розпарсити user з localStorage", e);
       return null;
     }
-  })();
+  });
+
+  useEffect(() => {
+    // update user object when userPlan changes
+    const syncUser = () => {
+      if (!isAuthenticated) {
+        setUser(null);
+        return;
+      }
+      const userJson = localStorage.getItem("user");
+      if (!userJson) {
+        setUser(null);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(userJson);
+        const displayName =
+          parsed.userName?.trim() ||
+          (parsed.email || "").split("@")[0]?.trim() ||
+          "Користувач";
+        setUser({
+          name: displayName,
+          avatarUrl: parsed.avatarUrl || parsed.avatar || null,
+          email: parsed.email || "",
+        });
+      } catch (e) {
+        setUser(null);
+      }
+    };
+    window.addEventListener('userPlanChanged', syncUser);
+    window.addEventListener('storage', syncUser);
+    return () => {
+      window.removeEventListener('userPlanChanged', syncUser);
+      window.removeEventListener('storage', syncUser);
+    };
+  }, [isAuthenticated]);
 
   // Дістаємо поточний план підписки з localStorage
-  const userPlanRaw = localStorage.getItem('userPlan');
-  const userPlan = userPlanRaw === 'basic' || userPlanRaw === 'standard' || userPlanRaw === 'premium' ? userPlanRaw : null;
+  const [userPlan, setUserPlan] = useState(() => {
+    const raw = localStorage.getItem('userPlan');
+    return raw === 'basic' || raw === 'standard' || raw === 'premium' ? raw : null;
+  });
+
+  useEffect(() => {
+    const syncPlan = () => {
+      const raw = localStorage.getItem('userPlan');
+      setUserPlan(raw === 'basic' || raw === 'standard' || raw === 'premium' ? raw : null);
+    };
+    window.addEventListener('storage', syncPlan);
+    window.addEventListener('userPlanChanged', syncPlan);
+    return () => {
+      window.removeEventListener('storage', syncPlan);
+      window.removeEventListener('userPlanChanged', syncPlan);
+    };
+  }, []);
 
   // Функція для коректного src аватара (така ж логіка, як у Profile)
   const getAvatarSrc = () => {
@@ -175,6 +237,25 @@ export default function UserLayout() {
           </nav>
 
           <div className="flex items-center gap-6">
+            <div className="relative">
+              <button
+                className="p-2 rounded-xl bg-gray-800/70 border border-gray-700 hover:bg-indigo-900/40 transition flex items-center"
+                onClick={() => setShowFilterDropdown((v) => !v)}
+                aria-label="Фільтри"
+              >
+                <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17V13.414a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
+              </button>
+              {showFilterDropdown && (
+                <div className="absolute right-0 mt-2 w-72 bg-gray-900/96 border border-gray-800 rounded-2xl shadow-2xl z-50 p-4 animate-fade-in">
+                  <FilterBar
+                    selectedGenres={selectedGenres}
+                    setSelectedGenres={setSelectedGenres}
+                    selectedRating={selectedRating}
+                    setSelectedRating={setSelectedRating}
+                  />
+                </div>
+              )}
+            </div>
             <LanguageSwitcher />
             <div className="relative" ref={dropdownRef}>
               <button
@@ -309,3 +390,5 @@ export default function UserLayout() {
     </div>
   );
 }
+
+export default UserLayout;
