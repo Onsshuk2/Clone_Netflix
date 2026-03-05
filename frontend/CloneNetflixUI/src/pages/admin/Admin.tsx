@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../../api/Api';
-import { Plus, X } from 'lucide-react';
+import { Layout, Plus, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: string;
@@ -37,7 +38,7 @@ const AdminUsers = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-
+  const navigate = useNavigate();
   const [form, setForm] = useState<UserFormData>({
     userName: '',
     email: '',
@@ -265,6 +266,12 @@ const AdminUsers = () => {
             className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
           >
             <Plus size={20} /> Додати користувача
+          </button>
+          <button
+            onClick={() => navigate('/admin/contents')}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
+          >
+            <Layout size={20} /> Контент
           </button>
         </div>
 
