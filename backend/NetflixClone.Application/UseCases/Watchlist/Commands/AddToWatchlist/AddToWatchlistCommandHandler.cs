@@ -1,5 +1,4 @@
 using MediatR;
-using NetflixClone.Domain.Entities;
 using NetflixClone.Domain.Interfaces;
 using NetflixClone.Application.UseCases.Watchlist.Commands.AddToWatchlist;
 
@@ -15,22 +14,22 @@ public class AddToWatchlistCommandHandler
         _watchlistRepository = watchlistRepository;
     }
 
-    public async Task<Guid> Handle(AddToWatchlistCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(AddToWatchlistCommand request, CancellationToken ct)
     {
-        var existingWatchlist = await _watchlistRepository
-            .GetByUserAndContentAsync(request.UserId, request.ContentId, cancellationToken);
+        var existing = await _watchlistRepository
+            .GetByUserAndContentAsync(request.UserId, request.ContentId, ct);
 
-        if (existingWatchlist != null)
+        if (existing != null)
             throw new InvalidOperationException("Цей фільм вже у вашому Списку на потім");
 
-        var watchlistItem = new Watchlist
+        var watchlistItem = new NetflixClone.Domain.Entities.Watchlist
         {
-            Id = Guid.NewGuid(), 
-            UserId = request.UserId, 
+            Id =  Guid.NewGuid(),
+            UserId = request.UserId,
             ContentId = request.ContentId
         };
 
-        await _watchlistRepository.AddAsync(watchlistItem, cancellationToken);
+        await _watchlistRepository.AddAsync(watchlistItem, ct);
 
         return watchlistItem.Id;
     }
