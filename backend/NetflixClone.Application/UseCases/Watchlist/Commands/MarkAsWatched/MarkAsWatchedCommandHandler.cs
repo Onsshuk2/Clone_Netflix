@@ -1,29 +1,28 @@
 using MediatR;
-using NetflixClone.Infrastructure.Persistence;
+using NetflixClone.Domain.Interfaces;
+using NetflixClone.Application.UseCases.Watchlist.Commands.MarkAsWatched;
 
 namespace NetflixClone.Application.UseCases.Watchlist.Commands.MarkAsWatched;
 
-public class MarkAsWatchedCommandHandler : IRequestHandler<MarkAsWatchedCommand>
+public class MarkAsWatchedCommandHandler 
+    : IRequestHandler<MarkAsWatchedCommand>
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IWatchlistRepository _watchlistRepository;
 
-    public MarkAsWatchedCommandHandler(ApplicationDbContext context)
+    public MarkAsWatchedCommandHandler(IWatchlistRepository watchlistRepository)
     {
-        _context = context;
+        _watchlistRepository = watchlistRepository;
     }
 
-    public async Task Handle(MarkAsWatchedCommand request, CancellationToken cancellationToken)
+    public async Task Handle(MarkAsWatchedCommand request, CancellationToken ct)
     {
-        var watchlist = await _context.Watchlists.FindAsync(new object[] { request.WatchlistId }, cancellationToken: cancellationToken);
+        var watchlist = await _watchlistRepository
+            .GetByIdAsync(request.WatchlistId, ct);
 
         if (watchlist == null)
             throw new InvalidOperationException("Елемент не знайдено");
 
         if (watchlist.UserId != request.UserId)
             throw new UnauthorizedAccessException("Ви не маєте доступу до цього елемента");
-        
-
-        _context.Watchlists.Update(watchlist);
-        await _context.SaveChangesAsync(cancellationToken);
     }
 }

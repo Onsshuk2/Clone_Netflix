@@ -23,7 +23,6 @@ public class WatchlistConfiguration : IEntityTypeConfiguration<Watchlist>
         builder.HasIndex(w => new { w.UserId, w.ContentId })
             .IsUnique()
             .HasDatabaseName("IX_Watchlist_UserId_ContentId");
-
-        builder.Property(w => w.AddedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        
     }
 }
