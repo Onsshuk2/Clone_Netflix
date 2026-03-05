@@ -21,9 +21,7 @@ public class MarkAsWatchedCommandHandler : IRequestHandler<MarkAsWatchedCommand>
 
         if (watchlist.UserId != request.UserId)
             throw new UnauthorizedAccessException("Ви не маєте доступу до цього елемента");
-
-        watchlist.IsWatched = true;
-        watchlist.WatchedAt = DateTime.UtcNow;
+        
 
         _context.Watchlists.Update(watchlist);
         await _context.SaveChangesAsync(cancellationToken);

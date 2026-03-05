@@ -5,12 +5,15 @@ using NetflixClone.Infrastructure;
 using NetflixClone.Infrastructure.Persistence;
 using Microsoft.Extensions.FileProviders;
 using Hangfire;
+using NetflixClone.Domain.Interfaces;
+using NetflixClone.Infrastructure.Persistence.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddPresentation(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddTransient<IWatchlistRepository, WatchlistRepository>();
 
 var app = builder.Build();
 
