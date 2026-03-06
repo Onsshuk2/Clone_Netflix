@@ -51,6 +51,7 @@ UserSecretsId
 *.mov
 *.avi
 *.wmv
+**/backend/CloneNetflixApi/media/
 
 # ==========================================
 # 4. REACT / VITE (frontend/CloneNetflixUI)
