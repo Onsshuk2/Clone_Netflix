@@ -32,7 +32,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return translations[language][key] || key;
   };
 
-  // Функція для отримання мови у форматі TMDB (uk-UA або en-US)
+
   const getTMDBLanguage = (): string => {
     return language === 'uk' ? 'uk-UA' : 'en-US';
   };
@@ -55,7 +55,7 @@ export const useLanguage = () => {
 export const translations: Record<Language, Record<string, string>> = {
   uk: {
     'details.no_overview': 'Опис фільму недоступний.',
-      'details.rating_hint': 'Середня оцінка, ваша оцінка у дужках',
+    'details.rating_hint': 'Середня оцінка, ваша оцінка у дужках',
     'watchLater.title': 'Список на потім',
     'watchLater.empty': 'Список порожній. Додавайте фільми, які хочете переглянути пізніше.',
     'watchLater.remove': 'Видалити',
@@ -211,7 +211,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'profile.deleting': 'Видалення...',
     'profile.deleted_success': 'Акаунт видалено',
     'profile.delete_failed': 'Не вдалося видалити акаунт',
-  
+
     'common.year': 'рік',
     'landing.tagline': 'Тисячі фільмів, серіалів, мультфільмів та аніме — українською, в один клік.',
     'landing.login': 'Увійти',
@@ -295,7 +295,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'terms.section2.item2': 'Ви не повинні порушувати права інших користувачів або третіх осіб.',
     'terms.section2.item3': 'Ви не повинні використовувати наш сервіс для розповсюдження шкідливого програмного забезпечення.',
     'terms.section2.item4': 'Ви погоджуєтесь дотримуватися всіх застосовних законів та нормативних актів при використанні нашого сервісу.',
-    'terms.section3.title': '3. Інтелектуальна власність',  
+    'terms.section3.title': '3. Інтелектуальна власність',
     'terms.section3.desc': 'Всі матеріали на нашому сайті, включаючи тексти, зображення, логотипи та інші матеріали, є власністю Nexo Cinema або ліцензовані нам. Ви не маєте права використовувати ці матеріали без нашого письмового дозволу.',
     'terms.section4.title': '4. Обмеження відповідальності',
     'terms.section4.item1': 'Наш сервіс надається "як є" без будь-яких гарантій.',
