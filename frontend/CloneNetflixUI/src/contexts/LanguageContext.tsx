@@ -33,6 +33,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
 
+
+
   const getTMDBLanguage = (): string => {
     return language === 'uk' ? 'uk-UA' : 'en-US';
   };
