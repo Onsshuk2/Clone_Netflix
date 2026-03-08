@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { Layout, Plus, X } from 'lucide-react';
+import { Layout, Plus, RefreshCw } from 'lucide-react';
 import { ApiAdminFilms } from '../../api/ApiAdminFilms'; // твій шлях
 import ContentModal from '../../components/ContentModal';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +32,7 @@ export default function AdminContents() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
     const navigate = useNavigate();
+
     useEffect(() => {
         loadContents();
     }, []);
@@ -86,25 +87,47 @@ export default function AdminContents() {
             <div className="max-w-7xl mx-auto">
                 {/* Заголовок + кнопки */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-                    <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-                        Контент
-                    </h1>
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                            Контент
+                        </h1>
 
-                    <button
-                        onClick={() => {
-                            setEditingItem(null);
-                            setModalOpen(true);
-                        }}
-                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
-                    >
-                        <Plus size={20} /> Додати контент
-                    </button>
-                    <button
-                        onClick={() => navigate('/admin/users')}
-                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
-                    >
-                        <Layout size={20} /> Панель користувачів
-                    </button>
+                        <button
+                            onClick={loadContents}
+                            disabled={loading}
+                            title="Оновити список"
+                            className={`
+                                p-2.5 rounded-full transition-all duration-200
+                                ${loading
+                                    ? 'text-gray-600 cursor-not-allowed'
+                                    : 'text-gray-400 hover:text-indigo-400 hover:bg-indigo-950/40 active:scale-95'
+                                }
+                            `}
+                        >
+                            <RefreshCw
+                                size={28}
+                                className={loading ? 'animate-spin' : ''}
+                            />
+                        </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4">
+                        <button
+                            onClick={() => {
+                                setEditingItem(null);
+                                setModalOpen(true);
+                            }}
+                            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
+                        >
+                            <Plus size={20} /> Додати контент
+                        </button>
+                        <button
+                            onClick={() => navigate('/admin/users')}
+                            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
+                        >
+                            <Layout size={20} /> Панель користувачів
+                        </button>
+                    </div>
                 </div>
 
                 {/* Стан завантаження / помилка / порожньо */}
@@ -186,7 +209,7 @@ export default function AdminContents() {
                     </div>
                 )}
 
-                {/* Модальне вікно — має бути аналогічним за стилем */}
+                {/* Модальне вікно */}
                 <ContentModal
                     isOpen={modalOpen}
                     onClose={() => {
