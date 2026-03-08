@@ -30,7 +30,7 @@ const Favorites: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Заголовок */}
-        <div className="flex items-center gap-4 mb-10">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
           <Link
             to="/dashboard"
             className="flex items-center gap-2 px-6 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition"

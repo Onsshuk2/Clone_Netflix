@@ -18,6 +18,7 @@ interface ItemDetail {
   poster: string | null;
   type: string;
   watchedAt: number;
+  rating?: number;
 }
 
 const WatchHistory: React.FC = () => {
@@ -52,6 +53,7 @@ const WatchHistory: React.FC = () => {
                 poster: d.poster_path || it.poster_path || null,
                 type: it.type,
                 watchedAt: it.watchedAt,
+                rating: d.vote_average,
               } as ItemDetail;
             } catch (e) {
               return {
@@ -60,6 +62,7 @@ const WatchHistory: React.FC = () => {
                 poster: it.poster_path || null,
                 type: it.type,
                 watchedAt: it.watchedAt,
+                rating: undefined,
               } as ItemDetail;
             }
           })
@@ -90,10 +93,10 @@ const WatchHistory: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-10">
+        <div className="flex justify-between gap-4 mb-10">
           <Link
             to="/dashboard"
-            className="flex items-center gap-2 px-6 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition"
+            className="flex gap-2 px-6 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition"
           >
             <ArrowLeft size={20} />
             {t('dashboard.back')}
@@ -173,9 +176,16 @@ const WatchHistory: React.FC = () => {
                               day: 'numeric',
                             })}
                           </p>
-                          <p className="text-gray-500 text-xs">
-                            {d.type === 'movie' ? 'Фільм' : 'Серіал'}
-                          </p>
+                          <div className="flex justify-between items-center text-xs">
+                            <p className="text-gray-500">
+                              {d.type === 'movie' ? (language === 'uk' ? 'Фільм' : 'Movie') : (language === 'uk' ? 'Серіал' : 'Series')}
+                            </p>
+                            {d.rating !== undefined && d.rating > 0 && (
+                              <p className="text-amber-400 font-bold flex items-center gap-1">
+                                ★ {d.rating.toFixed(1)}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
