@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../../api/Api';
-import { Layout, Plus, X } from 'lucide-react';
+import { Layout, Plus, X, RefreshCw } from 'lucide-react'; // ← додали RefreshCw
 import { useNavigate } from 'react-router-dom';
 
 interface User {
@@ -39,6 +39,7 @@ const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const navigate = useNavigate();
+
   const [form, setForm] = useState<UserFormData>({
     userName: '',
     email: '',
@@ -49,6 +50,7 @@ const AdminUsers = () => {
     imageFile: null,
     imagePreview: '',
   });
+
   const API_URL = import.meta.env.VITE_API_URL;
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof UserFormData, string>>>({});
 
@@ -98,9 +100,7 @@ const AdminUsers = () => {
   const loadUserForEdit = async (id: string) => {
     try {
       const res = await api.get(`/users/admin/get-user/${id}`);
-
       let user = res.data;
-
       if (typeof user === 'string') user = JSON.parse(user);
 
       setForm({
@@ -141,36 +141,16 @@ const AdminUsers = () => {
     }
 
     const fd = new FormData();
-
-    // Основні поля — camelCase (найпоширеніший варіант для сучасних API)
     fd.append('userName', form.userName.trim());
     fd.append('email', form.email.trim());
     if (form.dateOfBirth) fd.append('dateOfBirth', form.dateOfBirth);
-
-    // Аватар — спробуйте 'avatar' або 'image' — якщо не працює, змініть на те, що чекає бекенд
-    if (form.imageFile) {
-      fd.append('avatar', form.imageFile);
-    }
-
-    // Ролі як масив
+    if (form.imageFile) fd.append('avatar', form.imageFile);
     form.roles.forEach(role => fd.append('roles', role));
 
     if (isCreating) {
       fd.append('password', form.password!.trim());
       fd.append('confirmPassword', form.confirmPassword!.trim());
     }
-
-    // Дебаг — подивіться в консоль, що саме відправляється
-    console.group('📤 FormData (create/update)');
-    for (const [key, value] of fd.entries()) {
-      console.log(
-        key.padEnd(16),
-        value instanceof File
-          ? `${value.name} (${(value.size / 1024).toFixed(1)} KB)`
-          : value
-      );
-    }
-    console.groupEnd();
 
     try {
       if (isCreating) {
@@ -189,29 +169,15 @@ const AdminUsers = () => {
       resetForm();
       loadUsers();
     } catch (err: any) {
-      console.error('Помилка збереження:');
-      console.error('Статус:', err.response?.status);
-      console.error('Дані:', err.response?.data);
-
+      console.error('Помилка збереження:', err);
       let msg = 'Помилка збереження';
-
-      if (err.response?.data) {
-        if (typeof err.response.data === 'string') {
-          msg = err.response.data;
-        } else if (err.response.data.message) {
-          msg = err.response.data.message;
-        } else if (err.response.data.errors) {
-          // типова структура валідації ASP.NET
-          const firstKey = Object.keys(err.response.data.errors)[0];
-          if (firstKey) {
-            const firstError = err.response.data.errors[firstKey];
-            if (Array.isArray(firstError) && firstError.length > 0) {
-              msg = firstError[0];
-            }
-          }
+      if (err.response?.data?.message) msg = err.response.data.message;
+      else if (err.response?.data?.errors) {
+        const firstKey = Object.keys(err.response.data.errors)[0];
+        if (firstKey && Array.isArray(err.response.data.errors[firstKey])) {
+          msg = err.response.data.errors[firstKey][0];
         }
       }
-
       toast.error(msg);
     }
   };
@@ -256,23 +222,46 @@ const AdminUsers = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6 text-white">
       <div className="max-w-7xl mx-auto">
-        {/* Заголовок + кнопка */}
+        {/* Заголовок + кнопки */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-          <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-            Користувачі
-          </h1>
-          <button
-            onClick={openCreateModal}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
-          >
-            <Plus size={20} /> Додати користувача
-          </button>
-          <button
-            onClick={() => navigate('/admin/contents')}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
-          >
-            <Layout size={20} /> Контент
-          </button>
+          <div className="flex items-center gap-4">
+            <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+              Користувачі
+            </h1>
+
+            <button
+              onClick={loadUsers}
+              disabled={loading}
+              title="Оновити список"
+              className={`
+                p-2.5 rounded-full transition-all duration-200
+                ${loading
+                  ? 'text-gray-600 cursor-not-allowed'
+                  : 'text-gray-400 hover:text-indigo-400 hover:bg-indigo-950/40 active:scale-95'
+                }
+              `}
+            >
+              <RefreshCw
+                size={28}
+                className={loading ? 'animate-spin' : ''}
+              />
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-4">
+            <button
+              onClick={openCreateModal}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
+            >
+              <Plus size={20} /> Додати користувача
+            </button>
+            <button
+              onClick={() => navigate('/admin/contents')}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
+            >
+              <Layout size={20} /> Контент
+            </button>
+          </div>
         </div>
 
         {/* Фільтри */}
@@ -294,12 +283,7 @@ const AdminUsers = () => {
             <option value="Moderator">Модератори</option>
             <option value="User">Користувачі</option>
           </select>
-          <button
-            onClick={loadUsers}
-            className="bg-gray-700 hover:bg-gray-600 px-8 py-4 rounded-2xl font-bold transition"
-          >
-            Оновити
-          </button>
+          {/* Стару кнопку "Оновити" можна прибрати, бо вже є іконка зверху */}
         </div>
 
         {/* Таблиця або статуси */}
@@ -391,6 +375,7 @@ const AdminUsers = () => {
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-8">
+                  {/* ... решта форми без змін ... */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label className="block text-gray-300 font-medium mb-3">Ім'я *</label>

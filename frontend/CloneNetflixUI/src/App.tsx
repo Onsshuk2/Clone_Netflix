@@ -1,6 +1,6 @@
 // src/App.tsx
 import "./App.css";
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import UserLayout from "./common/UserLayout";
@@ -29,7 +29,7 @@ import WelcomeDashboard from "./pages/dashboard/DashboardMain";
 import MovieDetails from "./pages/dashboard/MovieDetails";
 import SubscriptionManagement from "./pages/dashboard/SubscriptionManagement";
 
-import AdminUsers from "./pages/admin/Admin";
+import AdminUsers from "./pages/admin/AdminUsers";
 import { GlobalToaster } from "./lib/toast";
 import { LoaderProvider } from "./components/GlobalLoader";
 import AdminContents from "./pages/admin/AdminContents";
