@@ -1,8 +1,28 @@
 // src/components/admin/ContentModal.jsx
 import { useState, useEffect, useRef } from 'react';
 import { ApiAdminFilms } from '../api/ApiAdminFilms';  // ← твій новий імпорт
+import toast from 'react-hot-toast';
 
-export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
+interface Genre {
+    id: string | number;
+    name?: string;
+    title?: string;
+}
+
+interface Franchise {
+    id: string | number;
+    name?: string;
+    title?: string;
+}
+
+interface Collection {
+    id: string | number;
+    name?: string;
+    title?: string;
+}
+
+
+export default function ContentModal({ isOpen, onClose, initialData, onSave }: any) {
     const isEdit = !!initialData;
 
     // Контент форма
@@ -18,17 +38,17 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
         orderInFranchise: '',
     });
 
-    const posterFileRef = useRef(null);
-    const detailsPosterFileRef = useRef(null);
-    const videoFileRef = useRef(null);
+    const posterFileRef = useRef<HTMLInputElement>(null);
+    const detailsPosterFileRef = useRef<HTMLInputElement>(null);
+    const videoFileRef = useRef<HTMLInputElement>(null);
 
-    const [genres, setGenres] = useState([]);
-    const [franchises, setFranchises] = useState([]);
-    const [collections, setCollections] = useState([]);
+    const [genres, setGenres] = useState<Genre[]>([]);
+    const [franchises, setFranchises] = useState<Franchise[]>([]);
+    const [collections, setCollections] = useState<Collection[]>([]);
 
-    const [selectedGenreIds, setSelectedGenreIds] = useState([]);
-    const [selectedFranchiseId, setSelectedFranchiseId] = useState('');
-    const [selectedCollectionIds, setSelectedCollectionIds] = useState([]);
+    const [selectedGenreIds, setSelectedGenreIds] = useState<(string | number)[]>([]);
+    const [selectedFranchiseId, setSelectedFranchiseId] = useState<string | number>('');
+    const [selectedCollectionIds, setSelectedCollectionIds] = useState<(string | number)[]>([]);
 
     // Вкладені форми
     const [showFranchiseForm, setShowFranchiseForm] = useState(false);
@@ -46,7 +66,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
         description: '',
         duration: '',
     });
-    const episodeVideoFileRef = useRef(null);
+    const episodeVideoFileRef = useRef<HTMLInputElement>(null);
     const [episodeLoading, setEpisodeLoading] = useState(false);
 
     const [activeTab, setActiveTab] = useState(0);
@@ -96,7 +116,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
         return () => { mounted = false; };
     }, [isOpen, initialData]);
 
-    const handleContentChange = (e) => {
+    const handleContentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         const numericFields = ['releaseYear', 'rating', 'ageLimit', 'duration', 'orderInFranchise'];
         setForm((prev) => ({
@@ -105,20 +125,20 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
         }));
     };
 
-    const toggleGenre = (id) => {
+    const toggleGenre = (id: string) => {
         setSelectedGenreIds((prev) =>
             prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
         );
     };
 
-    const toggleCollection = (id) => {
+    const toggleCollection = (id: string) => {
         setSelectedCollectionIds((prev) =>
             prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
         );
     };
 
     const createFranchise = async () => {
-        if (!franchiseName.trim()) return alert('Назва франшизи обов’язкова');
+        if (!franchiseName.trim()) return toast.error('Назва франшизи обов’язкова');
 
         setFranchiseLoading(true);
         try {
@@ -129,14 +149,14 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
             setFranchiseName('');
             setShowFranchiseForm(false);
         } catch (err) {
-            alert('Помилка створення франшизи: ' + err.message);
+            toast.error('Помилка створення франшизи: ' + err.message);
         } finally {
             setFranchiseLoading(false);
         }
     };
 
     const createGenre = async () => {
-        if (!genreName.trim()) return alert('Назва жанру обов’язкова');
+        if (!genreName.trim()) return toast.error('Назва жанру обов’язкова');
 
         setGenreLoading(true);
         try {
@@ -147,7 +167,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
             setGenreName('');
             setShowGenreForm(false);
         } catch (err) {
-            alert('Помилка створення жанру: ' + err.message);
+            toast.error('Помилка створення жанру: ' + err.message);
         } finally {
             setGenreLoading(false);
         }
@@ -164,15 +184,15 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
 
     const addEpisode = async () => {
         if (!episodeForm.title.trim()) {
-            alert('Назва епізоду обов’язкова');
+            toast.error('Назва епізоду обов’язкова');
             return;
         }
-        if (!episodeForm.number || episodeForm.number < 1) {
-            alert('Номер епізоду повинен бути > 0');
+        if (!episodeForm.number || Number(episodeForm.number) < 1) {
+            toast.error('Номер епізоду повинен бути > 0');
             return;
         }
         if (!initialData?.id) {
-            alert('Спочатку створіть серіал!');
+            toast.error('Спочатку створіть серіал!');
             return;
         }
 
@@ -192,12 +212,12 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
 
         try {
             await ApiAdminFilms.episodes.addToContentMultipart(initialData.id, fd);
-            alert('Епізод успішно додано!');
+            toast.success('Епізод успішно додано!');
             setEpisodeForm({ number: '', title: '', description: '', duration: '' });
             if (episodeVideoFileRef.current) episodeVideoFileRef.current.value = '';
             setShowEpisodeForm(false);
         } catch (err: any) {
-            alert('Помилка додавання епізоду:\n' + (err.message || 'Невідома помилка'));
+            toast.error('Помилка додавання епізоду:\n' + (err.message || 'Невідома помилка'));
         } finally {
             setEpisodeLoading(false);
         }
@@ -205,7 +225,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
 
     const handleContentSubmit = async () => {
         if (!form.title.trim()) {
-            alert('Назва обов’язкова');
+            toast.error('Назва обов’язкова');
             return;
         }
 
@@ -237,14 +257,14 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
         }
 
         // Франшиза
-        if (selectedFranchiseId) fd.append('FranchiseId', selectedFranchiseId);
+        if (selectedFranchiseId) fd.append('FranchiseId', selectedFranchiseId.toString());
 
         // Масиви — додаємо тільки якщо є значення
         if (selectedGenreIds.length > 0) {
-            selectedGenreIds.forEach((id) => fd.append('GenreIds', id));
+            selectedGenreIds.forEach((id) => fd.append('GenreIds', id.toString()));
         }
         if (selectedCollectionIds.length > 0) {
-            selectedCollectionIds.forEach((id) => fd.append('CollectionIds', id));
+            selectedCollectionIds.forEach((id) => fd.append('CollectionIds', id.toString()));
         }
 
         // Файли
@@ -266,11 +286,11 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
 
         try {
             await onSave(fd);
-            alert('Контент успішно створено!');
+            toast.success('Контент успішно створено!');
             onClose();
         } catch (err: any) {
             console.error('Помилка створення:', err);
-            alert('Помилка створення контенту:\n' + (err.message || 'Bad Request'));
+            toast.error('Помилка створення контенту:\n' + (err.message || 'Bad Request'));
         }
     };
 
@@ -460,7 +480,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
                             <h3 className="text-lg font-semibold">Оберіть жанри</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 {genres.map((g) => (
-                                    <label key={g.id} className="flex items-center gap-2 cursor-pointer">
+                                    <label key={g.id.toString()} className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
                                             checked={selectedGenreIds.includes(g.id)}
@@ -487,13 +507,13 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
                             <div>
                                 <label className="block mb-1.5 text-sm font-medium">Франшиза</label>
                                 <select
-                                    value={selectedFranchiseId}
+                                    value={selectedFranchiseId.toString()}
                                     onChange={(e) => setSelectedFranchiseId(e.target.value)}
                                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 focus:border-blue-500 outline-none"
                                 >
                                     <option value="">Не прив'язано</option>
                                     {franchises.map((f) => (
-                                        <option key={f.id} value={f.id}>
+                                        <option key={f.id.toString()} value={f.id.toString()}>
                                             {f.name || f.title || f.id}
                                         </option>
                                     ))}
@@ -511,7 +531,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
                                 <h3 className="text-lg font-semibold mb-3">Колекції</h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {collections.map((c) => (
-                                        <label key={c.id} className="flex items-center gap-2 cursor-pointer">
+                                        <label key={c.id.toString()} className="flex items-center gap-2 cursor-pointer">
                                             <input
                                                 type="checkbox"
                                                 checked={selectedCollectionIds.includes(c.id)}
