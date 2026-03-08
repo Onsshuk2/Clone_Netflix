@@ -276,7 +276,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
 
     if (!isOpen) return null;
 
-    const tabs = ['Основне', 'Медіа', 'Жанри', 'Франшиза/Колекції', 'Епізоди'];
+    const tabs = ['Основне', 'Жанри', 'Франшиза/Колекції', 'Епізоди', 'Медіа'];
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
@@ -420,7 +420,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
                     )}
 
                     {/* Вкладка 1: Медіа */}
-                    {activeTab === 1 && (
+                    {activeTab === 4 && (
                         <div className="space-y-6">
                             <div>
                                 <label className="block mb-1.5 text-sm font-medium">Постер (файл)</label>
@@ -455,7 +455,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
                     )}
 
                     {/* Вкладка 2: Жанри */}
-                    {activeTab === 2 && (
+                    {activeTab === 1 && (
                         <div className="space-y-6">
                             <h3 className="text-lg font-semibold">Оберіть жанри</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -482,7 +482,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
                     )}
 
                     {/* Вкладка 3: Франшиза / Колекції */}
-                    {activeTab === 3 && (
+                    {activeTab === 2 && (
                         <div className="space-y-8">
                             <div>
                                 <label className="block mb-1.5 text-sm font-medium">Франшиза</label>
@@ -527,7 +527,7 @@ export default function ContentModal({ isOpen, onClose, initialData, onSave }) {
                     )}
 
                     {/* Вкладка 4: Епізоди */}
-                    {activeTab === 4 && (
+                    {activeTab === 3 && (
                         <div className="space-y-6">
                             {form.type !== 2 ? (
                                 <p className="text-center text-gray-400 py-12">

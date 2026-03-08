@@ -103,7 +103,7 @@ export default function AdminContents() {
                         onClick={() => navigate('/admin/users')}
                         className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-bold shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
                     >
-                        <Layout size={20} /> Повернутися до панелі користувачів
+                        <Layout size={20} /> Панель користувачів
                     </button>
                 </div>
 

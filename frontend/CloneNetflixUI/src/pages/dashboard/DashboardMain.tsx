@@ -280,10 +280,10 @@ const DashboardMain: React.FC<DashboardMainProps> = ({ selectedGenres, selectedR
 
         {searchMode
           ? (
-              searchResults.length > 0
-                ? renderGrid(searchResults, "movie")
-                : <div className="text-center text-lg text-pink-400 font-bold py-12">Нічого не знайдено</div>
-            )
+            searchResults.length > 0
+              ? renderGrid(searchResults, "movie")
+              : <div className="text-center text-lg text-pink-400 font-bold py-12">Нічого не знайдено</div>
+          )
           : (
             <>
               <h2 className="text-3xl md:text-4xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 drop-shadow-lg tracking-tight">
