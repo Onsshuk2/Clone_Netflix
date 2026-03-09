@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
-// Статичний перелік жанрів
+
+// Статичні жанри (можна замінити на динамічний запит з TMDB пізніше)
 const STATIC_GENRES = [
   { id: 28, name: "Бойовик" },
   { id: 12, name: "Пригоди" },
@@ -28,76 +29,151 @@ interface FilterBarProps {
   setSelectedGenres: (genreIds: number[]) => void;
   selectedRating: number | null;
   setSelectedRating: (rating: number | null) => void;
+  onClear?: () => void;
 }
 
+const FilterBar: React.FC<FilterBarProps> = ({
+  selectedGenres = [],
+  setSelectedGenres,
+  selectedRating,
+  setSelectedRating,
+  onClear,
+}) => {
+  const { t } = useLanguage();
+  const [genres] = useState(STATIC_GENRES);
 
-const FilterBar: React.FC<FilterBarProps> = (props) => {
-  const {
-    selectedGenres,
-    setSelectedGenres,
-    selectedRating,
-    setSelectedRating,
-  } = {
-    selectedGenres: [],
-    ...props
+  const toggleGenre = (id: number) => {
+    if (selectedGenres.includes(id)) {
+      setSelectedGenres(selectedGenres.filter((g) => g !== id));
+    } else {
+      setSelectedGenres([...selectedGenres, id]);
+    }
   };
-  const { t, getTMDBLanguage } = useLanguage();
-  const [genres] = useState<{ id: number; name: string }[]>(STATIC_GENRES);
-  const [genreDropdownOpen, setGenreDropdownOpen] = useState(false);
 
-  // Senior frontend: genre pills, modern colors, smooth transitions, clear separation
+  const clearAll = () => {
+    setSelectedGenres([]);
+    setSelectedRating(null);
+    onClear?.();
+  };
+
+  const hasFilters = selectedGenres.length > 0 || selectedRating !== null;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 sm:gap-7 px-1 sm:px-0">
+      {/* Жанри – чіпи */}
       <div>
-        <label className="block text-xs font-semibold text-indigo-300 mb-2 tracking-wide">{t("filter.genres_label") || "Жанри"}</label>
-        <div className="flex flex-wrap gap-2">
+        <label className="block text-sm font-semibold text-indigo-300/90 mb-3 tracking-wide uppercase">
+          {t("filter.genres_label") || "Жанри"}
+        </label>
+
+        <div className="flex flex-wrap gap-2.5 sm:gap-3">
+          {/* Кнопка "Всі" */}
           <button
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${(Array.isArray(selectedGenres) && selectedGenres.length === 0) ? "bg-gradient-to-r from-indigo-500 to-pink-500 text-white border-indigo-500 shadow-lg" : "bg-gray-900 text-indigo-200 border-gray-700 hover:bg-indigo-950/60"}`}
-            onClick={() => setGenreDropdownOpen((v) => !v)}
             type="button"
+            onClick={() => setSelectedGenres([])}
+            className={`
+              px-4 py-2 text-sm sm:text-xs font-medium rounded-full 
+              transition-all duration-200 border touch-manipulation active:scale-95
+              ${selectedGenres.length === 0
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-transparent shadow-lg shadow-indigo-500/30"
+                : "bg-gray-800/70 text-gray-300 border-gray-700 hover:border-indigo-500/60 hover:bg-gray-800"
+              }
+            `}
           >
-            {t("filter.genres_all")}
+            {t("filter.genres_all") || "Всі"}
           </button>
-          {genreDropdownOpen && (
-            <div className="absolute mt-2 w-64 bg-gray-900/96 border border-gray-800 rounded-2xl shadow-2xl z-50 p-4 animate-fade-in">
-              <div className="flex flex-wrap gap-2">
-                {genres.map((genre) => (
-                  <button
-                    key={genre.id}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${(Array.isArray(selectedGenres) && selectedGenres.includes(genre.id)) ? "bg-gradient-to-r from-indigo-500 to-pink-500 text-white border-indigo-500 shadow-lg" : "bg-gray-900 text-indigo-200 border-gray-700 hover:bg-indigo-950/60"}`}
-                    onClick={() => {
-                      if (Array.isArray(selectedGenres) && selectedGenres.includes(genre.id)) {
-                        setSelectedGenres(selectedGenres.filter((id) => id !== genre.id));
-                      } else {
-                        setSelectedGenres([...(Array.isArray(selectedGenres) ? selectedGenres : []), genre.id]);
-                      }
-                      setGenreDropdownOpen(false);
-                    }}
-                  >
-                    {genre.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+
+          {genres.map((genre) => {
+            const isSelected = selectedGenres.includes(genre.id);
+            return (
+              <button
+                key={genre.id}
+                type="button"
+                onClick={() => toggleGenre(genre.id)}
+                className={`
+                  px-4 py-2 text-sm sm:text-xs font-medium rounded-full 
+                  transition-all duration-200 border touch-manipulation active:scale-95
+                  ${isSelected
+                    ? "bg-gradient-to-r from-indigo-600 to-pink-600 text-white border-transparent shadow-md shadow-pink-500/40"
+                    : "bg-gray-800/60 text-indigo-200/90 border-gray-700/80 hover:bg-indigo-950/50 hover:border-indigo-500/50"
+                  }
+                `}
+              >
+                {genre.name}
+              </button>
+            );
+          })}
         </div>
       </div>
-      <div className="pt-2">
-        <label htmlFor="rating-slider" className="block text-xs font-semibold text-indigo-300 mb-2 tracking-wide">{t("filter.rating_label")}</label>
-        <div className="flex items-center gap-3">
+
+      {/* Рейтинг */}
+      <div>
+        <label
+          htmlFor="rating-slider"
+          className="block text-sm font-semibold text-indigo-300/90 mb-3 tracking-wide uppercase"
+        >
+          {t("filter.rating_label") || "Мінімальний рейтинг"}
+        </label>
+
+        <div className="flex items-center gap-4">
           <input
             id="rating-slider"
             type="range"
-            min={5}
-            max={9}
+            min={0}
+            max={10}
             step={1}
-            value={selectedRating ?? 5}
-            onChange={e => setSelectedRating(Number(e.target.value))}
-            className="accent-pink-500 w-full h-2 rounded-full bg-gradient-to-r from-indigo-900 via-gray-900 to-pink-900 shadow-inner"
+            value={selectedRating ?? 0}
+            onChange={(e) => setSelectedRating(Number(e.target.value) || null)}
+            className={`
+              w-full h-2.5 sm:h-2 bg-gradient-to-r from-gray-700 via-indigo-900 to-pink-900 
+              rounded-full appearance-none cursor-pointer
+              accent-pink-500
+              [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
+              [&::-webkit-slider-thumb]:rounded-full
+              [&::-webkit-slider-thumb]:bg-gradient-to-br from-pink-500 to-indigo-600
+              [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-pink-500/40
+              [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/40
+              [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6
+              [&::-moz-range-thumb]:rounded-full
+              [&::-moz-range-thumb]:bg-gradient-to-br from-pink-500 to-indigo-600
+              [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white/40
+              transition-all duration-200
+            `}
           />
-          <span className="px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white text-xs font-bold border border-indigo-500 shadow-lg min-w-[32px] text-center">{selectedRating ?? t("filter.rating_all")}</span>
+
+          <span
+            className={`
+              min-w-[48px] px-3.5 py-2 text-sm font-bold rounded-full text-center
+              transition-all duration-300
+              ${selectedRating != null && selectedRating > 0
+                ? "bg-gradient-to-r from-indigo-600 to-pink-600 text-white shadow-md shadow-pink-500/30"
+                : "bg-gray-800/70 text-gray-400 border border-gray-700"
+              }
+            `}
+          >
+            {selectedRating ?? "—"}
+          </span>
         </div>
       </div>
+
+      {/* Очистити фільтри */}
+      {hasFilters && (
+        <button
+          type="button"
+          onClick={clearAll}
+          className={`
+            mt-3 px-6 py-3 text-sm font-medium 
+            bg-gray-800/80 hover:bg-gray-700 active:bg-gray-600
+            text-pink-300 hover:text-pink-200
+            border border-gray-700/80 hover:border-pink-500/50
+            rounded-xl transition-all duration-200 active:scale-95
+            w-full sm:w-auto
+          `}
+        >
+          {t("filter.clear") || "Очистити всі фільтри"}
+        </button>
+      )}
     </div>
   );
 };

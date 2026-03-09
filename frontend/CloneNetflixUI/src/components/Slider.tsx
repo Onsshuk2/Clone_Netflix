@@ -1,8 +1,9 @@
 // src/components/SimpleHeroSlider.tsx
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
-interface Movie {
+interface SliderItem {               // ← перейменував для ясності
     id: number;
     title?: string;
     name?: string;
@@ -11,20 +12,21 @@ interface Movie {
     release_date?: string;
     first_air_date?: string;
     overview?: string;
+    media_type?: "movie" | "tv";    // ← додаємо це поле (опціональне)
 }
 
 interface SimpleHeroSliderProps {
-    movies: Movie[];
+    movies: SliderItem[];           // можна залишити назву пропса movies або змінити на items
+    sectionTitle?: string;          // опціонально — для заголовка секції
 }
 
-const SimpleHeroSlider: React.FC<SimpleHeroSliderProps> = ({ movies }) => {
+const SimpleHeroSlider: React.FC<SimpleHeroSliderProps> = ({ movies, sectionTitle }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const slides = movies.slice(0, 20);
 
     const TMDB_IMG_BASE = import.meta.env.VITE_TMDB_IMG_BASE;
 
-    // Кількість видимих карток залежно від екрану
     const getVisibleCards = () => {
         if (typeof window === "undefined") return 5;
         if (window.innerWidth >= 1536) return 6;
@@ -43,7 +45,6 @@ const SimpleHeroSlider: React.FC<SimpleHeroSliderProps> = ({ movies }) => {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    // Автопрокрутка
     useEffect(() => {
         if (slides.length <= visibleCards) return;
 
@@ -69,9 +70,14 @@ const SimpleHeroSlider: React.FC<SimpleHeroSliderProps> = ({ movies }) => {
     if (slides.length === 0) return null;
 
     return (
-        <section className="mb-24">
+        <section>
+            {sectionTitle && (
+                <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 px-2">
+                    {sectionTitle}
+                </h2>
+            )}
+
             <div className="relative group">
-                {/* Стрілки — з'являються при наведенні */}
                 <button
                     onClick={prev}
                     className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-gray-900/70 hover:bg-gray-900 p-4 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
@@ -90,7 +96,6 @@ const SimpleHeroSlider: React.FC<SimpleHeroSliderProps> = ({ movies }) => {
                     </svg>
                 </button>
 
-                {/* Ряд карток */}
                 <div className="overflow-hidden">
                     <div
                         className="flex transition-transform duration-700 ease-in-out"
@@ -98,18 +103,20 @@ const SimpleHeroSlider: React.FC<SimpleHeroSliderProps> = ({ movies }) => {
                             transform: `translateX(-${currentIndex * (100 / visibleCards)}%)`,
                         }}
                     >
-                        {slides.map((movie) => (
+                        {slides.map((item) => (
                             <div
-                                key={movie.id}
+                                key={item.id}
                                 className="flex-shrink-0 px-3"
                                 style={{ width: `${100 / visibleCards}%` }}
                             >
-                                <Link to={`/details/movie/${movie.id}`} className="block group/item relative overflow-hidden rounded-2xl">
-                                    {/* Постер */}
-                                    {movie.poster_path ? (
+                                <Link
+                                    to={`/details/${item.media_type || "movie"}/${item.id}`}
+                                    className="block group/item relative overflow-hidden rounded-2xl"
+                                >
+                                    {item.poster_path ? (
                                         <img
-                                            src={`${TMDB_IMG_BASE}${movie.poster_path}`}
-                                            alt={movie.title || movie.name}
+                                            src={`${TMDB_IMG_BASE}${item.poster_path}`}
+                                            alt={item.title || item.name}
                                             className="w-full h-[220px] md:h-[320px] object-cover object-center transition-transform duration-500 group-hover/item:scale-110"
                                             loading="lazy"
                                             style={{ aspectRatio: '2/3', minHeight: 220, maxHeight: 320 }}
@@ -120,24 +127,22 @@ const SimpleHeroSlider: React.FC<SimpleHeroSliderProps> = ({ movies }) => {
                                         </div>
                                     )}
 
-                                    {/* Overlay з інформацією — з'являється при наведенні */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
                                         <h3 className="text-xl font-bold text-white mb-2 line-clamp-2">
-                                            {movie.title || movie.name}
+                                            {item.title || item.name}
                                         </h3>
                                         <div className="flex items-center justify-between">
                                             <p className="text-gray-300 text-sm">
-                                                {(movie.release_date || movie.first_air_date || "").slice(0, 4) || "Невідомо"}
+                                                {(item.release_date || item.first_air_date || "").slice(0, 4) || "Невідомо"}
                                             </p>
-                                            {movie.vote_average > 0 && (
+                                            {item.vote_average > 0 && (
                                                 <p className="text-yellow-400 font-bold flex items-center gap-1">
-                                                    ⭐ {movie.vote_average.toFixed(1)}
+                                                    ⭐ {item.vote_average.toFixed(1)}
                                                 </p>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Плавна тінь при наведенні */}
                                     <div className="absolute inset-0 shadow-2xl opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 pointer-events-none" />
                                 </Link>
                             </div>
@@ -145,7 +150,6 @@ const SimpleHeroSlider: React.FC<SimpleHeroSliderProps> = ({ movies }) => {
                     </div>
                 </div>
 
-                {/* Точки знизу */}
                 {slides.length > visibleCards && (
                     <div className="flex justify-center gap-2 mt-8">
                         {Array.from({ length: slides.length - visibleCards + 1 }).map((_, i) => (

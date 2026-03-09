@@ -3,12 +3,27 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useFavorites } from "../../lib/useFavorites";
-import { Heart } from "lucide-react";
-import { Clock } from "lucide-react";
+import { Heart, Clock, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
-
-import { fetchTopRatedMovies, searchMoviesOnly } from "../../api/tmdbDashboard";
+import { fetchTopRatedMovies, searchMoviesOnly, fetchNewMovies } from "../../api/tmdbDashboard";
 import { useLoading } from "../../lib/useLoading";
+import SearchBar from "../../components/SearchBar";
+import SimpleHeroSlider from "../../components/Slider";
+
+
+interface Movie {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  vote_average: number;
+  release_date?: string;
+  first_air_date?: string;
+  media_type?: "movie" | "tv";
+  genre_ids?: number[];
+}
+
+const WATCH_LATER_KEY = "watchLaterList";
 
 interface DashboardMoviesProps {
   selectedGenres: number[];
@@ -19,296 +34,334 @@ const DashboardMovies: React.FC<DashboardMoviesProps> = ({ selectedGenres, selec
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { withLoading } = useLoading();
-
-  const [displayMovies, setDisplayMovies] = useState<any[]>([]);
-  const [allMovies, setAllMovies] = useState<any[]>([]);
+  const [newMovies, setNewMovies] = useState<Movie[]>([]);
+  const [topMovies, setTopMovies] = useState<Movie[]>([]);
+  const [displayMovies, setDisplayMovies] = useState<Movie[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
-  const [searchMode, setSearchMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [displaySearchTerm, setDisplaySearchTerm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [top100Movies, setTop100Movies] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Movie[]>([]);
+  const [searchMode, setSearchMode] = useState(false);
+  const [watchLaterList, setWatchLaterList] = useState<any[]>(() =>
+    JSON.parse(localStorage.getItem(WATCH_LATER_KEY) || "[]")
+  );
 
   const language = getTMDBLanguage();
 
-  // Завантаження топ-100
+  // Завантаження топ-фільмів
   useEffect(() => {
     withLoading(async () => {
-      setError(null);
-      setSearchMode(false);
-      setSearchTerm("");
-      setDisplaySearchTerm("");
-
       try {
-        const results = await fetchTopRatedMovies(language, 5);
-
-        setTop100Movies(results);
-        setAllMovies(results);
+        const results = await fetchTopRatedMovies(language, 5); // топ-100 (5 сторінок по 20)
+        setTopMovies(results);
+        setDisplayMovies(results.slice(0, 20));
         setVisibleCount(20);
-        // Local filtering for top movies only
-        let filtered = results;
-        if (selectedGenres.length > 0) {
-          filtered = filtered.filter((movie) => movie.genre_ids && selectedGenres.some((gid) => movie.genre_ids.includes(gid)));
-        }
-        if (selectedRating !== null) {
-          filtered = filtered.filter((movie) => movie.vote_average >= selectedRating);
-        }
-        setDisplayMovies(filtered.slice(0, 20));
       } catch (err) {
-        console.error("Помилка завантаження:", err);
-        setError(t("movies.loading_error"));
-        setAllMovies([]);
-        setDisplayMovies([]);
+        console.error("Помилка завантаження топ-фільмів:", err);
+        toast.error(t("movies.loading_error") || "Помилка завантаження");
       }
     });
   }, [language]);
 
+  // Синхронізація списку "На потім"
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const handleStorage = () => {
+      setWatchLaterList(JSON.parse(localStorage.getItem(WATCH_LATER_KEY) || "[]"));
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  // Пошук
-  const searchMovies = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) return;
+  // Фільтрація за жанрами/рейтингом (локальна)
+  useEffect(() => {
+    let filtered = topMovies;
 
-    const term = searchTerm.trim();
-    if (term.length < 2) {
-      setError(t("movies.search_min_chars"));
+    if (selectedGenres.length > 0) {
+      filtered = filtered.filter((m) =>
+        m.genre_ids?.some((gid) => selectedGenres.includes(gid))
+      );
+    }
+
+    if (selectedRating !== null) {
+      filtered = filtered.filter((m) => m.vote_average >= selectedRating);
+    }
+
+    setDisplayMovies(filtered.slice(0, visibleCount));
+  }, [selectedGenres, selectedRating, topMovies, visibleCount]);
+
+  useEffect(() => {
+    withLoading(async () => {
+      try {
+        const [nowPlaying, topRated] = await Promise.all([
+          fetchNewMovies(language),
+          fetchTopRatedMovies(language, 5),
+        ]);
+        setNewMovies(nowPlaying.slice(0, 10));
+        setTopMovies(topRated);
+        setVisibleCount(20);
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  }, [language]);
+
+  // Пошук
+  const searchContent = async (term: string) => {
+    setSearchTerm(term);
+    if (!term.trim()) {
+      setSearchMode(false);
+      setSearchResults([]);
       return;
     }
 
     await withLoading(async () => {
-      setError(null);
-      setSearchMode(true);
-      setVisibleCount(20);
-      setDisplaySearchTerm(term);
-
       try {
-        const results = await searchMoviesOnly(term, language, 1);
-        const limited = results.slice(0, 100);
-        setAllMovies(limited);
-        setDisplayMovies(limited.slice(0, 20));
+        setSearchMode(true);
+        const results = await searchMoviesOnly(term.trim(), language, 1);
+        setSearchResults(results.slice(0, 100)); // ліміт 100
+        setDisplayMovies(results.slice(0, 20));
+        setVisibleCount(20);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
         console.error("Помилка пошуку:", err);
-        setError(t("movies.connection_error"));
-        setAllMovies([]);
-        setDisplayMovies([]);
+        toast.error(t("movies.search_error") || "Помилка пошуку");
       }
     });
   };
 
-  const resetToTop100 = () => {
+  const resetToTop = () => {
     setSearchMode(false);
     setSearchTerm("");
-    setDisplaySearchTerm("");
-    setError(null);
-    setAllMovies(top100Movies);
+    setSearchResults([]);
+    setDisplayMovies(topMovies.slice(0, 20));
     setVisibleCount(20);
-    setDisplayMovies(top100Movies.slice(0, 20));
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const loadMore = () => {
-    const nextCount = Math.min(visibleCount + 20, allMovies.length);
+    const nextCount = Math.min(visibleCount + 20, (searchMode ? searchResults : topMovies).length);
     setVisibleCount(nextCount);
-    setDisplayMovies(allMovies.slice(0, nextCount));
+    setDisplayMovies((searchMode ? searchResults : topMovies).slice(0, nextCount));
   };
 
-  const [watchLaterList, setWatchLaterList] = useState<any[]>(() => {
-    return JSON.parse(localStorage.getItem("watchLaterList") || "[]");
-  });
+  const renderGrid = () => {
+    const items = searchMode ? searchResults : topMovies;
+    return (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          {items.slice(0, visibleCount).map((movie) => {
+            const type = movie.media_type || "movie";
+            const isFav = isFavorite(movie.id, type);
+            const isWatchLater = watchLaterList.some((m: any) => m.id === movie.id);
 
-  useEffect(() => {
-    const handleStorage = () => {
-      setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, []);
+            return (
+              <div
+                key={movie.id}
+                className="relative group bg-gradient-to-br from-gray-900/80 via-gray-800/60 to-gray-900/90 rounded-3xl shadow-2xl p-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-3xl"
+              >
+                <Link
+                  to={`/details/${type}/${movie.id}`}
+                  className="block overflow-hidden rounded-2xl poster-hover relative"
+                >
+                  <img
+                    src={
+                      movie.poster_path
+                        ? `${import.meta.env.VITE_TMDB_IMG_BASE}${movie.poster_path}`
+                        : "/no-image.png"
+                    }
+                    className="rounded-2xl w-full h-[340px] md:h-[440px] object-cover object-center transition-transform duration-500 poster-img"
+                    alt={movie.title || movie.name || "Poster"}
+                    style={{ aspectRatio: "2/3", minHeight: 220, maxHeight: 320 }}
+                    loading="lazy"
+                  />
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
+                    <h3 className="text-lg md:text-xl font-bold text-white mb-2 line-clamp-2">
+                      {movie.title || movie.name}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <p className="text-gray-300 text-sm">
+                        {(movie.release_date || movie.first_air_date || "").slice(0, 4) || "Невідомо"}
+                      </p>
+                      {movie.vote_average > 0 && (
+                        <p className="text-yellow-400 font-bold flex items-center gap-1">
+                          ⭐ {movie.vote_average.toFixed(1)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                </Link>
 
-  useEffect(() => {
-    setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
-  }, [language]);
+                {/* Улюблене */}
+                <button
+                  onClick={() => {
+                    const result = toggleFavorite({
+                      id: movie.id,
+                      mediaType: type,
+                      title: movie.title || movie.name || "",
+                      posterPath: movie.poster_path,
+                      voteAverage: movie.vote_average,
+                      releaseDate: movie.release_date || movie.first_air_date,
+                    });
+                    toast.success(
+                      result
+                        ? t("favorites.added") || "Додано до улюблених"
+                        : t("favorites.removed") || "Видалено з улюблених"
+                    );
+                  }}
+                  className={`
+                    absolute top-4 right-4 z-20
+                    p-2.5 rounded-full
+                    bg-gradient-to-r from-red-600 via-rose-600 to-pink-600
+                    text-white
+                    shadow-lg shadow-red-900/40
+                    transition-all duration-300
+                    hover:scale-110 hover:shadow-xl hover:shadow-rose-700/50
+                    active:scale-95 active:from-red-700 active:via-rose-700 active:to-pink-700
+                    ${isFav
+                      ? "from-pink-600 via-rose-600 to-red-600 hover:from-pink-500 hover:via-rose-500 hover:to-red-500 shadow-rose-900/60"
+                      : ""}
+                  `}
+                  title={isFav ? t("favorites.remove") : t("favorites.add")}
+                >
+                  <Heart
+                    size={26}
+                    className={`
+                      transition-all duration-400
+                      drop-shadow-md
+                      ${isFav ? "fill-red-100 text-red-100 animate-heartbeat" : "text-white/90 group-hover:text-white"}
+                    `}
+                  />
+                </button>
+
+                {/* На потім */}
+                <button
+                  onClick={() => {
+                    let updated;
+                    if (isWatchLater) {
+                      updated = watchLaterList.filter((m: any) => m.id !== movie.id);
+                    } else {
+                      updated = [...watchLaterList, {
+                        id: movie.id,
+                        type,
+                        title: movie.title || movie.name || "",
+                        posterUrl: movie.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${movie.poster_path}` : undefined,
+                        releaseDate: movie.release_date || movie.first_air_date,
+                      }];
+                    }
+                    setWatchLaterList(updated);
+                    localStorage.setItem(WATCH_LATER_KEY, JSON.stringify(updated));
+                    toast.success(
+                      !isWatchLater
+                        ? t("watchLater.added") || "Додано до списку «На потім»"
+                        : t("watchLater.removed") || "Видалено зі списку «На потім»"
+                    );
+                  }}
+                  className={`
+                    absolute top-4 left-4 z-20
+                    p-2.5 rounded-full
+                    bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
+                    text-white
+                    shadow-lg shadow-indigo-900/40
+                    transition-all duration-300
+                    hover:scale-110 hover:shadow-xl hover:shadow-indigo-700/50
+                    active:scale-95 active:from-blue-700 active:via-indigo-700 active:to-purple-700
+                    ${isWatchLater
+                      ? "from-pink-600 via-rose-600 to-purple-600 hover:from-pink-500 hover:via-rose-500 hover:to-purple-500 shadow-rose-900/50"
+                      : ""}
+                  `}
+                  title={isWatchLater ? t("watchLater.remove") : t("watchLater.add")}
+                >
+                  <Clock
+                    size={26}
+                    className={`
+                      transition-all duration-300
+                      ${isWatchLater
+                        ? "text-pink-100 drop-shadow-md animate-pulse-slow"
+                        : "text-white/90 group-hover:text-white drop-shadow-md"}
+                    `}
+                  />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {visibleCount < (searchMode ? searchResults.length : topMovies.length) && (
+          <div className="text-center mt-12">
+            <button
+              onClick={loadMore}
+              className="px-12 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-bold text-lg transition shadow-lg hover:shadow-xl hover:scale-105"
+            >
+              {t("common.load_more") || "Завантажити ще"}
+            </button>
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12 max-w-7xl">
+      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
 
-        <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
-          {t("movies.welcome")}
+        {!searchMode && newMovies.length > 0 && (
+          <SimpleHeroSlider movies={newMovies} />
+        )}
+
+        {/* Кнопка повернення при пошуку */}
+        {searchMode && (
+          <div className="mb-8 flex items-center">
+            <button
+              onClick={resetToTop}
+              className={`
+                group flex items-center gap-2 sm:gap-3
+                px-4 sm:px-6 py-2.5 sm:py-3
+                bg-gradient-to-r from-indigo-600/90 to-purple-600/90
+                hover:from-indigo-500 hover:to-purple-500
+                active:from-indigo-700 active:to-purple-700
+                text-white font-medium text-sm sm:text-base
+                rounded-full shadow-lg shadow-indigo-900/40
+                transition-all duration-300
+                hover:scale-105 hover:shadow-xl hover:shadow-indigo-700/50
+                active:scale-95
+                backdrop-blur-sm border border-indigo-500/30
+              `}
+            >
+              <ArrowLeft
+                size={20}
+                className="group-hover:-translate-x-1 transition-transform duration-300"
+              />
+              {t("dashboard.back_to_recommendations") || "Повернутися до рекомендацій"}
+            </button>
+          </div>
+        )}
+        {/* Пошук */}
+        <SearchBar
+          onSearch={searchContent}
+          initialValue={searchTerm}
+          placeholder={t("movies.search_placeholder") || "Пошук фільмів..."}
+          className="mt-6 mb-10"
+        />
+
+
+
+        {/* Заголовок */}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-10 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+          {searchMode
+            ? `${t("dashboard.search_results")} "${searchTerm}"`
+            : t("movies.top_rated") || "Топ фільмів"}
         </h1>
 
-        <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
-          {searchMode
-            ? `${t("dashboard.search_results")} "${displaySearchTerm}"`
-            : t("movies.top_100")}
-        </p>
-
-        {searchMode && (
-          <div className="text-center mb-8">
-            <button
-              onClick={resetToTop100}
-              className="px-8 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold text-lg transition shadow"
-            >
-              {t("dashboard.back")}
-            </button>
-          </div>
-        )}
-
-        {/* SEARCH */}
-        <form onSubmit={searchMovies} className="max-w-3xl mx-auto mb-16">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t("movies.search_placeholder")}
-              className="flex-1 px-6 py-5 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-lg placeholder-gray-500 transition"
-            />
-            <button
-              type="submit"
-              className="px-12 py-5 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg transition shadow-lg"
-            >
-              {t("common.find_button")}
-            </button>
-          </div>
-        </form>
-
-        {error && (
-          <div className="text-center text-red-400 text-xl bg-red-900/20 py-6 rounded-lg mb-12">
-            {error}
-          </div>
-        )}
-
-        {displayMovies.length === 0 ? (
+        {/* Контент */}
+        {displayMovies.length === 0 && !searchMode ? (
           <div className="text-center py-20 text-gray-400 text-xl">
-            {t("movies.no_results")}
+            {t("movies.no_results") || "Нічого не знайдено"}
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-              {displayMovies.map((movie) => {
-                const title = movie.title || movie.original_title || "Без назви";
-                const year = movie.release_date?.slice(0, 4) || t("common.unknown");
-                const favorite = isFavorite(movie.id, "movie");
-                const isWatchLater = watchLaterList.some((m: any) => m.id === movie.id);
-                return (
-                  <div key={movie.id} className="group relative h-full">
-                    <Link
-                      to={`/details/movie/${movie.id}`}
-                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
-                    >
-                      {movie.poster_path ? (
-                        <img
-                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${movie.poster_path}`}
-                          alt={title}
-                          className="w-full h-80 object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                          {t("common.poster_missing")}
-                        </div>
-                      )}
-
-                      <div className="p-5 flex flex-col justify-between flex-grow">
-                        <h3 className="text-lg font-semibold line-clamp-2">
-                          {title}
-                        </h3>
-
-                        <div>
-                          <p className="text-gray-400 text-sm">
-                            {year} {t("common.year")}
-                          </p>
-
-                          {movie.vote_average > 0 && (
-                            <p className="text-yellow-400 mt-1 font-bold">
-                              ⭐ {movie.vote_average.toFixed(1)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-
-                    {/* Кнопка "на потім" (лівий верх) */}
-                    <button
-                      onClick={() => {
-                        let updated;
-                        if (isWatchLater) {
-                          updated = watchLaterList.filter((m: any) => m.id !== movie.id);
-                        } else {
-                          updated = [...watchLaterList, {
-                            id: movie.id,
-                            title: movie.title || movie.original_title || "",
-                            posterUrl: movie.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${movie.poster_path}` : undefined,
-                          }];
-                        }
-                        setWatchLaterList(updated);
-                        localStorage.setItem("watchLaterList", JSON.stringify(updated));
-                        if (!isWatchLater) {
-                          toast.success(t('watchLater.added'));
-                        } else {
-                          toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
-                        }
-                      }}
-                      className={`absolute top-3 left-3 p-2 rounded-full z-10 bg-blue-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-blue-600"}`}
-                      title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
-                    >
-                      <Clock size={22} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
-                    </button>
-
-                    {/* Кнопка улюблене (правий верх) */}
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-
-                        toggleFavorite({
-                          id: movie.id,
-                          mediaType: "movie",
-                          title,
-                          posterPath: movie.poster_path,
-                          voteAverage: movie.vote_average,
-                          releaseDate: movie.release_date,
-                        });
-
-                        toast.success(
-                          favorite
-                            ? t("favorites.removed")
-                            : t("favorites.added")
-                        );
-                      }}
-                      className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition z-10 opacity-0 group-hover:opacity-100"
-                    >
-                      <Heart
-                        size={24}
-                        className={
-                          favorite
-                            ? "fill-red-500 text-red-500"
-                            : "text-white"
-                        }
-                      />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {visibleCount < allMovies.length && (
-              <div className="text-center mt-12">
-                <button
-                  onClick={loadMore}
-                  className="px-12 py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg transition shadow-lg"
-                >
-                  {t("common.load_more")}
-                </button>
-              </div>
-            )}
-          </>
+          renderGrid()
         )}
-      </div>
+      </main>
     </div>
   );
 };

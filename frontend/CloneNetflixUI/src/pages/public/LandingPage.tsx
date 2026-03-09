@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { $t } from "../../lib/toast";
-import SimpleHeroSlider from "../../lib/Slider";
+import SimpleHeroSlider from "../../components/Slider";
 import { useLanguage } from "../../contexts/LanguageContext";
 
 const TMDB_API_URL = import.meta.env.VITE_TMDB_API_URL;

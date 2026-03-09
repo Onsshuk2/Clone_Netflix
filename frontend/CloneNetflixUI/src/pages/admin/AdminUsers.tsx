@@ -225,7 +225,7 @@ const AdminUsers = () => {
         {/* Заголовок + кнопки */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
           <div className="flex items-center gap-4">
-            <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+            <h1 className="mb-2 text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
               Користувачі
             </h1>
 

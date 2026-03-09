@@ -3,11 +3,24 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useFavorites } from "../../lib/useFavorites";
-import { Heart, Clock } from "lucide-react";
+import { Heart, Clock, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
-
-import { fetchTopRatedSeries, searchSeriesOnly } from "../../api/tmdbDashboard";
+import { fetchTopRatedSeries, searchSeriesOnly, fetchNewSeries } from "../../api/tmdbDashboard";
 import { useLoading } from "../../lib/useLoading";
+import SearchBar from "../../components/SearchBar";
+import SimpleHeroSlider from "../../components/Slider";
+
+interface SeriesItem {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  vote_average: number;
+  release_date?: string;
+  first_air_date?: string;
+  media_type?: "tv";
+  genre_ids?: number[];
+}
 
 interface DashboardSeriesProps {
   selectedGenres: number[];
@@ -19,109 +32,76 @@ const DashboardSeries: React.FC<DashboardSeriesProps> = ({ selectedGenres, selec
   const { isFavorite, toggleFavorite } = useFavorites();
   const { withLoading } = useLoading();
 
-  const [displaySeries, setDisplaySeries] = useState<any[]>([]);
-  const [allSeries, setAllSeries] = useState<any[]>([]);
-  const [visibleCount, setVisibleCount] = useState(20);
-  const [loading, setLoading] = useState(true);
-  const [searchMode, setSearchMode] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [displaySearchTerm, setDisplaySearchTerm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [topSeries, setTopSeries] = useState<any[]>([]);
+  const [newSeries, setNewSeries] = useState<SeriesItem[]>([]);
+  const [topSeries, setTopSeries] = useState<SeriesItem[]>([]);
 
-  const [watchLaterList, setWatchLaterList] = useState<any[]>(() => {
-    return JSON.parse(localStorage.getItem("watchLaterList") || "[]");
-  });
+  const [filteredSeries, setFilteredSeries] = useState<SeriesItem[]>([]);
+  const [visibleCount, setVisibleCount] = useState(20);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<SeriesItem[]>([]);
+  const [searchMode, setSearchMode] = useState(false);
+  const [watchLaterList, setWatchLaterList] = useState<any[]>(() =>
+    JSON.parse(localStorage.getItem("watchLaterList") || "[]")
+  );
 
   const language = getTMDBLanguage();
 
+  // Завантаження серіалів (Нових та Топ)
   useEffect(() => {
     withLoading(async () => {
-      setLoading(true);
-      setError(null);
-      setSearchMode(false);
-      setSearchTerm("");
-      setDisplaySearchTerm("");
-
       try {
-        const top100 = await fetchTopRatedSeries(language, 5);
-
-        setTopSeries(top100);
-        setAllSeries(top100);
+        const [nowPlaying, topRated] = await Promise.all([
+          fetchNewSeries(language),
+          fetchTopRatedSeries(language, 5),
+        ]);
+        setNewSeries(nowPlaying.slice(0, 10) as unknown as SeriesItem[]);
+        setTopSeries(topRated as unknown as SeriesItem[]);
         setVisibleCount(20);
-        // Local filtering for top series only
-        let filtered = top100;
-        if (selectedGenres.length > 0) {
-          filtered = filtered.filter((series) => series.genre_ids && selectedGenres.some((gid) => series.genre_ids.includes(gid)));
-        }
-        if (selectedRating !== null) {
-          filtered = filtered.filter((series) => series.vote_average >= selectedRating);
-        }
-        setDisplaySeries(filtered.slice(0, 20));
       } catch (err) {
-        console.error("Помилка завантаження топ-серіалів:", err);
-        setError(t("series.loading_error") || "Не вдалося завантажити серіали");
-        setAllSeries([]);
-        setDisplaySeries([]);
-      } finally {
-        setLoading(false);
+        console.error("Помилка завантаження серіалів:", err);
+        toast.error(t("series.loading_error") || "Помилка завантаження");
       }
     });
-  }, [language, t]);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  useEffect(() => {
-    const handleStorage = () => {
-      setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, []);
-
-  useEffect(() => {
-    setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
   }, [language]);
 
-  const searchSeries = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) return;
+  // Фільтрація
+  useEffect(() => {
+    let source = searchMode ? searchResults : topSeries;
+    let filtered = source;
 
-    const term = searchTerm.trim();
-    if (term.length < 2) {
-      setError(t("series.search_min_chars") || "Мінімум 2 символи");
+    if (selectedGenres.length > 0) {
+      filtered = filtered.filter((item) =>
+        item.genre_ids?.some((gid) => selectedGenres.includes(gid))
+      );
+    }
+
+    if (selectedRating !== null) {
+      filtered = filtered.filter((item) => item.vote_average >= selectedRating);
+    }
+
+    setFilteredSeries(filtered);
+    setVisibleCount(20);
+  }, [selectedGenres, selectedRating, topSeries, searchResults, searchMode]);
+
+  // Пошук
+  const searchContent = async (term: string) => {
+    setSearchTerm(term);
+    if (!term.trim()) {
+      setSearchMode(false);
+      setSearchResults([]);
       return;
     }
 
     await withLoading(async () => {
-      setLoading(true);
-      setError(null);
-      setSearchMode(true);
-      setVisibleCount(20);
-      setDisplaySearchTerm(term);
-
       try {
-        const filteredResults = await searchSeriesOnly(term, language, 1);
-
-        if (filteredResults.length > 0) {
-          setAllSeries(filteredResults);
-          setDisplaySeries(filteredResults.slice(0, 20));
-        } else {
-          setError(t("series.search_error") || "Нічого не знайдено");
-          setAllSeries([]);
-          setDisplaySeries([]);
-        }
+        setSearchMode(true);
+        const results = await searchSeriesOnly(term.trim(), language, 1);
+        setSearchResults(results.slice(0, 100) as unknown as SeriesItem[]);
+        setVisibleCount(20);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
         console.error("Помилка пошуку серіалів:", err);
-        setError(t("series.connection_error") || "Помилка з'єднання");
-        setAllSeries([]);
-        setDisplaySeries([]);
-      } finally {
-        setLoading(false);
+        toast.error(t("series.search_error") || "Помилка пошуку");
       }
     });
   };
@@ -129,188 +109,244 @@ const DashboardSeries: React.FC<DashboardSeriesProps> = ({ selectedGenres, selec
   const resetToTop = () => {
     setSearchMode(false);
     setSearchTerm("");
-    setDisplaySearchTerm("");
-    setError(null);
-    setAllSeries(topSeries);
+    setSearchResults([]);
     setVisibleCount(20);
-    setDisplaySeries(topSeries.slice(0, 20));
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const loadMore = () => {
-    if (loading) return;
-    const nextCount = Math.min(visibleCount + 20, allSeries.length);
+    const nextCount = Math.min(visibleCount + 20, filteredSeries.length);
     setVisibleCount(nextCount);
-    setDisplaySeries(allSeries.slice(0, nextCount));
+  };
+
+  const renderGrid = () => {
+    const visibleItems = filteredSeries.slice(0, visibleCount);
+
+    return (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          {visibleItems.map((series) => {
+            const type = "tv"; // серіали завжди tv
+            const isFav = isFavorite(series.id, type);
+            const isWatchLater = watchLaterList.some(
+              (m) => m.id === series.id && m.type === type
+            );
+
+            return (
+              <div
+                key={series.id}
+                className="relative group bg-gradient-to-br from-gray-900/80 via-gray-800/60 to-gray-900/90 rounded-3xl shadow-2xl p-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-3xl"
+              >
+                <Link
+                  to={`/details/tv/${series.id}`}
+                  className="block overflow-hidden rounded-2xl poster-hover relative"
+                >
+                  <img
+                    src={
+                      series.poster_path
+                        ? `${import.meta.env.VITE_TMDB_IMG_BASE}${series.poster_path}`
+                        : "/no-image.png"
+                    }
+                    className="rounded-2xl w-full h-[340px] md:h-[440px] object-cover object-center transition-transform duration-500 poster-img"
+                    alt={series.name || series.title || "Poster"}
+                    style={{ aspectRatio: "2/3", minHeight: 220, maxHeight: 320 }}
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
+                    <h3 className="text-lg md:text-xl font-bold text-white mb-2 line-clamp-2">
+                      {series.name || series.title}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <p className="text-gray-300 text-sm">
+                        {(series.first_air_date || "").slice(0, 4) || "Невідомо"}
+                      </p>
+                      {series.vote_average > 0 && (
+                        <p className="text-yellow-400 font-bold flex items-center gap-1">
+                          ⭐ {series.vote_average.toFixed(1)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                </Link>
+
+                {/* Улюблене */}
+                <button
+                  onClick={() => {
+                    const result = toggleFavorite({
+                      id: series.id,
+                      mediaType: type,
+                      title: series.name || series.title || "",
+                      posterPath: series.poster_path,
+                      voteAverage: series.vote_average,
+                      releaseDate: series.first_air_date,
+                    });
+                    toast.success(
+                      result
+                        ? t("favorites.added") || "Додано до улюблених"
+                        : t("favorites.removed") || "Видалено з улюблених"
+                    );
+                  }}
+                  className={`
+                    absolute top-4 right-4 z-20
+                    p-2.5 rounded-full
+                    bg-gradient-to-r from-red-600 via-rose-600 to-pink-600
+                    text-white
+                    shadow-lg shadow-red-900/40
+                    transition-all duration-300
+                    hover:scale-110 hover:shadow-xl hover:shadow-rose-700/50
+                    active:scale-95 active:from-red-700 active:via-rose-700 active:to-pink-700
+                    ${isFav
+                      ? "from-pink-600 via-rose-600 to-red-600 hover:from-pink-500 hover:via-rose-500 hover:to-red-500 shadow-rose-900/60"
+                      : ""}
+                  `}
+                  title={isFav ? t("favorites.remove") : t("favorites.add")}
+                >
+                  <Heart
+                    size={26}
+                    className={`
+                      transition-all duration-400
+                      drop-shadow-md
+                      ${isFav ? "fill-red-100 text-red-100 animate-heartbeat" : "text-white/90 group-hover:text-white"}
+                    `}
+                  />
+                </button>
+
+                {/* На потім */}
+                <button
+                  onClick={() => {
+                    const normalizedType = "tv";
+
+                    const isAlreadyAdded = isWatchLater;
+
+                    let updated;
+                    if (isAlreadyAdded) {
+                      updated = watchLaterList.filter(
+                        (m) => !(m.id === series.id && m.type === normalizedType)
+                      );
+                      toast.success(t("watchLater.removed") || "Видалено зі списку «На потім»");
+                    } else {
+                      updated = [...watchLaterList, {
+                        id: series.id,
+                        type: normalizedType,
+                        title: series.name || series.title || "Без назви",
+                        posterUrl: series.poster_path
+                          ? `${import.meta.env.VITE_TMDB_IMG_BASE}${series.poster_path}`
+                          : null,
+                        releaseDate: series.first_air_date || "",
+                      }];
+                      toast.success(t("watchLater.added") || "Додано до списку «На потім»");
+                    }
+
+                    setWatchLaterList(updated);
+                    localStorage.setItem("watchLaterList", JSON.stringify(updated));
+                  }}
+                  className={`
+                    absolute top-4 left-4 z-20
+                    p-2.5 rounded-full
+                    bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
+                    text-white
+                    shadow-lg shadow-indigo-900/40
+                    transition-all duration-300
+                    hover:scale-110 hover:shadow-xl hover:shadow-indigo-700/50
+                    active:scale-95 active:from-blue-700 active:via-indigo-700 active:to-purple-700
+                    ${isWatchLater
+                      ? "from-pink-600 via-rose-600 to-purple-600 hover:from-pink-500 hover:via-rose-500 hover:to-purple-500 shadow-rose-900/50"
+                      : ""}
+                  `}
+                  title={
+                    isWatchLater
+                      ? t("watchLater.remove") || "Видалити зі списку на потім"
+                      : t("watchLater.add") || "Додати у список на потім"
+                  }
+                >
+                  <Clock
+                    size={26}
+                    className={`
+                      transition-all duration-300
+                      ${isWatchLater
+                        ? "text-pink-100 drop-shadow-md animate-pulse-slow"
+                        : "text-white/90 group-hover:text-white drop-shadow-md"}
+                    `}
+                  />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {visibleCount < filteredSeries.length && (
+          <div className="text-center mt-12">
+            <button
+              onClick={loadMore}
+              className="px-12 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-bold text-lg transition shadow-lg hover:shadow-xl hover:scale-105"
+            >
+              {t("common.load_more") || "Завантажити ще"}
+            </button>
+          </div>
+        )}
+      </>
+    );
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12 max-w-7xl">
-        <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
-          {t("series.welcome")}
-        </h1>
+      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
 
-        <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
-          {searchMode
-            ? `${t("dashboard.search_results")} "${displaySearchTerm}"`
-            : t("series.top_100")}
-        </p>
-
+        {!searchMode && newSeries.length > 0 && (
+          <SimpleHeroSlider movies={newSeries} />
+        )}
         {searchMode && (
-          <div className="text-center mb-8">
+          <div className="mb-8 flex items-center">
             <button
               onClick={resetToTop}
-              className="px-8 py-3 bg-blue-700 hover:bg-blue-600 rounded-xl font-semibold text-lg transition shadow"
+              className={`
+                group flex items-center gap-2 sm:gap-3
+                px-4 sm:px-6 py-2.5 sm:py-3
+                bg-gradient-to-r from-indigo-600/90 to-purple-600/90
+                hover:from-indigo-500 hover:to-purple-500
+                active:from-indigo-700 active:to-purple-700
+                text-white font-medium text-sm sm:text-base
+                rounded-full shadow-lg shadow-indigo-900/40
+                transition-all duration-300
+                hover:scale-105 hover:shadow-xl hover:shadow-indigo-700/50
+                active:scale-95
+                backdrop-blur-sm border border-indigo-500/30
+              `}
             >
-              {t("dashboard.back")}
+              <ArrowLeft
+                size={20}
+                className="group-hover:-translate-x-1 transition-transform duration-300"
+              />
+              {t("dashboard.back_to_recommendations") || "Повернутися до рекомендацій"}
             </button>
           </div>
         )}
 
-        <form onSubmit={searchSeries} className="max-w-3xl mx-auto mb-16">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t("series.search_placeholder")}
-              className="flex-1 px-6 py-5 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-lg placeholder-gray-500 transition"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-12 py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-xl font-bold text-lg transition shadow-lg"
-            >
-              {loading && searchMode ? t("common.searching") : t("common.find_button")}
-            </button>
-          </div>
-        </form>
+        {/* Пошук */}
+        <SearchBar
+          onSearch={searchContent}
+          initialValue={searchTerm}
+          placeholder={t("series.search_placeholder") || "Пошук серіалів..."}
+          className="mt-6 mb-10"
+        />
 
-        {error && !loading && (
-          <div className="text-center text-red-400 text-xl bg-red-900/20 py-6 rounded-lg mb-12">
-            {error}
-          </div>
-        )}
+        {/* Заголовок */}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-10 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+          {searchMode
+            ? `${t("dashboard.search_results")} "${searchTerm}"`
+            : t("series.top_rated") || "Топ серіалів"}
+        </h1>
 
-        {displaySeries.length === 0 ? (
+        {/* Контент */}
+        {filteredSeries.length === 0 && !searchMode ? (
           <div className="text-center py-20 text-gray-400 text-xl">
-            {t("series.no_results") || "Нічого не знайдено..."}
+            {t("series.no_results") || "Нічого не знайдено"}
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-              {displaySeries.map((series) => {
-                const title = series.name || series.title || "Без назви";
-                const year = series.first_air_date?.slice(0, 4) || t("common.unknown");
-                const isWatchLater = watchLaterList.some((m: any) => m.id === series.id);
-
-                return (
-                                  <div key={series.id} className="group relative h-full">
-                                    <Link
-                                      to={`/details/tv/${series.id}`}
-                                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
-                                    >
-                                      {series.poster_path ? (
-                                        <img
-                                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${series.poster_path}`}
-                                          alt={title}
-                                          className="w-full h-80 object-cover"
-                                          loading="lazy"
-                                        />
-                                      ) : (
-                                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                                          <span className="text-gray-500 text-center px-4">
-                                            {t("common.poster_missing")}
-                                          </span>
-                                        </div>
-                                      )}
-
-                                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
-                                        <h3 className="text-lg font-semibold break-words line-clamp-2">
-                                          {title}
-                                        </h3>
-                                        <div>
-                                          <p className="text-gray-400 text-sm">
-                                            {year} {t("common.year")}
-                                          </p>
-                                          {series.vote_average > 0 && (
-                                            <p className="text-blue-400 mt-1 font-bold">
-                                              ⭐ {series.vote_average.toFixed(1)}
-                                            </p>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </Link>
-
-                                    {/* Кнопка "на потім" (лівий верх) */}
-                                    <button
-                                      onClick={() => {
-                                        let updated;
-                                        if (isWatchLater) {
-                                          updated = watchLaterList.filter((m: any) => m.id !== series.id);
-                                        } else {
-                                          updated = [...watchLaterList, {
-                                            id: series.id,
-                                            title: series.name || series.title || "",
-                                            posterUrl: series.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${series.poster_path}` : undefined,
-                                          }];
-                                        }
-                                        setWatchLaterList(updated);
-                                        localStorage.setItem("watchLaterList", JSON.stringify(updated));
-                                        if (!isWatchLater) {
-                                          toast.success(t('watchLater.added'));
-                                        } else {
-                                          toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
-                                        }
-                                      }}
-                                      className={`absolute top-3 left-3 p-2 rounded-full z-10 bg-blue-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-blue-600"}`}
-                                      title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
-                                    >
-                                      <Clock size={22} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
-                                    </button>
-
-                                    {/* Кнопка улюблене (правий верх) */}
-                                    <button
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        toggleFavorite({
-                                          id: series.id,
-                                          mediaType: "tv",
-                                          title,
-                                          posterPath: series.poster_path,
-                                          voteAverage: series.vote_average,
-                                          releaseDate: series.first_air_date,
-                                        });
-                                        const isFav = isFavorite(series.id, "tv");
-                                        toast.success(isFav ? t("favorites.removed") : t("favorites.added"));
-                                      }}
-                                      className="absolute top-3 right-3 p-2 bg-black/60 rounded-full hover:bg-black/80 transition-colors z-10 opacity-0 group-hover:opacity-100"
-                                    >
-                                      <Heart
-                                        size={24}
-                                        className={isFavorite(series.id, "tv") ? "fill-red-500 text-red-500" : "text-white"}
-                                      />
-                                    </button>
-                                  </div>
-                                );
-              })}
-            </div>
-
-            {visibleCount < allSeries.length && (
-              <div className="text-center mt-12">
-                <button
-                  onClick={loadMore}
-                  disabled={loading}
-                  className="px-10 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 rounded-xl font-bold text-xl transition shadow-lg"
-                >
-                  {t("common.load_more")}
-                </button>
-              </div>
-            )}
-          </>
+          renderGrid()
         )}
-      </div>
+      </main>
     </div>
   );
 };

@@ -3,11 +3,24 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useFavorites } from "../../lib/useFavorites";
-import { Heart, Clock } from "lucide-react";
+import { Heart, Clock, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
+import { fetchTopCartoons, searchCartoonsOnly, fetchNewCartoons } from "../../api/tmdbDashboard";
+import { useLoading } from "../../lib/useLoading";
+import SearchBar from "../../components/SearchBar";
+import SimpleHeroSlider from "../../components/Slider";
 
-import { fetchTopCartoons, searchCartoonsOnly } from "../../api/tmdbDashboard";
-import { useLoading } from "../../lib/useLoading";   // ← ДОДАНО ІМПОРТ ХУКА
+interface CartoonItem {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  vote_average: number;
+  release_date?: string;
+  first_air_date?: string;
+  media_type?: "movie" | "tv";
+  genre_ids?: number[];
+}
 
 interface DashboardCartoonsProps {
   selectedGenres: number[];
@@ -17,116 +30,119 @@ interface DashboardCartoonsProps {
 const DashboardCartoons: React.FC<DashboardCartoonsProps> = ({ selectedGenres, selectedRating }) => {
   const { t, getTMDBLanguage } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { withLoading } = useLoading();   // ← ДОДАНО ВИКЛИК ХУКА
-
-  const [displayItems, setDisplayItems] = useState<any[]>([]);
-  const [allItems, setAllItems] = useState<any[]>([]);
+  const { withLoading } = useLoading();
+  const [newCartoons, setNewCartoons] = useState<CartoonItem[]>([]);
+  const [topCartoons, setTopCartoons] = useState<CartoonItem[]>([]);
+  const [filteredCartoons, setFilteredCartoons] = useState<CartoonItem[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
-  const [loading, setLoading] = useState(true);
-  const [searchMode, setSearchMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [displaySearchTerm, setDisplaySearchTerm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [topCartoons, setTopCartoons] = useState<any[]>([]);
-
-  const [animatingId, setAnimatingId] = useState<number | null>(null);
-
-  const [watchLaterList, setWatchLaterList] = useState<any[]>(() => {
-    return JSON.parse(localStorage.getItem("watchLaterList") || "[]");
-  });
+  const [searchResults, setSearchResults] = useState<CartoonItem[]>([]);
+  const [searchMode, setSearchMode] = useState(false);
+  const [watchLaterList, setWatchLaterList] = useState<any[]>(() =>
+    JSON.parse(localStorage.getItem("watchLaterList") || "[]")
+  );
 
   const language = getTMDBLanguage();
 
+  // Завантаження топ-мультфільмів
   useEffect(() => {
     withLoading(async () => {
-      setLoading(true);
-      setError(null);
-      setSearchMode(false);
-      setSearchTerm("");
-      setDisplaySearchTerm("");
-
       try {
-        const sorted = await fetchTopCartoons(language, 5);
-
-        setTopCartoons(sorted);
-        setAllItems(sorted);
+        const results = await fetchTopCartoons(language, 5); // топ-100 (5 сторінок)
+        setTopCartoons(results);
         setVisibleCount(20);
-        // Local filtering for top cartoons only
-        let filtered = sorted;
-        if (selectedGenres.length > 0) {
-          filtered = filtered.filter((item) => item.genre_ids && selectedGenres.some((gid) => item.genre_ids.includes(gid)));
-        }
-        if (selectedRating !== null) {
-          filtered = filtered.filter((item) => item.vote_average >= selectedRating);
-        }
-        setDisplayItems(filtered.slice(0, 20));
       } catch (err) {
         console.error("Помилка завантаження топ-мультфільмів:", err);
-        setError(t("cartoons.loading_error") || "Не вдалося завантажити мультфільми");
-        setAllItems([]);
-        setDisplayItems([]);
-      } finally {
-        setLoading(false);
+        toast.error(t("cartoons.loading_error") || "Помилка завантаження");
       }
     });
-  }, [language, t]);
+  }, [language]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
+  // Синхронізація "На потім"
   useEffect(() => {
     const handleStorage = () => {
       setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
     };
     window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  // Фільтрація топ-мультфільмів
   useEffect(() => {
-    setWatchLaterList(JSON.parse(localStorage.getItem("watchLaterList") || "[]"));
+    if (searchMode) return;
+
+    let filtered = topCartoons;
+
+    if (selectedGenres.length > 0) {
+      filtered = filtered.filter((item) =>
+        item.genre_ids?.some((gid) => selectedGenres.includes(gid))
+      );
+    }
+
+    if (selectedRating !== null) {
+      filtered = filtered.filter((item) => item.vote_average >= selectedRating);
+    }
+
+    setFilteredCartoons(filtered);
+    setVisibleCount(20);
+  }, [selectedGenres, selectedRating, topCartoons, searchMode]);
+
+  // Фільтрація результатів пошуку
+  useEffect(() => {
+    if (!searchMode) return;
+
+    let filtered = searchResults;
+
+    if (selectedGenres.length > 0) {
+      filtered = filtered.filter((item) =>
+        item.genre_ids?.some((gid) => selectedGenres.includes(gid))
+      );
+    }
+
+    if (selectedRating !== null) {
+      filtered = filtered.filter((item) => item.vote_average >= selectedRating);
+    }
+
+    setFilteredCartoons(filtered);
+    setVisibleCount(20);
+  }, [selectedGenres, selectedRating, searchResults, searchMode]);
+
+  useEffect(() => {
+    withLoading(async () => {
+      try {
+        const [nowPlaying, top] = await Promise.all([
+          fetchNewCartoons(language),
+          fetchTopCartoons(language, 8),
+        ]);
+        setNewCartoons(nowPlaying.slice(0, 15));
+        setTopCartoons(top);
+        setVisibleCount(20);
+      } catch (err) {
+        console.error(err);
+        toast.error(t("cartoons.loading_error"));
+      }
+    });
   }, [language]);
 
-  const searchCartoons = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) return;
-
-    const term = searchTerm.trim();
-    if (term.length < 2) {
-      setError(t("common.search_min_chars") || "Мінімум 2 символи");
+  // Пошук
+  const searchContent = async (term: string) => {
+    setSearchTerm(term);
+    if (!term.trim()) {
+      setSearchMode(false);
+      setSearchResults([]);
       return;
     }
 
     await withLoading(async () => {
-      setLoading(true);
-      setError(null);
-      setSearchMode(true);
-      setVisibleCount(20);
-      setDisplaySearchTerm(term);
-
       try {
-        const cartoonResults = await searchCartoonsOnly(term, language, 1);
-
-        if (cartoonResults.length > 0) {
-          setAllItems(cartoonResults);
-          setDisplayItems(cartoonResults.slice(0, 20));
-        } else {
-          setError(
-            t("cartoons.not_found") ||
-            "Мультфільм не знайдено. Спробуйте: Король Лев, Шрек, Міньйони..."
-          );
-          setAllItems([]);
-          setDisplayItems([]);
-        }
+        setSearchMode(true);
+        const results = await searchCartoonsOnly(term.trim(), language, 1);
+        setSearchResults(results.slice(0, 100));
+        setVisibleCount(20);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
         console.error("Помилка пошуку мультфільмів:", err);
-        setError(t("cartoons.connection_error") || "Помилка з'єднання");
-        setAllItems([]);
-        setDisplayItems([]);
-      } finally {
-        setLoading(false);
+        toast.error(t("cartoons.search_error") || "Помилка пошуку");
       }
     });
   };
@@ -134,221 +150,249 @@ const DashboardCartoons: React.FC<DashboardCartoonsProps> = ({ selectedGenres, s
   const resetToTop = () => {
     setSearchMode(false);
     setSearchTerm("");
-    setDisplaySearchTerm("");
-    setError(null);
-    setAllItems(topCartoons);
+    setSearchResults([]);
     setVisibleCount(20);
-    setDisplayItems(topCartoons.slice(0, 20));
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const loadMore = () => {
-    if (loading) return;
-    const nextCount = Math.min(visibleCount + 20, allItems.length);
+    const source = searchMode ? searchResults : topCartoons;
+    const nextCount = Math.min(visibleCount + 20, source.length);
     setVisibleCount(nextCount);
-    setDisplayItems(allItems.slice(0, nextCount));
+  };
+
+  const renderGrid = () => {
+    const items = searchMode ? searchResults : topCartoons;
+    const visibleItems = items.slice(0, visibleCount);
+
+    return (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          {visibleItems.map((item) => {
+            const type = "movie"; // мультфільми зазвичай movie
+            const isFav = isFavorite(item.id, type);
+            const isWatchLater = watchLaterList.some(
+              (m) => m.id === item.id && m.type === type
+            );
+
+            return (
+              <div
+                key={item.id}
+                className="relative group bg-gradient-to-br from-gray-900/80 via-gray-800/60 to-gray-900/90 rounded-3xl shadow-2xl p-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-3xl"
+              >
+                <Link
+                  to={`/details/movie/${item.id}`}
+                  className="block overflow-hidden rounded-2xl poster-hover relative"
+                >
+                  <img
+                    src={
+                      item.poster_path
+                        ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`
+                        : "/no-image.png"
+                    }
+                    className="rounded-2xl w-full h-[340px] md:h-[440px] object-cover object-center transition-transform duration-500 poster-img"
+                    alt={item.title || item.name || "Poster"}
+                    style={{ aspectRatio: "2/3", minHeight: 220, maxHeight: 320 }}
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
+                    <h3 className="text-lg md:text-xl font-bold text-white mb-2 line-clamp-2">
+                      {item.title || item.name}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <p className="text-gray-300 text-sm">
+                        {(item.release_date || "").slice(0, 4) || "Невідомо"}
+                      </p>
+                      {item.vote_average > 0 && (
+                        <p className="text-yellow-400 font-bold flex items-center gap-1">
+                          ⭐ {item.vote_average.toFixed(1)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                </Link>
+
+                {/* Улюблене */}
+                <button
+                  onClick={() => {
+                    const result = toggleFavorite({
+                      id: item.id,
+                      mediaType: type,
+                      title: item.title || item.name || "",
+                      posterPath: item.poster_path,
+                      voteAverage: item.vote_average,
+                      releaseDate: item.release_date,
+                    });
+                    toast.success(
+                      result
+                        ? t("favorites.added") || "Додано до улюблених"
+                        : t("favorites.removed") || "Видалено з улюблених"
+                    );
+                  }}
+                  className={`
+                    absolute top-4 right-4 z-20
+                    p-2.5 rounded-full
+                    bg-gradient-to-r from-red-600 via-rose-600 to-pink-600
+                    text-white
+                    shadow-lg shadow-red-900/40
+                    transition-all duration-300
+                    hover:scale-110 hover:shadow-xl hover:shadow-rose-700/50
+                    active:scale-95 active:from-red-700 active:via-rose-700 active:to-pink-700
+                    ${isFav
+                      ? "from-pink-600 via-rose-600 to-red-600 hover:from-pink-500 hover:via-rose-500 hover:to-red-500 shadow-rose-900/60"
+                      : ""}
+                  `}
+                  title={isFav ? t("favorites.remove") : t("favorites.add")}
+                >
+                  <Heart
+                    size={26}
+                    className={`
+                      transition-all duration-400
+                      drop-shadow-md
+                      ${isFav ? "fill-red-100 text-red-100 animate-heartbeat" : "text-white/90 group-hover:text-white"}
+                    `}
+                  />
+                </button>
+
+                {/* На потім */}
+                <button
+                  onClick={() => {
+                    const normalizedType = "movie";
+
+                    const isAlreadyAdded = isWatchLater;
+
+                    let updated;
+                    if (isAlreadyAdded) {
+                      updated = watchLaterList.filter(
+                        (m) => !(m.id === item.id && m.type === normalizedType)
+                      );
+                      toast.success(t("watchLater.removed") || "Видалено зі списку «На потім»");
+                    } else {
+                      updated = [...watchLaterList, {
+                        id: item.id,
+                        type: normalizedType,
+                        title: item.title || item.name || "Без назви",
+                        posterUrl: item.poster_path
+                          ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`
+                          : null,
+                        releaseDate: item.release_date || "",
+                      }];
+                      toast.success(t("watchLater.added") || "Додано до списку «На потім»");
+                    }
+
+                    setWatchLaterList(updated);
+                    localStorage.setItem("watchLaterList", JSON.stringify(updated));
+                  }}
+                  className={`
+                    absolute top-4 left-4 z-20
+                    p-2.5 rounded-full
+                    bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
+                    text-white
+                    shadow-lg shadow-indigo-900/40
+                    transition-all duration-300
+                    hover:scale-110 hover:shadow-xl hover:shadow-indigo-700/50
+                    active:scale-95 active:from-blue-700 active:via-indigo-700 active:to-purple-700
+                    ${isWatchLater
+                      ? "from-pink-600 via-rose-600 to-purple-600 hover:from-pink-500 hover:via-rose-500 hover:to-purple-500 shadow-rose-900/50"
+                      : ""}
+                  `}
+                  title={
+                    isWatchLater
+                      ? t("watchLater.remove") || "Видалити зі списку на потім"
+                      : t("watchLater.add") || "Додати у список на потім"
+                  }
+                >
+                  <Clock
+                    size={26}
+                    className={`
+                      transition-all duration-300
+                      ${isWatchLater
+                        ? "text-pink-100 drop-shadow-md animate-pulse-slow"
+                        : "text-white/90 group-hover:text-white drop-shadow-md"}
+                    `}
+                  />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {visibleCount < (searchMode ? searchResults.length : topCartoons.length) && (
+          <div className="text-center mt-12">
+            <button
+              onClick={loadMore}
+              className="px-12 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-bold text-lg transition shadow-lg hover:shadow-xl hover:scale-105"
+            >
+              {t("common.load_more") || "Завантажити ще"}
+            </button>
+          </div>
+        )}
+      </>
+    );
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12 max-w-7xl">
-        <h1 className="text-5xl md:text-6xl font-bold text-center mb-6">
-          {t("cartoons.welcome")}
-        </h1>
+      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
 
-        <p className="text-xl md:text-2xl text-center text-gray-400 mb-12">
-          {searchMode
-            ? `${t("dashboard.search_results")} "${displaySearchTerm}"`
-            : t("cartoons.top_100")}
-        </p>
+        {!searchMode && newCartoons.length > 0 && (
+          <SimpleHeroSlider movies={newCartoons} />
+        )}
 
         {searchMode && (
-          <div className="text-center mb-8">
+          <div className="mb-8 flex items-center">
             <button
               onClick={resetToTop}
-              className="px-8 py-3 bg-teal-700 hover:bg-teal-600 rounded-xl font-semibold text-lg transition shadow"
+              className={`
+                group flex items-center gap-2 sm:gap-3
+                px-4 sm:px-6 py-2.5 sm:py-3
+                bg-gradient-to-r from-indigo-600/90 to-purple-600/90
+                hover:from-indigo-500 hover:to-purple-500
+                active:from-indigo-700 active:to-purple-700
+                text-white font-medium text-sm sm:text-base
+                rounded-full shadow-lg shadow-indigo-900/40
+                transition-all duration-300
+                hover:scale-105 hover:shadow-xl hover:shadow-indigo-700/50
+                active:scale-95
+                backdrop-blur-sm border border-indigo-500/30
+              `}
             >
-              {t("dashboard.back")}
+              <ArrowLeft
+                size={20}
+                className="group-hover:-translate-x-1 transition-transform duration-300"
+              />
+              {t("dashboard.back_to_recommendations") || "Повернутися до рекомендацій"}
             </button>
           </div>
         )}
+        {/* Пошук */}
+        <SearchBar
+          onSearch={searchContent}
+          initialValue={searchTerm}
+          placeholder={t("cartoons.search_placeholder") || "Пошук мультфільмів..."}
+          className="mt-6 mb-10"
+        />
 
-        <form onSubmit={searchCartoons} className="max-w-3xl mx-auto mb-16">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t("cartoons.search_placeholder")}
-              className="flex-1 px-6 py-5 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:border-teal-500 text-lg placeholder-gray-500 transition"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-12 py-5 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 rounded-xl font-bold text-lg transition shadow-lg"
-            >
-              {loading && searchMode
-                ? t("common.searching")
-                : t("common.find_button")}
-            </button>
-          </div>
-        </form>
 
-        {error && !loading && (
-          <div className="max-w-2xl mx-auto mb-8 text-center text-red-400 bg-red-900/40 rounded-xl p-6 font-semibold text-lg">
-            {error}
-          </div>
-        )}
 
-        {/* ← ВИДАЛЕНО локальний лоадер */}
-        {/* Тепер працює тільки глобальний через withLoading */}
 
-        {displayItems.length === 0 ? (
+        {/* Заголовок */}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-10 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+          {searchMode
+            ? `${t("dashboard.search_results")} "${searchTerm}"`
+            : t("cartoons.top") || "Топ мультфільмів"}
+        </h1>
+
+        {/* Контент */}
+        {filteredCartoons.length === 0 && !searchMode ? (
           <div className="text-center py-20 text-gray-400 text-xl">
-            {t("cartoons.no_results") || "Нічого не знайдено..."}
+            {t("cartoons.no_results") || "Нічого не знайдено"}
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-              {displayItems.map((item) => {
-                const title =
-                  item.title || item.original_title || "Без назви";
-                const year =
-                  item.release_date?.slice(0, 4) || "";
-                const isWatchLater = watchLaterList.some((m: any) => m.id === item.id);
-                return (
-                  <div key={item.id} className="group relative h-full">
-                    <Link
-                      to={`/details/movie/${item.id}`}
-                      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 block h-full flex flex-col"
-                    >
-                      {item.poster_path ? (
-                        <img
-                          src={`${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}`}
-                          alt={title}
-                          className="w-full h-80 object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-80 bg-gray-700 flex items-center justify-center">
-                          <span className="text-gray-500 text-center px-4">
-                            {t("common.poster_missing")}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="p-5 min-h-[120px] flex flex-col justify-between flex-grow">
-                        <h3 className="text-lg font-semibold break-words line-clamp-2">
-                          {title}
-                        </h3>
-                        <div>
-                          <p className="text-gray-400 text-sm">
-                            {year} {t("common.year")}
-                          </p>
-                          {item.vote_average > 0 && (
-                            <p className="text-teal-400 mt-1 font-bold">
-                              ⭐ {item.vote_average.toFixed(1)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-
-                    {/* Кнопка "на потім" (лівий верх) */}
-                    <button
-                      onClick={() => {
-                        let updated;
-                        if (isWatchLater) {
-                          updated = watchLaterList.filter((m: any) => m.id !== item.id);
-                        } else {
-                          updated = [...watchLaterList, {
-                            id: item.id,
-                            title: item.title || item.original_title || "",
-                            posterUrl: item.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}` : undefined,
-                          }];
-                        }
-                        setWatchLaterList(updated);
-                        localStorage.setItem("watchLaterList", JSON.stringify(updated));
-                        if (!isWatchLater) {
-                          toast.success(t('watchLater.added'));
-                        } else {
-                          toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
-                        }
-                      }}
-                      className={`absolute top-3 left-3 p-2 rounded-full z-10 bg-teal-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-teal-600"}`}
-                      title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
-                    >
-                      <Clock size={22} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
-                    </button>
-
-                    {/* Кнопка улюблене (правий верх) */}
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-
-                        setAnimatingId(item.id);
-
-                        toggleFavorite({
-                          id: item.id,
-                          mediaType: "movie",
-                          title,
-                          posterPath: item.poster_path,
-                          voteAverage: item.vote_average,
-                          releaseDate: item.release_date,
-                        });
-
-                        const isFav = isFavorite(item.id, "movie");
-                        toast.success(
-                          isFav ? t("favorites.removed") : t("favorites.added")
-                        );
-
-                        setTimeout(() => setAnimatingId(null), 300);
-                      }}
-                      className="
-                        absolute top-3 right-3
-                        p-2 bg-black/60 rounded-full
-                        hover:bg-black/80
-                        transition-all duration-300
-                        z-10
-                        opacity-0 group-hover:opacity-100
-                        hover:scale-110
-                        active:scale-90
-                      "
-                    >
-                      <Heart
-                        size={24}
-                        className={`
-                          transition-all duration-300
-                          ${isFavorite(item.id, "movie")
-                            ? "fill-red-500 text-red-500 scale-110"
-                            : "text-white"
-                          }
-                          ${animatingId === item.id
-                            ? "scale-125 rotate-12"
-                            : ""
-                          }
-                        `}
-                      />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {visibleCount < allItems.length && (
-              <div className="text-center mt-12">
-                <button
-                  onClick={loadMore}
-                  disabled={loading}
-                  className="px-10 py-4 bg-teal-600 hover:bg-teal-700 disabled:opacity-70 rounded-xl font-bold text-xl transition shadow-lg"
-                >
-                  {t("common.load_more")}
-                </button>
-              </div>
-            )}
-          </>
+          renderGrid()
         )}
-      </div>
+      </main>
     </div>
   );
 };

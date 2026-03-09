@@ -35,6 +35,19 @@ export interface TmdbItem {
     backdrop_path?: string | null;
 }
 
+export interface TmdbVideo {
+    id: string;
+    iso_639_1: string;
+    iso_3166_1: string;
+    key: string;
+    name: string;
+    site: string;
+    size: number;
+    type: string;
+    official: boolean;
+    published_at: string;
+}
+
 interface TmdbPagedResponse<T> {
     page: number;
     results: T[];
@@ -123,6 +136,17 @@ export const fetchTopRatedMovies = async (language: string, pages: number = 5): 
     return results;
 };
 
+// Нова функція: Новинки для фільмів (ті, що вже вийшли, зараз в прокаті)
+export const fetchNewMovies = async (language: string): Promise<TmdbItem[]> => {
+    const res = await fetch(
+        `${TMDB_API_URL}/movie/now_playing?language=${language}&page=1`,
+        { headers: authHeaders }
+    );
+    if (!res.ok) throw new Error(`New movies failed: ${res.status}`);
+    const data: TmdbPagedResponse<TmdbItem> = await res.json();
+    return (data.results || []).map(item => ({ ...item, media_type: "movie" as const }));
+};
+
 export const searchMoviesOnly = async (query: string, language: string, page: number = 1): Promise<TmdbItem[]> => {
     if (query.trim().length < 2) return [];
     const res = await fetch(
@@ -166,6 +190,54 @@ export const fetchTopAnime = async (language: string): Promise<TmdbItem[]> => {
         .map(item => ({ ...item, media_type: item.first_air_date ? "tv" : "movie" }));
 };
 
+// Нова функція: Новинки для аніме (ті, що вже вийшли або виходять, за останній рік)
+export const fetchNewAnime = async (language: string): Promise<TmdbItem[]> => {
+    const currentDate = new Date().toISOString().split('T')[0];
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const pastDate = oneYearAgo.toISOString().split('T')[0];
+
+    const tvFilters = `${ANIME_FILTERS}&sort_by=first_air_date.desc&first_air_date.lte=${currentDate}&first_air_date.gte=${pastDate}`;
+    const resTv = await fetch(
+        `${TMDB_API_URL}/discover/tv?language=${language}&${tvFilters}&page=1`,
+        { headers: authHeaders }
+    );
+    if (!resTv.ok) throw new Error(`New anime TV failed`);
+    const dataTv: TmdbPagedResponse<TmdbItem> = await resTv.json();
+
+    const movieFilters = `${ANIME_FILTERS}&sort_by=primary_release_date.desc&primary_release_date.lte=${currentDate}&primary_release_date.gte=${pastDate}`;
+    const resMovie = await fetch(
+        `${TMDB_API_URL}/discover/movie?language=${language}&${movieFilters}&page=1`,
+        { headers: authHeaders }
+    );
+    if (!resMovie.ok) throw new Error(`New anime movies failed`);
+    const dataMovie: TmdbPagedResponse<TmdbItem> = await resMovie.json();
+
+    const results = [...dataTv.results, ...dataMovie.results];
+    return results
+        .sort((a, b) => {
+            const dateA = a.first_air_date || a.release_date || '0000-00-00';
+            const dateB = b.first_air_date || b.release_date || '0000-00-00';
+            return dateB.localeCompare(dateA);
+        })
+        .slice(0, 20)
+        .map(item => {
+            // Більш надійне визначення типу
+            let mediaType: "movie" | "tv" = "movie";
+
+            if (item.first_air_date) {
+                mediaType = "tv";
+            } else if (item.release_date) {
+                mediaType = "movie";
+            } else if (item.genre_ids?.includes(16) && item.original_language === "ja") {
+
+                mediaType = "tv";
+            }
+
+            return { ...item, media_type: mediaType };
+        });
+};
+
 export const searchAnime = async (query: string, language: string, page: number = 1): Promise<TmdbItem[]> => {
     if (query.trim().length < 2) return [];
     const res = await fetch(
@@ -205,6 +277,20 @@ export const fetchTopRatedSeries = async (language: string, pages: number = 5): 
     return results.slice(0, 100);
 };
 
+
+export const fetchNewSeries = async (language: string): Promise<TmdbItem[]> => {
+    const res = await fetch(
+        `${TMDB_API_URL}/tv/on_the_air?language=${language}&page=1`,
+        { headers: authHeaders }
+    );
+    if (!res.ok) throw new Error(`New series failed: ${res.status}`);
+    const data: TmdbPagedResponse<TmdbItem> = await res.json();
+    return (data.results || [])
+        .filter(item => !(item.genre_ids?.includes(16) && item.original_language === "ja"))
+        .map(item => ({ ...item, media_type: "tv" as const }));
+};
+
+
 export const searchSeriesOnly = async (query: string, language: string, page: number = 1): Promise<TmdbItem[]> => {
     if (query.trim().length < 2) return [];
     const res = await fetch(
@@ -234,11 +320,57 @@ export const fetchTopCartoons = async (language: string, pages: number = 5): Pro
         if (!res.ok) throw new Error(`Top cartoons page ${page} failed`);
         const data: TmdbPagedResponse<TmdbItem> = await res.json();
         const filtered = (data.results || []).filter(item => item.original_language !== "ja");
-        results.push(...filtered);
+        results.push(...filtered.map(item => ({ ...item, media_type: "movie" as const })));
     }
     return results
         .sort((a, b) => b.vote_average - a.vote_average)
         .slice(0, 100);
+};
+
+// Нова функція: Новинки для мультфільмів (ті, що вже вийшли, за останній рік)
+export const fetchNewCartoons = async (
+    language: string,
+    minVoteCount: number = 50,      // легко міняти
+    yearsBack: number = 1.5         // легко міняти
+): Promise<TmdbItem[]> => {
+    const currentDate = new Date().toISOString().split('T')[0];
+    const pastDate = new Date();
+    pastDate.setFullYear(pastDate.getFullYear() - yearsBack);
+    const pastDateStr = pastDate.toISOString().split('T')[0];
+
+    const baseFilters = `with_genres=16&without_keywords=210024&sort_by=primary_release_date.desc&primary_release_date.lte=${currentDate}`;
+
+    const filters = minVoteCount > 0
+        ? `${baseFilters}&vote_count.gte=${minVoteCount}&primary_release_date.gte=${pastDateStr}`
+        : `${baseFilters}&primary_release_date.gte=${pastDateStr}`;
+
+    const allResults: TmdbItem[] = [];
+    const pagesToFetch = 6;
+
+    for (let page = 1; page <= pagesToFetch; page++) {
+        const res = await fetch(
+            `${TMDB_API_URL}/discover/movie?language=${language}&${filters}&page=${page}`,
+            { headers: authHeaders }
+        );
+
+        if (!res.ok) {
+            console.warn(`Cartoons page ${page} failed: ${res.status}`);
+            break;
+        }
+
+        const data: TmdbPagedResponse<TmdbItem> = await res.json();
+        allResults.push(...(data.results || []));
+    }
+
+    return allResults
+        .filter(item => item.original_language !== "ja")
+        .map(item => ({ ...item, media_type: "movie" as const }))
+        .sort((a, b) => {
+            const dateA = a.release_date || '0000-00-00';
+            const dateB = b.release_date || '0000-00-00';
+            return dateB.localeCompare(dateA);
+        })
+        .slice(0, 120);
 };
 
 export const searchCartoonsOnly = async (query: string, language: string, page: number = 1): Promise<TmdbItem[]> => {
@@ -279,14 +411,14 @@ export const fetchContentVideos = async (
     type: "movie" | "tv",
     id: string,
     language: string
-): Promise<any[]> => {
+): Promise<TmdbVideo[]> => {
     const res = await fetch(
         `${TMDB_API_URL}/${type}/${id}/videos?language=${language}`,
         { headers: authHeaders }
     );
     if (!res.ok) return []; // не кидаємо помилку, просто порожній масив
     const data = await res.json();
-    return data.results.filter(
+    return (data.results || []).filter(
         (v: any) =>
             v.site === "YouTube" &&
             ["Trailer", "Teaser", "Clip"].includes(v.type)
@@ -298,12 +430,12 @@ export const fetchSimilarContent = async (
     id: string,
     language: string,
     page: number = 1
-): Promise<any[]> => {
+): Promise<TmdbItem[]> => {
     const res = await fetch(
         `${TMDB_API_URL}/${type}/${id}/similar?language=${language}&page=${page}`,
         { headers: authHeaders }
     );
     if (!res.ok) return [];
     const data = await res.json();
-    return data.results.slice(0, 20);
+    return (data.results || []).slice(0, 20);
 };

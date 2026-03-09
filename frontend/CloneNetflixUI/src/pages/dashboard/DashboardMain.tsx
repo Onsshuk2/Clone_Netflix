@@ -1,9 +1,8 @@
 // src/pages/DashboardMain.tsx
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import SimpleHeroSlider from "../../lib/Slider";
-import { Heart } from "lucide-react";
-import { Clock } from "lucide-react";
+import SimpleHeroSlider from "../../components/Slider";
+import { Heart, Clock, ArrowLeft } from "lucide-react";
 
 import toast from "react-hot-toast";
 
@@ -11,6 +10,7 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { useFavorites } from "../../lib/useFavorites";
 import { fetchDashboardInitialData, searchMulti } from "../../api/tmdbDashboard";
 import { useLoading } from "../../lib/useLoading";
+import SearchBar from "../../components/SearchBar";
 
 interface Movie {
   id: number;
@@ -50,8 +50,10 @@ const DashboardMain: React.FC<DashboardMainProps> = ({ selectedGenres, selectedR
   const language = getTMDBLanguage();
   interface WatchLaterItem {
     id: number;
+    type: string;
     title: string;
     posterUrl?: string;
+    releaseDate?: string;
   }
 
   const [watchLaterList, setWatchLaterList] = useState<WatchLaterItem[]>(() => {
@@ -121,14 +123,14 @@ const DashboardMain: React.FC<DashboardMainProps> = ({ selectedGenres, selectedR
     setWatchLaterList(JSON.parse(localStorage.getItem(WATCH_LATER_KEY) || "[]"));
   }, [language]);
 
-  const searchContent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) return;
+  const searchContent = async (term: string) => {
+    setSearchTerm(term);
+    if (!term.trim()) return;
 
     await withLoading(async () => {
       try {
         setSearchMode(true);
-        const results = await searchMulti(searchTerm.trim(), language);
+        const results = await searchMulti(term.trim(), language);
         setSearchResults(results.slice(0, 30));
       } catch (err) {
         console.error(err);
@@ -148,7 +150,7 @@ const DashboardMain: React.FC<DashboardMainProps> = ({ selectedGenres, selectedR
   };
 
   const renderGrid = (items: Movie[], mediaType: "movie" | "tv") => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
       {filterItems(items).map((item) => {
         const type = item.media_type || mediaType;
         const isFav = isFavorite(item.id, type);
@@ -191,7 +193,7 @@ const DashboardMain: React.FC<DashboardMainProps> = ({ selectedGenres, selectedR
               <div className="absolute inset-0 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </Link>
 
-            {/* Кнопка улюблене (правий верх) */}
+
             <button
               onClick={() => {
                 const result = toggleFavorite({
@@ -200,28 +202,44 @@ const DashboardMain: React.FC<DashboardMainProps> = ({ selectedGenres, selectedR
                   title: item.title || item.name || "",
                   posterPath: item.poster_path,
                   voteAverage: item.vote_average,
+                  releaseDate: item.release_date || item.first_air_date,
                 });
                 toast.success(
                   result
-                    ? t("favorites.added")
-                    : t("favorites.removed")
+                    ? t("favorites.added") || "Додано до улюблених"
+                    : t("favorites.removed") || "Видалено з улюблених"
                 );
               }}
-              className="absolute top-4 right-4 z-10 heart-hover"
-              title={isFav ? t("favorites.remove") : t("favorites.add")}
+              className={`
+    absolute top-4 right-4 z-20
+    p-2.5 rounded-full
+    bg-gradient-to-r from-red-600 via-rose-600 to-pink-600
+    text-white
+    shadow-lg shadow-red-900/40
+    transition-all duration-300
+    hover:scale-110 hover:shadow-xl hover:shadow-rose-700/50
+    active:scale-95 active:from-red-700 active:via-rose-700 active:to-pink-700
+    ${isFav
+                  ? "from-pink-600 via-rose-600 to-red-600 hover:from-pink-500 hover:via-rose-500 hover:to-red-500 shadow-rose-900/60"
+                  : ""}
+  `}
+              title={isFav
+                ? (t("favorites.remove") || "Видалити з улюблених")
+                : (t("favorites.add") || "Додати до улюблених")}
             >
               <Heart
-                className={
-                  (isFav
-                    ? "fill-red-500 text-red-500"
-                    : "text-white") +
-                  " transition-transform duration-300 heart-anim drop-shadow-lg"
-                }
-                size={28}
+                size={26}
+                className={`
+      transition-all duration-400
+      drop-shadow-md
+      ${isFav
+                    ? "fill-red-100 text-red-100 animate-heartbeat"
+                    : "text-white/90 group-hover:text-white"
+                  }
+    `}
               />
             </button>
 
-            {/* Кнопка "на потім" (лівий верх) */}
             <button
               onClick={() => {
                 let updated;
@@ -230,22 +248,48 @@ const DashboardMain: React.FC<DashboardMainProps> = ({ selectedGenres, selectedR
                 } else {
                   updated = [...watchLaterList, {
                     id: item.id,
-                    title: item.title || item.name || "Видалити зі списку на потім",
+                    type: type,
+                    title: item.title || item.name || "",
                     posterUrl: item.poster_path ? `${import.meta.env.VITE_TMDB_IMG_BASE}${item.poster_path}` : undefined,
+                    releaseDate: item.release_date || item.first_air_date,
                   }];
                 }
                 setWatchLaterList(updated);
                 localStorage.setItem(WATCH_LATER_KEY, JSON.stringify(updated));
+
                 if (!isWatchLater) {
-                  toast.success(t('watchLater.added'));
+                  toast.success(t('watchLater.added') || "Додано до списку «На потім»");
                 } else {
-                  toast.success(t('watchLater.remove') || 'Видалено зі списку на потім');
+                  toast.success(t('watchLater.removed') || "Видалено зі списку «На потім»");
                 }
               }}
-              className={`absolute top-4 left-4 p-2 rounded-full z-10 bg-blue-600 text-white shadow transition-all duration-300 hover:scale-110 ${isWatchLater ? "bg-pink-600" : "bg-blue-600"}`}
-              title={isWatchLater ? t("watchLater.remove") || "Видалити зі списку на потім" : t("watchLater.add") || "Додати у список на потім"}
+              className={`
+    absolute top-4 left-4 z-20
+    p-2.5 rounded-full
+    bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
+    text-white
+    shadow-lg shadow-indigo-900/40
+    transition-all duration-300
+    hover:scale-110 hover:shadow-xl hover:shadow-indigo-700/50
+    active:scale-95 active:from-blue-700 active:via-indigo-700 active:to-purple-700
+    ${isWatchLater
+                  ? "from-pink-600 via-rose-600 to-purple-600 hover:from-pink-500 hover:via-rose-500 hover:to-purple-500 shadow-rose-900/50 active:from-pink-700 active:via-rose-700 active:to-purple-700"
+                  : ""}
+  `}
+              title={isWatchLater
+                ? (t("watchLater.remove") || "Видалити зі списку на потім")
+                : (t("watchLater.add") || "Додати у список на потім")}
             >
-              <Clock size={24} className={isWatchLater ? "text-pink-200 opacity-80" : "text-white opacity-60 group-hover:opacity-90 transition-all duration-300"} />
+              <Clock
+                size={26}
+                className={`
+      transition-all duration-300
+      ${isWatchLater
+                    ? "text-pink-100 drop-shadow-md animate-pulse-slow"
+                    : "text-white/90 group-hover:text-white drop-shadow-md"
+                  }
+    `}
+              />
             </button>
           </div>
         );
@@ -255,28 +299,48 @@ const DashboardMain: React.FC<DashboardMainProps> = ({ selectedGenres, selectedR
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-0">
-      <header className="w-full px-0 py-0 bg-gray-950/80 border-b border-gray-800/60 shadow-lg sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
-          <div className="flex-1 flex items-center gap-4">
-            <span className="text-2xl font-black bg-gradient-to-r from-indigo-400 to-pink-400 bg-clip-text text-transparent tracking-tight">Nexo Cinema</span>
-          </div>
-          <div className="flex-1 flex justify-end">
-            <form onSubmit={searchContent} className="flex items-center gap-2">
-              <input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={t('dashboard.search') || "Пошук..."}
-                className="px-4 py-2 rounded-xl bg-gray-800/80 border border-gray-700 text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition w-48 md:w-64"
-              />
-            </form>
-          </div>
-        </div>
-      </header>
-
       <main className="max-w-7xl mx-auto w-full px-6 py-8">
         {!searchMode && nowPlaying.length > 0 && (
           <SimpleHeroSlider movies={nowPlaying} />
         )}
+        {searchMode && (
+          <div className="mb-6 sm:mb-8 flex items-center">
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setSearchResults([]);
+                setSearchMode(false);
+                // Опціонально: прокрутити вгору
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className={`
+              group flex items-center gap-2 sm:gap-3
+              px-4 sm:px-6 py-2.5 sm:py-3
+              bg-gradient-to-r from-indigo-600/90 to-purple-600/90
+              hover:from-indigo-500 hover:to-purple-500
+              active:from-indigo-700 active:to-purple-700
+              text-white font-medium text-sm sm:text-base
+              rounded-full shadow-lg shadow-indigo-900/40
+              transition-all duration-300
+              hover:scale-105 hover:shadow-xl hover:shadow-indigo-700/50
+              active:scale-95
+              backdrop-blur-sm border border-indigo-500/30
+            `}
+            >
+              <ArrowLeft
+                size={20}
+                className="group-hover:-translate-x-1 transition-transform duration-300"
+              />
+              Повернутися до рекомендацій
+            </button>
+          </div>
+        )}
+        <SearchBar
+          onSearch={searchContent}
+          initialValue={searchTerm}
+          placeholder="Пошук фільмів, серіалів, аніме..."
+          className="mt-8 mb-12"
+        />
 
         {searchMode
           ? (
