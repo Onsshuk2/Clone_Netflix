@@ -20,11 +20,21 @@ public class ContentConfiguration : IEntityTypeConfiguration<Content>
             .HasMaxLength(2000);
 
         builder.Property(c => c.Rating)
-            .HasPrecision(3, 1);
+            .IsRequired()
+            .HasDefaultValue(0.0f);
+
+        builder.Property(c => c.VotesCount)
+            .IsRequired()
+            .HasDefaultValue(0);
 
         builder.Property(c => c.Type)
             .HasConversion<string>()
             .HasMaxLength(20);
+
+        builder.HasMany(c => c.UserRatings)
+            .WithOne(r => r.Content)
+            .HasForeignKey(r => r.ContentId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(c => c.Collections)
             .WithMany(col => col.Contents);
@@ -38,7 +48,7 @@ public class ContentConfiguration : IEntityTypeConfiguration<Content>
             .HasDefaultValue(0);
 
         builder.Property(c => c.Duration)
-            .IsRequired(false); // Необов'язково для сезонів
+            .IsRequired(false);
 
         builder.HasOne(c => c.Franchise)
             .WithMany(f => f.Contents)

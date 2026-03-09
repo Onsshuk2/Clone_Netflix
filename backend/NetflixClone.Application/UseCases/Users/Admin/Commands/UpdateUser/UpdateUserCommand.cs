@@ -12,4 +12,5 @@ public class UpdateUserCommand : IRequest
     public IFormFile? Avatar { get; set; }
     public List<string> Roles { get; set; } = new();
     public Guid? PlanId { get; set; }
+    public bool IsBlocked { get; set; }
 }

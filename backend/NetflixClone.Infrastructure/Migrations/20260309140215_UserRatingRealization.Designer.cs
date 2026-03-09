@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetflixClone.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NetflixClone.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309140215_UserRatingRealization")]
+    partial class UserRatingRealization
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -447,11 +450,6 @@ namespace NetflixClone.Infrastructure.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsBlocked")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
 
@@ -589,17 +587,12 @@ namespace NetflixClone.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("UserId1")
-                        .HasColumnType("uuid");
-
                     b.Property<int>("Value")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ContentId");
-
-                    b.HasIndex("UserId1");
 
                     b.HasIndex("UserId", "ContentId")
                         .IsUnique();
@@ -763,10 +756,6 @@ namespace NetflixClone.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("NetflixClone.Domain.Entities.User", null)
-                        .WithMany("UserRatings")
-                        .HasForeignKey("UserId1");
-
                     b.Navigation("Content");
 
                     b.Navigation("User");
@@ -792,8 +781,6 @@ namespace NetflixClone.Infrastructure.Migrations
             modelBuilder.Entity("NetflixClone.Domain.Entities.User", b =>
                 {
                     b.Navigation("Subscriptions");
-
-                    b.Navigation("UserRatings");
 
                     b.Navigation("UserRoles");
                 });
