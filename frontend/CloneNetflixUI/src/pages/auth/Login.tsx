@@ -1,7 +1,7 @@
-// src/pages/Login.tsx (або де в тебе лежить)
+// src/pages/Login.tsx
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { $t } from "../../lib/toast"; // ← наш глобальний тост (з попереднього кроку)
+import { $t } from "../../lib/toast";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +32,6 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // 1. Логін
       const loginRes = await fetch(`${API_URL}/api/Auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -51,10 +50,9 @@ export default function Login() {
 
       localStorage.setItem("token", token);
 
-      // 2. Витягуємо userId з токена (jwt-decode або вручну)
       let userId: string | null = null;
       try {
-        const decoded: any = jwtDecode(token);  // імпортуй jwt-decode якщо ще не
+        const decoded: any = jwtDecode(token);
         userId = decoded.sub || decoded.userId || decoded.id || decoded.nameid || null;
       } catch (decodeErr) {
         console.warn("Не вдалося декодувати токен для userId", decodeErr);
@@ -62,7 +60,6 @@ export default function Login() {
 
       let userData: any = {};
 
-      // 3. Якщо userId є — запитуємо повний профіль через адмінський ендпоінт
       if (userId) {
         const userRes = await fetch(`${API_URL}/api/users/admin/get-user/${userId}`, {
           method: "GET",
@@ -79,12 +76,10 @@ export default function Login() {
         }
       }
 
-      // 4. Якщо нічого не отримали — fallback на мінімальні дані
       if (!userData || Object.keys(userData).length === 0) {
         userData = { email };
       }
 
-      // 5. Нормалізуємо під формат UserLayout / Profile
       const normalizedUser = {
         userName:
           userData.userName ||
@@ -103,9 +98,6 @@ export default function Login() {
           null,
 
         email: userData.email || email,
-
-        // якщо в відповіді є dateOfBirth, id тощо — додавай
-        // dateOfBirth: userData.dateOfBirth || null,
       };
 
       localStorage.setItem("user", JSON.stringify(normalizedUser));
@@ -113,7 +105,6 @@ export default function Login() {
       $t.success(t('auth.login_success') || "Вхід успішний!");
 
       navigate("/dashboard");
-
     } catch (err: any) {
       const raw = err?.message || err?.response?.data?.message || '';
       const message = mapError(raw);
@@ -127,35 +118,43 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full space-y-10">
-        {/* Заголовок */}
-        <div className="text-center">
-          <h2 className="text-4xl font-bold text-slate-900">{t('auth.login')}</h2>
-          <p className="mt-3 text-base text-slate-600">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-indigo-950/40 to-black px-4 py-12">
+      <div className="w-full max-w-lg bg-gray-900/85 backdrop-blur-2xl rounded-3xl border border-gray-800/60 shadow-2xl shadow-indigo-950/50 overflow-hidden transform transition-all duration-500 hover:shadow-indigo-900/40">
+        <div className="px-10 pt-14 pb-12">
+          {/* Заголовок з градієнтом */}
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-center mb-4 bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent tracking-tight drop-shadow-lg">
+            {t('auth.login')}
+          </h2>
+
+          <p className="text-center text-gray-400 mb-10 text-base font-light">
             {t('auth.create_account')} {" "}
             <a
               href="/register"
-              className="font-medium text-indigo-600 hover:text-indigo-500 transition"
+              className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 font-medium"
             >
               {t('auth.register')}
             </a>
           </p>
-        </div>
 
-        {/* Форма */}
-        <div className="bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl p-8 border border-slate-200/50">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-8" onSubmit={handleSubmit}>
             {/* Email */}
             <div>
               <input
                 type="email"
-                required
                 name="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('auth.email_placeholder')}
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition"
+                className="
+                  w-full px-6 py-4 
+                  bg-gray-800/70 border border-gray-700/80 rounded-2xl 
+                  text-white placeholder-gray-500 text-base
+                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20
+                  outline-none transition-all duration-300 ease-in-out
+                  shadow-inner
+                "
+                autoComplete="email"
               />
             </div>
 
@@ -167,61 +166,86 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t('auth.password_placeholder')}
-                className="w-full px-5 py-4 pr-14 bg-slate-50 border border-slate-300 rounded-xl placeholder-slate-400 text-slate-900 text-base focus:outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition"
+                className="
+                  w-full px-6 py-4 pr-14 
+                  bg-gray-800/70 border border-gray-700/80 rounded-2xl 
+                  text-white placeholder-gray-500 text-base
+                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20
+                  outline-none transition-all duration-300 ease-in-out
+                  shadow-inner
+                "
+                autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-5 text-slate-500 hover:text-slate-700 transition"
+                className="
+                  absolute top-1/2 right-5 -translate-y-1/2 
+                  text-gray-400 hover:text-indigo-400 transition-colors duration-200
+                "
               >
                 {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
+                  <EyeOff className="w-6 h-6" strokeWidth={2.5} />
                 ) : (
-                  <Eye className="w-5 h-5" />
+                  <Eye className="w-6 h-6" strokeWidth={2.5} />
                 )}
               </button>
             </div>
-            <div>
+
+            {/* Посилання "Забув пароль?" */}
+            <div className="text-right">
               <a
                 href="/password-recovery"
-                className="text-sm text-indigo-600 hover:text-indigo-500 font-medium transition"
+                className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 text-sm font-medium"
               >
                 {t('auth.forgot_password')}
               </a>
             </div>
 
-            {/* Кнопка */}
+            {/* Кнопка входу */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-indigo-400 disabled:to-indigo-500 text-white font-semibold text-lg rounded-xl shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 disabled:transform-none transition-all duration-200 flex items-center justify-center gap-3"
+              className={`
+                relative w-full py-4 px-6 rounded-2xl font-semibold text-lg text-white
+                transition-all duration-300 ease-in-out transform
+                shadow-xl shadow-indigo-900/40 overflow-hidden
+                ${loading
+                  ? "bg-indigo-700/50 cursor-wait opacity-70"
+                  : "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 active:scale-[0.98] hover:shadow-2xl hover:shadow-purple-900/50"
+                }
+              `}
             >
               {loading ? (
-                <>
+                <span className="flex items-center justify-center gap-3">
                   <svg
-                    className="animate-spin h-5 w-5 text-white"
+                    className="animate-spin h-6 w-6 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
                     viewBox="0 0 24 24"
                   >
                     <circle
+                      className="opacity-25"
                       cx="12"
                       cy="12"
                       r="10"
                       stroke="currentColor"
                       strokeWidth="4"
-                      fill="none"
-                      className="opacity-25"
                     />
                     <path
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8H4z"
                       className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
                     />
                   </svg>
-                  {t('auth.logging_in')}
-                </>
+                  {t('auth.logging_in') || "Вхід..."}
+                </span>
               ) : (
-                t('auth.login_button')
+                t('auth.login_button') || "Увійти"
               )}
+
+              {/* Легкий градієнтний ефект при наведенні */}
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             </button>
           </form>
         </div>

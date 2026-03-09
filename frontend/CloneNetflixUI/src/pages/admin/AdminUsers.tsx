@@ -38,12 +38,11 @@ const AdminUsers = () => {
   const [isCreating, setIsCreating] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Модалка підтвердження блокування
+  // Модалки підтвердження
   const [showConfirmBlockModal, setShowConfirmBlockModal] = useState(false);
   const [confirmBlockUserId, setConfirmBlockUserId] = useState<string | null>(null);
   const [confirmNewBlocked, setConfirmNewBlocked] = useState(false);
 
-  // Модалка підтвердження видалення
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
   const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
 
@@ -64,7 +63,12 @@ const AdminUsers = () => {
   });
 
   const API_URL = import.meta.env.VITE_API_URL;
+
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof UserFormData, string>>>({});
+
+  // Стандартна аватарка, якщо немає своєї
+  const DEFAULT_AVATAR = (name: string) =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff&size=128`;
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -115,6 +119,11 @@ const AdminUsers = () => {
       let user = res.data;
       if (typeof user === 'string') user = JSON.parse(user);
 
+      // Якщо аватарки немає — ставимо стандартну
+      const avatarPreview = user.avatarUrl
+        ? `${API_URL}/${user.avatarUrl.replace(/^\/+/, '')}`
+        : DEFAULT_AVATAR(user.userName || 'User');
+
       setForm({
         userName: user.userName || '',
         email: user.email || '',
@@ -123,7 +132,7 @@ const AdminUsers = () => {
         confirmPassword: '',
         roles: user.roles || ['User'],
         imageFile: null,
-        imagePreview: user.avatarUrl || '',
+        imagePreview: avatarPreview,
         isBlocked: user.isBlocked || false,
       });
 
@@ -157,7 +166,12 @@ const AdminUsers = () => {
     fd.append('userName', form.userName.trim());
     fd.append('email', form.email.trim());
     if (form.dateOfBirth) fd.append('dateOfBirth', form.dateOfBirth);
-    if (form.imageFile) fd.append('avatar', form.imageFile);
+
+    // Передаємо аватар тільки якщо обрано новий файл
+    if (form.imageFile) {
+      fd.append('avatar', form.imageFile);
+    }
+
     form.roles.forEach(role => fd.append('roles', role));
 
     if (isCreating) {
@@ -205,7 +219,7 @@ const AdminUsers = () => {
 
     try {
       await api.delete(`/users/admin/delete/${confirmDeleteUserId}`);
-      toast.error('Користувача видалено');
+      toast.success('Користувача видалено');
       loadUsers();
     } catch (err) {
       toast.error('Помилка видалення');
@@ -252,11 +266,7 @@ const AdminUsers = () => {
         )
       );
 
-      if (confirmNewBlocked) {
-        toast.error('Користувача заблоковано');  // Error для блокування
-      } else {
-        toast.success('Користувача розблоковано');  // Success для розблокування
-      }
+      toast.success(confirmNewBlocked ? 'Користувача заблоковано' : 'Користувача розблоковано');
     } catch (err: any) {
       console.error('Помилка блокування:', err);
       toast.error('Не вдалося змінити статус блокування');
@@ -354,7 +364,6 @@ const AdminUsers = () => {
           >
             <option value="all">Всі ролі</option>
             <option value="Admin">Адміністратори</option>
-            <option value="Moderator">Модератори</option>
             <option value="User">Користувачі</option>
           </select>
         </div>
@@ -388,11 +397,14 @@ const AdminUsers = () => {
                         <img
                           src={
                             user.avatarUrl && user.avatarUrl.trim() !== ""
-                              ? `${API_URL}/${user.avatarUrl}`
-                              : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=6366f1&color=fff&size=128`
+                              ? `${API_URL}/${user.avatarUrl.replace(/^\/+/, '')}`
+                              : DEFAULT_AVATAR(user.userName || 'User')
                           }
                           alt={user.userName}
                           className="w-14 h-14 rounded-full object-cover ring-2 ring-indigo-500/50"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = DEFAULT_AVATAR(user.userName || 'User');
+                          }}
                         />
                       </td>
                       <td className="px-8 py-6 font-medium text-white">{user.userName}</td>
@@ -410,7 +422,7 @@ const AdminUsers = () => {
                         </div>
                       </td>
 
-                      {/* Блокування — чистий перемикач без тексту */}
+                      {/* Блокування */}
                       <td className="px-6 py-6 text-center">
                         <label className="relative inline-flex items-center cursor-pointer group">
                           <input
@@ -483,7 +495,6 @@ const AdminUsers = () => {
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-8">
-                  {/* ... (весь вміст форми редагування без змін) ... */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label className="block text-gray-300 font-medium mb-3">Ім'я *</label>
@@ -543,9 +554,10 @@ const AdminUsers = () => {
                     </div>
                   )}
 
+                  {/* Аватар з коректним прев'ю */}
                   <div>
                     <label className="block text-gray-300 font-medium mb-3">Аватар</label>
-                    <div className="flex items-center gap-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                       <label className="cursor-pointer bg-indigo-900/30 hover:bg-indigo-800 px-6 py-4 rounded-xl transition text-indigo-300 font-medium">
                         Обрати фото
                         <input
@@ -555,12 +567,21 @@ const AdminUsers = () => {
                           className="hidden"
                         />
                       </label>
-                      {form.imagePreview && (
+
+                      {/* Прев'ю */}
+                      {form.imagePreview ? (
                         <img
                           src={form.imagePreview}
-                          alt="Прев'ю"
-                          className="w-24 h-24 rounded-full object-cover ring-2 ring-indigo-500 shadow-lg"
+                          alt="Прев'ю аватарки"
+                          className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-2 ring-indigo-500 shadow-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = DEFAULT_AVATAR(form.userName || 'User');
+                          }}
                         />
+                      ) : (
+                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-sm">
+                          Немає фото
+                        </div>
                       )}
                     </div>
                   </div>
@@ -577,7 +598,6 @@ const AdminUsers = () => {
                       className="w-full px-6 py-5 bg-gray-800 border border-gray-700 rounded-2xl text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition h-32"
                     >
                       <option value="User">Користувач</option>
-                      <option value="Moderator">Модератор</option>
                       <option value="Admin">Адміністратор</option>
                     </select>
                   </div>
@@ -638,8 +658,8 @@ const AdminUsers = () => {
                   <button
                     onClick={confirmBlockAction}
                     className={`px-10 py-4 rounded-2xl font-bold shadow-xl transition-all hover:scale-105 ${confirmNewBlocked
-                      ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500'
-                      : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'
+                        ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500'
+                        : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'
                       }`}
                   >
                     {confirmNewBlocked ? 'Заблокувати' : 'Розблокувати'}

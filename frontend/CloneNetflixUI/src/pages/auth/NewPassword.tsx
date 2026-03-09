@@ -1,6 +1,8 @@
+// src/pages/dashboard/PasswordReset.tsx
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import toast from "react-hot-toast";
 
 const PasswordReset: React.FC = () => {
   const [newPassword, setNewPassword] = useState("");
@@ -8,12 +10,10 @@ const PasswordReset: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+
 
   const API_URL = import.meta.env.VITE_API_URL;
   const location = useLocation();
-  const navigate = useNavigate();
 
   const query = new URLSearchParams(location.search);
   const token = query.get("token");
@@ -21,27 +21,27 @@ const PasswordReset: React.FC = () => {
 
   useEffect(() => {
     if (!token || !email) {
-      setError("Посилання для відновлення паролю недійсне або пошкоджене.");
+      toast.error("Посилання для відновлення паролю недійсне або пошкоджене.");
     }
   }, [token, email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("");
-    setError("");
+
+
 
     if (newPassword !== confirmPassword) {
-      setError("Паролі не співпадають");
+      toast.error("Паролі не співпадають");
       return;
     }
 
     if (newPassword.length < 8) {
-      setError("Пароль має бути не коротшим за 8 символів");
+      toast.error("Пароль має бути не коротшим за 8 символів");
       return;
     }
 
     if (!token || !email) {
-      setError("Немає даних для зміни паролю");
+      toast.error("Немає даних для зміни паролю");
       return;
     }
 
@@ -61,50 +61,39 @@ const PasswordReset: React.FC = () => {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        setMessage("Пароль успішно змінено! Зараз перенаправимо на вхід...");
-        setTimeout(() => navigate("/login", { replace: true }), 2200);
+        toast.success("Пароль успішно змінено!");
       } else {
-        setError(
+        toast.error(
           data.message ||
           "Не вдалося змінити пароль. Посилання могло бути використане або прострочене."
         );
       }
     } catch {
-      setError("Помилка з'єднання з сервером. Перевірте інтернет.");
+      toast.error("Помилка з'єднання з сервером. Перевірте інтернет.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200 px-4 py-12">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-        <div className="px-8 pt-10 pb-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-2">
-            Новий пароль
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-indigo-950/30 to-black px-4 py-12">
+      <div className="w-full max-w-lg bg-gray-900/80 backdrop-blur-2xl rounded-3xl border border-gray-800/60 shadow-2xl shadow-black/50 overflow-hidden transform transition-all duration-300 hover:shadow-indigo-900/30">
+        <div className="px-8 pt-12 pb-10">
+          {/* Заголовок з градієнтом */}
+          <h2 className="text-4xl font-extrabold text-center mb-3 bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent tracking-tight">
+            Встановити новий пароль
           </h2>
-          <p className="text-center text-gray-600 mb-8 text-sm">
-            Введіть новий пароль для вашого облікового запису
+
+          <p className="text-center text-gray-400 mb-10 text-base">
+            Введіть новий надійний пароль для вашого облікового запису
           </p>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-300 text-red-800 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          {message && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-300 text-green-800 rounded-lg text-sm">
-              {message}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             {/* Новий пароль */}
             <div>
               <label
                 htmlFor="newPassword"
-                className="block text-sm font-medium text-gray-700 mb-1.5"
+                className="block text-sm font-medium text-gray-300 mb-2"
               >
                 Новий пароль
               </label>
@@ -115,14 +104,13 @@ const PasswordReset: React.FC = () => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="
-        w-full px-4 py-3 pr-12 
-        rounded-lg border border-gray-300 
-        text-gray-900 placeholder-gray-400 bg-white
-        focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 
-        focus:outline-none transition duration-150
-        h-12               /* фіксована висота */
-        leading-normal     /* стабілізує вертикальне вирівнювання */
-      "
+                    w-full px-6 py-4 pr-14 
+                    bg-gray-800/70 border border-gray-700/80 rounded-2xl 
+                    text-white placeholder-gray-500
+                    focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 
+                    focus:outline-none transition-all duration-200
+                    shadow-inner
+                  "
                   required
                   minLength={8}
                   autoComplete="new-password"
@@ -132,18 +120,15 @@ const PasswordReset: React.FC = () => {
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
                   className="
-        absolute top-1/2 -translate-y-1/2 right-0 
-        flex items-center justify-center 
-        w-12 h-full 
-        text-gray-500 hover:text-gray-700 focus:text-indigo-600 
-        transition-colors
-      "
+                    absolute top-1/2 right-5 -translate-y-1/2 
+                    text-gray-400 hover:text-indigo-400 transition-colors duration-200
+                  "
                   aria-label={showNewPassword ? "Приховати пароль" : "Показати пароль"}
                 >
                   {showNewPassword ? (
-                    <EyeOff className="w-5 h-5" strokeWidth={2} />
+                    <EyeOff className="w-6 h-6" strokeWidth={2} />
                   ) : (
-                    <Eye className="w-5 h-5" strokeWidth={2} />
+                    <Eye className="w-6 h-6" strokeWidth={2} />
                   )}
                 </button>
               </div>
@@ -153,7 +138,7 @@ const PasswordReset: React.FC = () => {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-1.5"
+                className="block text-sm font-medium text-gray-300 mb-2"
               >
                 Підтвердіть пароль
               </label>
@@ -164,14 +149,13 @@ const PasswordReset: React.FC = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="
-        w-full px-4 py-3 pr-12 
-        rounded-lg border border-gray-300 
-        text-gray-900 placeholder-gray-400 bg-white
-        focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 
-        focus:outline-none transition duration-150
-        h-12               /* фіксована висота */
-        leading-normal     /* стабілізує вертикальне вирівнювання */
-      "
+                    w-full px-6 py-4 pr-14 
+                    bg-gray-800/70 border border-gray-700/80 rounded-2xl 
+                    text-white placeholder-gray-500
+                    focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 
+                    focus:outline-none transition-all duration-200
+                    shadow-inner
+                  "
                   required
                   autoComplete="new-password"
                   placeholder="Повторіть пароль"
@@ -180,39 +164,38 @@ const PasswordReset: React.FC = () => {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="
-        absolute top-1/2 -translate-y-1/2 right-0 
-        flex items-center justify-center 
-        w-12 h-full 
-        text-gray-500 hover:text-gray-700 focus:text-indigo-600 
-        transition-colors
-      "
+                    absolute top-1/2 right-5 -translate-y-1/2 
+                    text-gray-400 hover:text-indigo-400 transition-colors duration-200
+                  "
                   aria-label={showConfirmPassword ? "Приховати пароль" : "Показати пароль"}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5" strokeWidth={2} />
+                    <EyeOff className="w-6 h-6" strokeWidth={2} />
                   ) : (
-                    <Eye className="w-5 h-5" strokeWidth={2} />
+                    <Eye className="w-6 h-6" strokeWidth={2} />
                   )}
                 </button>
               </div>
             </div>
-            Чому це вирівнює ідеально:
+
+            {/* Кнопка submit */}
             <button
               type="submit"
               disabled={loading || !token || !email}
               className={`
-                w-full py-3.5 px-4 rounded-lg font-medium text-white text-base
-                transition duration-200 ease-in-out
+                w-full py-4 px-6 rounded-2xl font-semibold text-lg text-white
+                transition-all duration-300 ease-in-out transform
+                shadow-xl shadow-indigo-900/30
                 ${loading || !token || !email
-                  ? "bg-indigo-400 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 shadow-sm hover:shadow"
+                  ? "bg-indigo-700/50 cursor-not-allowed opacity-70"
+                  : "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-500 active:scale-[0.98] hover:shadow-2xl hover:shadow-indigo-700/40"
                 }
               `}
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
+                <span className="flex items-center justify-center gap-3">
                   <svg
-                    className="animate-spin h-5 w-5 text-white"
+                    className="animate-spin h-6 w-6 text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"

@@ -15,7 +15,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import PasswordRecovery from "./pages/auth/PasswordRecovery";
 import NewPassword from "./pages/auth/NewPassword";
-import ConfirmationEmailSent from "./pages/auth/EmailSent";
+
 
 import DashboardMovies from "./pages/dashboard/DashboardFilms";
 import DashboardAnime from "./pages/dashboard/DashboardAnime";
@@ -73,7 +73,7 @@ const AdminRoute = ({ selectedGenres, setSelectedGenres, selectedRating, setSele
     role = payload.role || payload.user?.role || null;
     console.log("Розпарсена роль:", role);
   } catch (err) {
-    console.log("Помилка парсингу токена:", err.message);
+    console.log("Помилка парсингу токена:", err);
   }
 
   if (role?.toLowerCase() !== "admin") {
@@ -99,10 +99,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/password-recovery" element={<PasswordRecovery />} />
-            <Route path="/reset-password" element={<NewPassword />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/about-help" element={<AboutHelp />} />
-            <Route path="/confirmation-sent" element={<ConfirmationEmailSent />} />
           </Route>
 
           {/* Захищені маршрути для всіх авторизованих користувачів */}
@@ -123,6 +121,7 @@ function App() {
 
             {/* 404 всередині захищених маршрутів — щоб не показувати гостьовий 404 */}
             <Route path="*" element={<NotFound />} />
+
           </Route>
 
           {/* Окремий маршрут ТІЛЬКИ для адмінів */}
@@ -132,6 +131,7 @@ function App() {
           </Route>
 
           {/* Глобальний 404 (для неіснуючих шляхів поза захищеними) */}
+          <Route path="/reset-password" element={<NewPassword />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
 

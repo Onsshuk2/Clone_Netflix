@@ -21,7 +21,7 @@ import {
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
 import AnimatedOutlet from "../components/AnimatedOutlet";
-import AdminFabButton from "../pages/admin/AdminFabButton";
+
 import FilterBar from "../components/FilterBar";
 
 interface UserLayoutProps {
@@ -54,13 +54,25 @@ const UserLayout: React.FC<UserLayoutProps> = ({
   const isAuthenticated = !!token;
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  const DEFAULT_AVATAR =
-    "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
 
   const [user, setUser] = useState<{ name: string; avatarUrl: string | null; email: string } | null>(null);
   const [userPlan, setUserPlan] = useState<"basic" | "standard" | "premium" | null>(null);
 
-  // Функція визначення ролі з JWT (та сама, що в AdminFabButton)
+  // Функція для генерації дефолтної аватарки з ініціалами
+  const getDefaultAvatar = (name: string) => {
+    // Беремо перші дві літери імені або "??"
+    const initials = name.trim()
+      ? name
+        .split(" ")
+        .map(word => word[0]?.toUpperCase())
+        .join("")
+        .slice(0, 2)
+      : "??";
+
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=6366f1&color=fff&size=128&bold=true`;
+  };
+
+  // Функція визначення ролі з JWT
   const getUserRole = () => {
     if (!token) return null;
 
@@ -115,7 +127,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({
         }
       }
 
-      // Визначаємо isAdmin з токена (тепер використовуємо функцію з AdminFabButton)
+      // Визначаємо isAdmin з токена
       const role = getUserRole();
       setIsAdmin(role === "admin" || role === "administrator");
       console.log("Розпарсена роль з JWT:", role, "isAdmin:", role === "admin");
@@ -131,7 +143,10 @@ const UserLayout: React.FC<UserLayoutProps> = ({
   }, [isAuthenticated]);
 
   const getAvatarSrc = () => {
-    if (!user?.avatarUrl) return DEFAULT_AVATAR;
+    if (!user?.avatarUrl) {
+      // Якщо аватарки немає — генеруємо з ініціалів
+      return getDefaultAvatar(user?.name || "Користувач");
+    }
     if (user.avatarUrl.startsWith("http")) return user.avatarUrl;
 
     let clean = user.avatarUrl.replace(/^\/+/, "").replace(/^(images\/|uploads\/|avatars\/)?/, "");
@@ -257,18 +272,14 @@ const UserLayout: React.FC<UserLayoutProps> = ({
                 onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                 className="flex items-center gap-2.5 lg:gap-3 hover:bg-gray-800/50 px-3 lg:px-4 py-2 rounded-xl transition-all duration-200"
               >
-                {user ? (
-                  <img
-                    src={getAvatarSrc()}
-                    alt="Avatar"
-                    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full object-cover ring-2 ring-indigo-500/50 shadow-md transition-transform duration-200 group-hover:scale-105"
-                    onError={(e) => (e.target as HTMLImageElement).src = DEFAULT_AVATAR}
-                  />
-                ) : (
-                  <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-base lg:text-lg font-bold ring-2 ring-indigo-500/50 shadow-md">
-                    ?
-                  </div>
-                )}
+                <img
+                  src={getAvatarSrc()}
+                  alt="Avatar"
+                  className="w-9 h-9 lg:w-10 lg:h-10 rounded-full object-cover ring-2 ring-indigo-500/50 shadow-md transition-transform duration-200 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = getDefaultAvatar(user?.name || "Гість");
+                  }}
+                />
                 <span className="hidden md:block font-medium text-gray-200 truncate max-w-[140px] lg:max-w-[180px]">
                   {user?.name || "Гість"}
                 </span>
@@ -344,7 +355,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({
                       <>
                         <div className="h-px bg-gray-800/60 my-2 mx-4 lg:mx-5" />
                         <DropdownItem
-                          to="/admin"
+                          to="/admin/users"
                           icon={ShieldCheck}
                           label="Адмін-панель"
                           color="purple"
@@ -372,10 +383,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({
           </div>
         </div>
 
-        {/* AdminFabButton тільки на десктопі */}
-        <div className="hidden lg:block">
-          <AdminFabButton />
-        </div>
+
       </header>
 
       {/* Мобільне меню */}
@@ -457,7 +465,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({
                 {t("user.subscriptions")}
               </Link>
 
-              {/* Адмін-панель — тепер показується і тут */}
+              {/* Адмін-панель */}
               {isAdmin && (
                 <Link
                   to="/admin/users"
@@ -473,10 +481,10 @@ const UserLayout: React.FC<UserLayoutProps> = ({
               )}
             </div>
 
-            <div className="border-t border-gray-800 p-4">
+            <div className="border-t border-gray-800  p-4">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-3 py-3 bg-red-900/40 hover:bg-red-900/60 text-red-300 rounded-xl transition text-base font-medium"
+                className="w-full flex items-center justify-center gap-3 py-3  bg-red-900/40 hover:bg-red-900/60 text-red-300 rounded-xl transition text-base font-medium"
               >
                 <LogOut size={20} />
                 {t("user.exit_account")}
