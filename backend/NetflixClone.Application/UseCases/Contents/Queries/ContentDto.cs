@@ -7,7 +7,7 @@ public class ContentDto
     public Guid Id { get; set; }
     public string Title { get; set; } = null!;
     public string PosterUrl { get; set; } = null!;
-    public decimal Rating { get; set; }
+    public float Rating { get; set; }
     public int ReleaseYear { get; set; }
     public VideoStatus VideoStatus { get; set; }
 }
