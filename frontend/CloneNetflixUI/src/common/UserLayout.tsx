@@ -16,7 +16,7 @@ import {
   Baby,
   LayoutDashboard,
   ShieldCheck,
-  History,          // додали для історії переглядів
+  History,
 } from "lucide-react";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -60,6 +60,26 @@ const UserLayout: React.FC<UserLayoutProps> = ({
   const [user, setUser] = useState<{ name: string; avatarUrl: string | null; email: string } | null>(null);
   const [userPlan, setUserPlan] = useState<"basic" | "standard" | "premium" | null>(null);
 
+  // Функція визначення ролі з JWT (та сама, що в AdminFabButton)
+  const getUserRole = () => {
+    if (!token) return null;
+
+    try {
+      const parts = token.split(".");
+      if (parts.length !== 3) return null;
+
+      const payloadBase64 = parts[1];
+      const payloadJson = atob(payloadBase64);
+      const payload = JSON.parse(payloadJson);
+
+      const roleRaw = payload.role || payload.user?.role || null;
+      return roleRaw ? roleRaw.toLowerCase() : null;
+    } catch (err) {
+      console.warn("Не вдалося розпарсити JWT для ролі:", err);
+      return null;
+    }
+  };
+
   useEffect(() => {
     const syncData = () => {
       if (!isAuthenticated) {
@@ -84,22 +104,21 @@ const UserLayout: React.FC<UserLayoutProps> = ({
             email: parsed.email || "",
           });
 
-          const role = (parsed.role || "").toLowerCase();
-          setIsAdmin(
-            role === "admin" ||
-            role === "administrator" ||
-            parsed.isAdmin === true ||
-            parsed.admin === true
+          const rawPlan = localStorage.getItem("userPlan");
+          setUserPlan(
+            rawPlan === "basic" || rawPlan === "standard" || rawPlan === "premium"
+              ? rawPlan
+              : null
           );
         } catch (err) {
           console.error("Помилка парсингу user", err);
         }
       }
 
-      const rawPlan = localStorage.getItem("userPlan");
-      setUserPlan(
-        rawPlan === "basic" || rawPlan === "standard" || rawPlan === "premium" ? rawPlan : null
-      );
+      // Визначаємо isAdmin з токена (тепер використовуємо функцію з AdminFabButton)
+      const role = getUserRole();
+      setIsAdmin(role === "admin" || role === "administrator");
+      console.log("Розпарсена роль з JWT:", role, "isAdmin:", role === "admin");
     };
 
     syncData();
@@ -320,6 +339,20 @@ const UserLayout: React.FC<UserLayoutProps> = ({
                       close={() => setIsUserDropdownOpen(false)}
                     />
 
+                    {/* Адмін-панель на десктопі */}
+                    {isAdmin && (
+                      <>
+                        <div className="h-px bg-gray-800/60 my-2 mx-4 lg:mx-5" />
+                        <DropdownItem
+                          to="/admin"
+                          icon={ShieldCheck}
+                          label="Адмін-панель"
+                          color="purple"
+                          close={() => setIsUserDropdownOpen(false)}
+                        />
+                      </>
+                    )}
+
                     <div className="h-px bg-gray-800/60 my-2 mx-4 lg:mx-5" />
 
                     <button
@@ -406,7 +439,6 @@ const UserLayout: React.FC<UserLayoutProps> = ({
                 {t("watchLater.title")}
               </Link>
 
-              {/* Історія переглядів */}
               <Link
                 to="/watch-history"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -425,9 +457,10 @@ const UserLayout: React.FC<UserLayoutProps> = ({
                 {t("user.subscriptions")}
               </Link>
 
+              {/* Адмін-панель — тепер показується і тут */}
               {isAdmin && (
                 <Link
-                  to="/admin"
+                  to="/admin/users"
                   onClick={() => {
                     scrollToTop();
                     setIsMobileMenuOpen(false);
@@ -484,7 +517,7 @@ function DropdownItem({
   to: string;
   icon: any;
   label: string;
-  color: "indigo" | "red" | "blue" | "yellow";
+  color: "indigo" | "red" | "blue" | "yellow" | "purple";
   close: () => void;
 }) {
   const colors = {
@@ -492,6 +525,7 @@ function DropdownItem({
     red: "text-red-400",
     blue: "text-blue-400",
     yellow: "text-yellow-400",
+    purple: "text-purple-400",
   };
 
   return (
