@@ -1,7 +1,23 @@
 // src/layouts/UserLayout.tsx
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { LogOut, User, CreditCard, ArrowUp, Heart, Clock } from "lucide-react";
+import {
+  LogOut,
+  User,
+  CreditCard,
+  ArrowUp,
+  Heart,
+  Clock,
+  Menu,
+  X,
+  Film,
+  Tv,
+  Clapperboard,
+  Baby,
+  LayoutDashboard,
+  ShieldCheck,
+  History,          // додали для історії переглядів
+} from "lucide-react";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
 import AnimatedOutlet from "../components/AnimatedOutlet";
@@ -21,232 +37,184 @@ const UserLayout: React.FC<UserLayoutProps> = ({
   selectedRating,
   setSelectedRating,
 }) => {
-  // Dropdown state for filter icon
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
-  const [isOpen, setIsOpen] = useState(false);
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const token = localStorage.getItem("token");
   const isAuthenticated = !!token;
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; // або твій базовий URL
-
-  // Дефолтний аватар (стабільний, темний стиль, підходить до теми)
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const DEFAULT_AVATAR =
     "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
 
-  // Об'єкт користувача
-  // user object should update when userPlan changes
-  const [user, setUser] = useState(() => {
-    if (!isAuthenticated) return null;
-    const userJson = localStorage.getItem("user");
-    if (!userJson) return null;
-    try {
-      const parsed = JSON.parse(userJson);
-      const displayName =
-        parsed.userName?.trim() ||
-        (parsed.email || "").split("@")[0]?.trim() ||
-        "Користувач";
-      return {
-        name: displayName,
-        avatarUrl: parsed.avatarUrl || parsed.avatar || null,
-        email: parsed.email || "",
-      };
-    } catch (e) {
-      console.error("Не вдалося розпарсити user з localStorage", e);
-      return null;
-    }
-  });
+  const [user, setUser] = useState<{ name: string; avatarUrl: string | null; email: string } | null>(null);
+  const [userPlan, setUserPlan] = useState<"basic" | "standard" | "premium" | null>(null);
 
   useEffect(() => {
-    // update user object when userPlan changes
-    const syncUser = () => {
+    const syncData = () => {
       if (!isAuthenticated) {
         setUser(null);
+        setUserPlan(null);
+        setIsAdmin(false);
         return;
       }
+
       const userJson = localStorage.getItem("user");
-      if (!userJson) {
-        setUser(null);
-        return;
+      if (userJson) {
+        try {
+          const parsed = JSON.parse(userJson);
+          const displayName =
+            parsed.userName?.trim() ||
+            (parsed.email || "").split("@")[0]?.trim() ||
+            "Користувач";
+
+          setUser({
+            name: displayName,
+            avatarUrl: parsed.avatarUrl || parsed.avatar || null,
+            email: parsed.email || "",
+          });
+
+          const role = (parsed.role || "").toLowerCase();
+          setIsAdmin(
+            role === "admin" ||
+            role === "administrator" ||
+            parsed.isAdmin === true ||
+            parsed.admin === true
+          );
+        } catch (err) {
+          console.error("Помилка парсингу user", err);
+        }
       }
-      try {
-        const parsed = JSON.parse(userJson);
-        const displayName =
-          parsed.userName?.trim() ||
-          (parsed.email || "").split("@")[0]?.trim() ||
-          "Користувач";
-        setUser({
-          name: displayName,
-          avatarUrl: parsed.avatarUrl || parsed.avatar || null,
-          email: parsed.email || "",
-        });
-      } catch (e) {
-        setUser(null);
-      }
+
+      const rawPlan = localStorage.getItem("userPlan");
+      setUserPlan(
+        rawPlan === "basic" || rawPlan === "standard" || rawPlan === "premium" ? rawPlan : null
+      );
     };
-    window.addEventListener('userPlanChanged', syncUser);
-    window.addEventListener('storage', syncUser);
+
+    syncData();
+    window.addEventListener("storage", syncData);
+    window.addEventListener("userPlanChanged", syncData);
     return () => {
-      window.removeEventListener('userPlanChanged', syncUser);
-      window.removeEventListener('storage', syncUser);
+      window.removeEventListener("storage", syncData);
+      window.removeEventListener("userPlanChanged", syncData);
     };
   }, [isAuthenticated]);
 
-  // Дістаємо поточний план підписки з localStorage
-  const [userPlan, setUserPlan] = useState(() => {
-    const raw = localStorage.getItem('userPlan');
-    return raw === 'basic' || raw === 'standard' || raw === 'premium' ? raw : null;
-  });
-
-  useEffect(() => {
-    const syncPlan = () => {
-      const raw = localStorage.getItem('userPlan');
-      setUserPlan(raw === 'basic' || raw === 'standard' || raw === 'premium' ? raw : null);
-    };
-    window.addEventListener('storage', syncPlan);
-    window.addEventListener('userPlanChanged', syncPlan);
-    return () => {
-      window.removeEventListener('storage', syncPlan);
-      window.removeEventListener('userPlanChanged', syncPlan);
-    };
-  }, []);
-
-  // Функція для коректного src аватара (така ж логіка, як у Profile)
   const getAvatarSrc = () => {
     if (!user?.avatarUrl) return DEFAULT_AVATAR;
+    if (user.avatarUrl.startsWith("http")) return user.avatarUrl;
 
-    // Якщо вже повний URL — беремо як є
-    if (user.avatarUrl.startsWith("http://") || user.avatarUrl.startsWith("https://")) {
-      return user.avatarUrl;
-    }
-
-    // Якщо відносний шлях — додаємо API_URL + чистимо префікси
-    let cleanPath = user.avatarUrl
-      .replace(/^\/+/, "")
-      .replace(/^(images\/|uploads\/|avatars\/)?/, "");
-
-    return `${API_URL}/images/${cleanPath}`;
+    let clean = user.avatarUrl.replace(/^\/+/, "").replace(/^(images\/|uploads\/|avatars\/)?/, "");
+    return `${API_URL}/images/${clean}`;
   };
 
   useEffect(() => {
-    if (!isOpen) return;
-    const handleClick = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+        setIsUserDropdownOpen(false);
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setIsMobileMenuOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [isOpen]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 400);
-    };
+    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   const handleLogout = () => {
     localStorage.clear();
-    setIsOpen(false);
+    setIsUserDropdownOpen(false);
+    setIsMobileMenuOpen(false);
     navigate("/", { replace: true });
   };
 
-  const handleNavClick = () => {
-    scrollToTop();
-  };
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(path + "/");
 
-  const isMoviesActive = location.pathname.startsWith("/dashboard-films");
-  const isAnimeActive = location.pathname.startsWith("/dashboard-anime");
-  const isSeriesActive = location.pathname.startsWith("/dashboard-series");
-  const isCartoonsActive = location.pathname.startsWith("/dashboard-cartoons");
-  // const isFavoritesActive = location.pathname === "/favorites";
-  const isDashboardActive = location.pathname === "/dashboard" || location.pathname.startsWith("/dashboard/");
-
-  const navButtonClasses =
-    "px-5 py-2.5 text-base font-medium rounded-xl transition-all duration-300 hover:bg-indigo-600/30 hover:shadow-lg hover:shadow-indigo-900/50";
-
-  const activeNavButtonClasses = "bg-indigo-600/40 shadow-md shadow-indigo-900/60 ring-2 ring-indigo-500/60";
+  const navItems = [
+    { to: "/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard, active: isActive("/dashboard") },
+    { to: "/dashboard-films", label: t("nav.movies"), icon: Film, active: isActive("/dashboard-films") },
+    { to: "/dashboard-anime", label: t("nav.anime"), icon: Clapperboard, active: isActive("/dashboard-anime") },
+    { to: "/dashboard-series", label: t("nav.series"), icon: Tv, active: isActive("/dashboard-series") },
+    { to: "/dashboard-cartoons", label: t("nav.cartoons"), icon: Baby, active: isActive("/dashboard-cartoons") },
+  ];
 
   return (
-    <div className="flex flex-col bg-gradient-to-b from-gray-950 via-black to-gray-950 text-gray-100 relative min-h-screen">
-      <header className="bg-gray-900/70 backdrop-blur-2xl shadow-2xl sticky top-0 z-50 border-b border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-          <Link
-            to="/dashboard"
-            onClick={handleNavClick}
-            className="text-3xl font-black tracking-normal bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
-          >
-            Nexo Cinema
-          </Link>
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 text-gray-100 flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-gray-950/80 backdrop-blur-xl border-b border-gray-800/60 shadow-lg">
+        <div className="max-w-7xl mx-auto px-3 sm:px-5 py-2.5 sm:py-3.5 flex items-center justify-between">
+          {/* Left: hamburger + logo */}
+          <div className="flex items-center gap-2.5 sm:gap-4">
+            <button
+              className="lg:hidden p-1.5 -ml-1 text-gray-300 hover:text-white"
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Відкрити меню"
+            >
+              <Menu size={22} className="sm:size-6" />
+            </button>
 
-          <nav className="hidden md:flex items-center gap-4">
             <Link
               to="/dashboard"
-              onClick={handleNavClick}
-              className={`${navButtonClasses} ${isDashboardActive ? activeNavButtonClasses : ""}`}
+              onClick={scrollToTop}
+              className="text-xl sm:text-2xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent"
             >
-              {t('nav.dashboard')}
+              Nexo Cinema
             </Link>
-            <Link
-              to="/dashboard-films"
-              onClick={handleNavClick}
-              className={`${navButtonClasses} ${isMoviesActive ? activeNavButtonClasses : ""}`}
-            >
-              {t('nav.movies')}
-            </Link>
-            <Link
-              to="/dashboard-anime"
-              onClick={handleNavClick}
-              className={`${navButtonClasses} ${isAnimeActive ? activeNavButtonClasses : ""}`}
-            >
-              {t('nav.anime')}
-            </Link>
-            <Link
-              to="/dashboard-series"
-              onClick={handleNavClick}
-              className={`${navButtonClasses} ${isSeriesActive ? activeNavButtonClasses : ""}`}
-            >
-              {t('nav.series')}
-            </Link>
-            <Link
-              to="/dashboard-cartoons"
-              onClick={handleNavClick}
-              className={`${navButtonClasses} ${isCartoonsActive ? activeNavButtonClasses : ""}`}
-            >
-              {t('nav.cartoons')}
-            </Link>
-            {/* <Link
-              to="/favorites"
-              onClick={handleNavClick}
-              className={`${navButtonClasses} ${isFavoritesActive ? activeNavButtonClasses : ""} flex items-center gap-2 mr-6`}
-            >
-              <Heart size={20} />
-              {t('favorites.title')}
-            </Link> */}
+          </div>
+
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center gap-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={scrollToTop}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${item.active
+                  ? "bg-indigo-700/50 text-white shadow-md shadow-indigo-900/40"
+                  : "text-gray-300 hover:bg-indigo-900/30 hover:text-white"
+                  }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
-          <div className="flex items-center gap-6">
+          {/* Right side */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Filter */}
             <div className="relative">
               <button
-                className="p-2 rounded-xl bg-gray-800/70 border border-gray-700 hover:bg-indigo-900/40 transition flex items-center"
-                onClick={() => setShowFilterDropdown((v) => !v)}
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className="p-2 rounded-lg cursor-pointer border-gray-700 hover:bg-indigo-900/40 text-indigo-400"
                 aria-label="Фільтри"
               >
-                <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17V13.414a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17V13.414a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" />
+                </svg>
               </button>
+
               {showFilterDropdown && (
-                <div className="absolute right-0 mt-2 w-72 bg-gray-900/96 border border-gray-800 rounded-2xl shadow-2xl z-50 p-4 animate-fade-in">
+                <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-gray-900/95 border border-gray-700 rounded-xl shadow-2xl p-4 z-50">
                   <FilterBar
                     selectedGenres={selectedGenres}
                     setSelectedGenres={setSelectedGenres}
@@ -256,103 +224,113 @@ const UserLayout: React.FC<UserLayoutProps> = ({
                 </div>
               )}
             </div>
+
             <LanguageSwitcher />
-            <div className="relative" ref={dropdownRef}>
+
+            {/* Mobile: тільки ім'я */}
+            <div className="lg:hidden font-medium text-gray-300 text-sm sm:text-base truncate max-w-[100px] sm:max-w-[130px]">
+              {user?.name || "Гість"}
+            </div>
+
+            {/* Desktop: аватар + ім'я + дропдаун */}
+            <div className="hidden lg:flex items-center relative" ref={dropdownRef}>
               <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-3 hover:bg-gray-800/60 px-4 py-3 rounded-2xl transition backdrop-blur-sm border border-gray-700/40"
+                onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                className="flex items-center gap-2.5 lg:gap-3 hover:bg-gray-800/50 px-3 lg:px-4 py-2 rounded-xl transition-all duration-200"
               >
                 {user ? (
                   <img
                     src={getAvatarSrc()}
-                    alt="Аватар"
-                    className="w-10 h-10 rounded-full ring-4 ring-indigo-500/30 shadow-xl object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
-                      (e.target as HTMLImageElement).onerror = null;
-                    }}
+                    alt="Avatar"
+                    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full object-cover ring-2 ring-indigo-500/50 shadow-md transition-transform duration-200 group-hover:scale-105"
+                    onError={(e) => (e.target as HTMLImageElement).src = DEFAULT_AVATAR}
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center font-bold text-lg ring-4 ring-indigo-500/30 shadow-xl">
+                  <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-base lg:text-lg font-bold ring-2 ring-indigo-500/50 shadow-md">
                     ?
                   </div>
                 )}
-                <span className="hidden md:block font-medium text-gray-200">
+                <span className="hidden md:block font-medium text-gray-200 truncate max-w-[140px] lg:max-w-[180px]">
                   {user?.name || "Гість"}
                 </span>
               </button>
 
-              {isOpen && (
-                <div className="absolute right-0 mt-4 w-80 bg-gray-900/96 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-800/60 overflow-hidden">
-                  <div className="p-6 bg-gradient-to-r from-indigo-900/70 to-purple-900/70 border-b border-gray-800">
-                    <p className="font-bold text-xl text-white">{user?.name || "Гість"}</p>
+              {isUserDropdownOpen && (
+                <div
+                  className={`
+                    absolute 
+                    right-0 lg:right-[-0.5rem] xl:right-[-1.5rem] 2xl:right-[-2rem]
+                    top-full mt-2 lg:mt-3
+                    min-w-[320px] w-80 lg:w-96
+                    bg-gray-950/95 backdrop-blur-xl 
+                    border border-gray-700/60 rounded-2xl 
+                    shadow-2xl shadow-black/70 
+                    overflow-hidden z-[9999]
+                    transform origin-top-right
+                    animate-in fade-in zoom-in-95 duration-150 ease-out
+                  `}
+                >
+                  {/* Верхня частина */}
+                  <div className="p-5 lg:p-6 bg-gradient-to-r from-indigo-950/80 via-purple-950/60 to-indigo-950/80 border-b border-gray-800/50">
+                    <p className="font-bold text-lg lg:text-xl text-white truncate leading-tight">
+                      {user?.name || "Гість"}
+                    </p>
                     {isAuthenticated && userPlan && (
-                      <p className="text-sm text-indigo-200 mt-1">
+                      <p className="text-sm text-indigo-300/90 mt-1.5 font-medium">
                         {t(`subscription.${userPlan}`)}
                       </p>
                     )}
                   </div>
-                  <div className="py-3">
-                    <Link
+
+                  {/* Пункти меню */}
+                  <div className="py-1.5 lg:py-2 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
+                    <DropdownItem
                       to="/profile"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
-                    >
-                      <User className="w-5 h-5 text-indigo-400" />
-                      <span className="font-medium">{t('user.profile')}</span>
-                    </Link>
-                    <Link
+                      icon={User}
+                      label={t("user.profile")}
+                      color="indigo"
+                      close={() => setIsUserDropdownOpen(false)}
+                    />
+                    <DropdownItem
                       to="/favorites"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
-                    >
-                      <Heart className="w-5 h-5 text-red-400" />
-                      <span className="font-medium">{t('favorites.title')}</span>
-                    </Link>
-                    <Link
+                      icon={Heart}
+                      label={t("favorites.title")}
+                      color="red"
+                      close={() => setIsUserDropdownOpen(false)}
+                    />
+                    <DropdownItem
                       to="/watch-later"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
-                    >
-                      <Clock className="w-5 h-5 text-blue-400" />
-                      <span className="font-medium">{t('watchLater.title')}</span>
-                    </Link>
-                    <Link
+                      icon={Clock}
+                      label={t("watchLater.title")}
+                      color="blue"
+                      close={() => setIsUserDropdownOpen(false)}
+                    />
+                    <DropdownItem
                       to="/watch-history"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
-                    >
-                      <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      <span className="font-medium">{t('watch_history.title')}</span>
-                    </Link>
-                    <Link
+                      icon={History}
+                      label={t("watch_history.title") || "Історія переглядів"}
+                      color="yellow"
+                      close={() => setIsUserDropdownOpen(false)}
+                    />
+                    <DropdownItem
                       to="/subscriptions"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-800/60 text-gray-100 transition"
-                    >
-                      <CreditCard className="w-5 h-5 text-indigo-400" />
-                      <span className="font-medium">{t('user.subscriptions')}</span>
-                    </Link>
+                      icon={CreditCard}
+                      label={t("user.subscriptions")}
+                      color="indigo"
+                      close={() => setIsUserDropdownOpen(false)}
+                    />
+
+                    <div className="h-px bg-gray-800/60 my-2 mx-4 lg:mx-5" />
+
                     <button
-                      onClick={e => {
-                        e.preventDefault();
-                        setTimeout(() => {
-                          navigate('/dashboard/about-help');
-                        }, 150);
-                        setIsOpen(false);
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        handleLogout();
                       }}
-                      className="w-full text-left flex items-center gap-4 px-6 py-4 hover:bg-indigo-900/60 text-indigo-300 font-medium transition cursor-pointer"
+                      className="w-full text-left flex items-center gap-3.5 lg:gap-4 px-5 lg:px-6 py-3.5 hover:bg-red-950/70 text-red-400 hover:text-red-300 transition-colors duration-200 font-medium"
                     >
-                      <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 14v-4m0-4h.01" /></svg>
-                      <span>{t('aboutHelp.title')}</span>
-                    </button>
-                    <div className="h-px bg-gray-800/60 my-2 mx-6" />
-                    <button
-                      onClick={handleLogout}
-                      className="w-full cursor-pointer text-left flex items-center gap-4 px-6 py-4 hover:bg-red-950/50 text-red-400 font-medium transition"
-                    >
-                      <LogOut className="w-5 h-5" />
-                      {t('user.exit_account')}
+                      <LogOut size={20} className="lg:size-5" />
+                      {t("user.exit_account")}
                     </button>
                   </div>
                 </div>
@@ -360,34 +338,171 @@ const UserLayout: React.FC<UserLayoutProps> = ({
             </div>
           </div>
         </div>
-        <AdminFabButton />
+
+        {/* AdminFabButton тільки на десктопі */}
+        <div className="hidden lg:block">
+          <AdminFabButton />
+        </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+      {/* Мобільне меню */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <div
+            ref={mobileMenuRef}
+            className="absolute top-0 left-0 h-full w-4/5 max-w-xs bg-gray-950 border-r border-gray-800 shadow-2xl transform transition-transform duration-300 translate-x-0 flex flex-col"
+          >
+            <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+              <span className="text-lg font-bold text-indigo-400">Меню</span>
+              <button onClick={() => setIsMobileMenuOpen(false)}>
+                <X size={24} className="text-gray-400 hover:text-white" />
+              </button>
+            </div>
+
+            <div className="flex-1 py-2 overflow-y-auto">
+              {navItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => {
+                    scrollToTop();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-3 px-5 py-3.5 text-base ${item.active ? "bg-indigo-900/40 text-white" : "text-gray-300 hover:bg-gray-800/50"
+                    }`}
+                >
+                  <item.icon size={20} />
+                  {item.label}
+                </Link>
+              ))}
+
+              <div className="h-px bg-gray-800 my-2 mx-5" />
+
+              <Link
+                to="/profile"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-5 py-3.5 text-gray-200 hover:bg-gray-800/50 text-base"
+              >
+                <User size={20} className="text-indigo-400" />
+                {t("user.profile")}
+              </Link>
+
+              <Link
+                to="/favorites"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-5 py-3.5 text-gray-200 hover:bg-gray-800/50 text-base"
+              >
+                <Heart size={20} className="text-red-400" />
+                {t("favorites.title")}
+              </Link>
+
+              <Link
+                to="/watch-later"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-5 py-3.5 text-gray-200 hover:bg-gray-800/50 text-base"
+              >
+                <Clock size={20} className="text-blue-400" />
+                {t("watchLater.title")}
+              </Link>
+
+              {/* Історія переглядів */}
+              <Link
+                to="/watch-history"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-5 py-3.5 text-gray-200 hover:bg-gray-800/50 text-base"
+              >
+                <History size={20} className="text-yellow-400" />
+                {t("watch_history.title") || "Історія переглядів"}
+              </Link>
+
+              <Link
+                to="/subscriptions"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-5 py-3.5 text-gray-200 hover:bg-gray-800/50 text-base"
+              >
+                <CreditCard size={20} className="text-indigo-400" />
+                {t("user.subscriptions")}
+              </Link>
+
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => {
+                    scrollToTop();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 px-5 py-3.5 text-gray-200 hover:bg-gray-800/50 text-base"
+                >
+                  <ShieldCheck size={20} className="text-purple-400" />
+                  Адмін-панель
+                </Link>
+              )}
+            </div>
+
+            <div className="border-t border-gray-800 p-4">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-3 py-3 bg-red-900/40 hover:bg-red-900/60 text-red-300 rounded-xl transition text-base font-medium"
+              >
+                <LogOut size={20} />
+                {t("user.exit_account")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
         <AnimatedOutlet transition="fadeInUp" />
       </main>
 
-      <footer className="bg-black/60 backdrop-blur-md border-t border-gray-800 py-10 text-center">
-        <p className="text-gray-500 text-sm">{t('footer.copyright')}</p>
+      <footer className="bg-black/70 border-t border-gray-800 py-8 text-center text-gray-500 text-sm">
+        {t("footer.copyright")}
       </footer>
 
       {showScrollTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-10 right-10 z-50 
-                     w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-700 
-                     hover:from-indigo-500 hover:to-purple-600 
-                     rounded-full shadow-2xl flex items-center justify-center 
-                     transition-all duration-400 
-                     hover:scale-110 hover:shadow-indigo-500/60 active:scale-95 
-                     ring-4 ring-indigo-600/40"
-          aria-label="Повернутися наверх"
+          className="fixed bottom-5 right-5 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 ring-4 ring-indigo-600/30 sm:bottom-6 sm:right-6 sm:w-14 sm:h-14"
+          aria-label="Повернутися вгору"
         >
-          <ArrowUp className="w-7 h-7 text-white" />
+          <ArrowUp size={24} className="text-white" />
         </button>
       )}
-
     </div>
+  );
+};
+
+function DropdownItem({
+  to,
+  icon: Icon,
+  label,
+  color,
+  close,
+}: {
+  to: string;
+  icon: any;
+  label: string;
+  color: "indigo" | "red" | "blue" | "yellow";
+  close: () => void;
+}) {
+  const colors = {
+    indigo: "text-indigo-400",
+    red: "text-red-400",
+    blue: "text-blue-400",
+    yellow: "text-yellow-400",
+  };
+
+  return (
+    <Link
+      to={to}
+      onClick={close}
+      className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-800/60 transition text-gray-100"
+    >
+      <Icon size={20} className={colors[color]} />
+      <span className="font-medium">{label}</span>
+    </Link>
   );
 }
 

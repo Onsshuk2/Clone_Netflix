@@ -5,6 +5,7 @@ export interface WatchHistoryItem {
   type: "movie" | "tv" | "series" | "cartoon" | string;
   poster_path?: string | null;
   watchedAt: number;
+  releaseDate?: string;
 }
 
 const STORAGE_KEY = "watch_history";

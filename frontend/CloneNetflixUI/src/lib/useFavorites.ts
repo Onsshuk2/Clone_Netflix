@@ -57,11 +57,17 @@ export const useFavorites = () => {
     }
   };
 
+  const clearFavorites = () => {
+    setFavorites([]);
+    return true;
+  };
+
   return {
     favorites,
     addFavorite,
     removeFavorite,
     isFavorite,
     toggleFavorite,
+    clearFavorites,
   };
 };

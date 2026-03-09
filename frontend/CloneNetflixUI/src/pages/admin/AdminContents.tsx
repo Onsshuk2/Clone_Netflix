@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
-import { Layout, Plus, RefreshCw } from 'lucide-react';
-import { ApiAdminFilms } from '../../api/ApiAdminFilms'; // твій шлях
+import { Layout, Plus, RefreshCw, ArrowUpDown } from 'lucide-react';
+import { ApiAdminFilms } from '../../api/ApiAdminFilms';
 import ContentModal from '../../components/ContentModal';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,6 +31,11 @@ export default function AdminContents() {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
+
+    // Пошук та сортування
+    const [searchTerm, setSearchTerm] = useState('');
+    const [ratingSort, setRatingSort] = useState<'asc' | 'desc' | null>(null); // null = без сортування
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -82,13 +87,50 @@ export default function AdminContents() {
         }
     };
 
+    // Обчислювані відфільтровані та відсортовані дані
+    const displayedContents = useMemo(() => {
+        let result = [...contents];
+
+        // Пошук за назвою (нечутливий до регістру)
+        if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase().trim();
+            result = result.filter(item =>
+                item.title?.toLowerCase().includes(term)
+            );
+        }
+
+        // Сортування по рейтингу
+        if (ratingSort) {
+            result.sort((a, b) => {
+                const ratingA = a.rating ?? 0; // якщо немає рейтингу — вважаємо 0
+                const ratingB = b.rating ?? 0;
+
+                if (ratingSort === 'asc') {
+                    return ratingA - ratingB;
+                } else {
+                    return ratingB - ratingA;
+                }
+            });
+        }
+
+        return result;
+    }, [contents, searchTerm, ratingSort]);
+
+    const toggleRatingSort = () => {
+        setRatingSort(prev => {
+            if (prev === null) return 'asc';
+            if (prev === 'asc') return 'desc';
+            return null;
+        });
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-12 px-6 text-white">
             <div className="max-w-7xl mx-auto">
                 {/* Заголовок + кнопки */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                        <h1 className="mb-4 text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
                             Контент
                         </h1>
 
@@ -130,13 +172,26 @@ export default function AdminContents() {
                     </div>
                 </div>
 
-                {/* Стан завантаження / помилка / порожньо */}
+                {/* Пошук */}
+                <div className="mb-8">
+                    <input
+                        type="text"
+                        placeholder="Пошук за назвою..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full max-w-md px-6 py-4 bg-gray-800/60 border border-gray-700 rounded-2xl text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition"
+                    />
+                </div>
+
+                {/* Таблиця / стани */}
                 {loading ? (
                     <div className="text-center py-32 text-indigo-400 text-2xl animate-pulse">Завантаження...</div>
                 ) : error ? (
                     <div className="text-center py-32 text-red-500 text-2xl">{error}</div>
-                ) : contents.length === 0 ? (
-                    <div className="text-center py-32 text-gray-400 text-2xl">Контенту ще немає</div>
+                ) : displayedContents.length === 0 ? (
+                    <div className="text-center py-32 text-gray-400 text-2xl">
+                        {searchTerm ? 'Нічого не знайдено за запитом' : 'Контенту ще немає'}
+                    </div>
                 ) : (
                     <div className="bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
                         <div className="overflow-x-auto">
@@ -149,8 +204,20 @@ export default function AdminContents() {
                                         <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">
                                             Назва
                                         </th>
-                                        <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                                        <th
+                                            onClick={toggleRatingSort}
+                                            className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:text-indigo-300 transition flex items-center gap-2"
+                                        >
                                             Тип / Рейтинг
+                                            <ArrowUpDown
+                                                size={16}
+                                                className={ratingSort ? 'text-indigo-400' : 'text-gray-500'}
+                                            />
+                                            {ratingSort && (
+                                                <span className="text-xs normal-case font-normal">
+                                                    {ratingSort === 'asc' ? '↑' : '↓'}
+                                                </span>
+                                            )}
                                         </th>
                                         <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">
                                             Рік
@@ -161,7 +228,7 @@ export default function AdminContents() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-800">
-                                    {contents.map((item) => (
+                                    {displayedContents.map((item) => (
                                         <tr key={item.id} className="hover:bg-indigo-950/30 transition duration-200">
                                             <td className="px-8 py-6">
                                                 {item.posterUrl ? (
@@ -181,7 +248,8 @@ export default function AdminContents() {
                                             </td>
                                             <td className="px-8 py-6 font-medium text-white">{item.title || '—'}</td>
                                             <td className="px-8 py-6 text-gray-300">
-                                                {item.type === 1 ? 'Фільм' : 'Серіал'} {item.rating ? `(${item.rating})` : ''}
+                                                {item.type === 1 ? 'Серіал' : 'Фільм'}{' '}
+                                                {item.rating ? `(${item.rating})` : ''}
                                             </td>
                                             <td className="px-8 py-6 text-gray-300">{item.releaseYear || '—'}</td>
                                             <td className="px-8 py-6 text-center">
@@ -209,7 +277,6 @@ export default function AdminContents() {
                     </div>
                 )}
 
-                {/* Модальне вікно */}
                 <ContentModal
                     isOpen={modalOpen}
                     onClose={() => {
