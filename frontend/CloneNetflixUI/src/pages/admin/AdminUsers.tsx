@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../../api/Api';
-import { Layout, Plus, X, RefreshCw } from 'lucide-react'; // ← додали RefreshCw
+import { Layout, Plus, X, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface User {
@@ -14,6 +14,7 @@ interface User {
   createdAt: string;
   updatedAt: string;
   roles: string[];
+  isBlocked: boolean;
 }
 
 interface UserFormData {
@@ -25,6 +26,7 @@ interface UserFormData {
   roles: string[];
   imageFile?: File | null;
   imagePreview?: string;
+  isBlocked: boolean;
 }
 
 const AdminUsers = () => {
@@ -35,6 +37,15 @@ const AdminUsers = () => {
   const [showModal, setShowModal] = useState(false);
   const [isCreating, setIsCreating] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Модалка підтвердження блокування
+  const [showConfirmBlockModal, setShowConfirmBlockModal] = useState(false);
+  const [confirmBlockUserId, setConfirmBlockUserId] = useState<string | null>(null);
+  const [confirmNewBlocked, setConfirmNewBlocked] = useState(false);
+
+  // Модалка підтвердження видалення
+  const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -49,6 +60,7 @@ const AdminUsers = () => {
     roles: ['User'],
     imageFile: null,
     imagePreview: '',
+    isBlocked: false,
   });
 
   const API_URL = import.meta.env.VITE_API_URL;
@@ -60,7 +72,6 @@ const AdminUsers = () => {
     try {
       const res = await api.get('/users/admin/get-all');
       let data = res.data;
-      console.log(res.data);
       if (typeof data === 'string') data = JSON.parse(data);
       setUsers(Array.isArray(data) ? data : []);
     } catch (err: any) {
@@ -86,6 +97,7 @@ const AdminUsers = () => {
       roles: ['User'],
       imageFile: null,
       imagePreview: '',
+      isBlocked: false,
     });
     setEditingId(null);
     setIsCreating(true);
@@ -112,6 +124,7 @@ const AdminUsers = () => {
         roles: user.roles || ['User'],
         imageFile: null,
         imagePreview: user.avatarUrl || '',
+        isBlocked: user.isBlocked || false,
       });
 
       setEditingId(id);
@@ -182,14 +195,75 @@ const AdminUsers = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Видалити користувача?')) return;
+  const handleDelete = (id: string) => {
+    setConfirmDeleteUserId(id);
+    setShowConfirmDeleteModal(true);
+  };
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDeleteUserId) return;
+
     try {
-      await api.delete(`/users/admin/delete/${id}`);
-      toast.success('Користувача видалено');
+      await api.delete(`/users/admin/delete/${confirmDeleteUserId}`);
+      toast.error('Користувача видалено');
       loadUsers();
     } catch (err) {
       toast.error('Помилка видалення');
+    } finally {
+      setShowConfirmDeleteModal(false);
+      setConfirmDeleteUserId(null);
+    }
+  };
+
+  const handleBlock = (id: string) => {
+    const user = users.find(u => u.id === id);
+    if (!user) {
+      toast.error('Користувача не знайдено');
+      return;
+    }
+
+    const newIsBlocked = !user.isBlocked;
+    setConfirmBlockUserId(id);
+    setConfirmNewBlocked(newIsBlocked);
+    setShowConfirmBlockModal(true);
+  };
+
+  const confirmBlockAction = async () => {
+    if (!confirmBlockUserId) return;
+
+    const user = users.find(u => u.id === confirmBlockUserId);
+    if (!user) return;
+
+    const formData = new FormData();
+    formData.append('userName', user.userName || '');
+    formData.append('email', user.email || '');
+    if (user.dateOfBirth) formData.append('dateOfBirth', user.dateOfBirth.split('T')[0]);
+    if (user.roles?.length) user.roles.forEach(role => formData.append('roles', role));
+    formData.append('isBlocked', confirmNewBlocked.toString());
+
+    try {
+      await api.put(`/users/admin/update/${confirmBlockUserId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setUsers(prev =>
+        prev.map(u =>
+          u.id === confirmBlockUserId ? { ...u, isBlocked: confirmNewBlocked } : u
+        )
+      );
+
+      if (confirmNewBlocked) {
+        toast.error('Користувача заблоковано');  // Error для блокування
+      } else {
+        toast.success('Користувача розблоковано');  // Success для розблокування
+      }
+    } catch (err: any) {
+      console.error('Помилка блокування:', err);
+      toast.error('Не вдалося змінити статус блокування');
+    } finally {
+      setShowConfirmBlockModal(false);
+      setConfirmBlockUserId(null);
+      setConfirmNewBlocked(false);
     }
   };
 
@@ -283,10 +357,9 @@ const AdminUsers = () => {
             <option value="Moderator">Модератори</option>
             <option value="User">Користувачі</option>
           </select>
-          {/* Стару кнопку "Оновити" можна прибрати, бо вже є іконка зверху */}
         </div>
 
-        {/* Таблиця або статуси */}
+        {/* Таблиця */}
         {loading ? (
           <div className="text-center py-32 text-indigo-400 text-2xl animate-pulse">Завантаження...</div>
         ) : error ? (
@@ -304,6 +377,7 @@ const AdminUsers = () => {
                     <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Email</th>
                     <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Дата народження</th>
                     <th className="px-8 py-5 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Ролі</th>
+                    <th className="px-8 py-5 text-center text-sm font-semibold text-gray-300 uppercase tracking-wider">Блокування</th>
                     <th className="px-8 py-5 text-center text-sm font-semibold text-gray-300 uppercase tracking-wider">Дії</th>
                   </tr>
                 </thead>
@@ -335,19 +409,53 @@ const AdminUsers = () => {
                           ))}
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-center">
-                        <button
-                          onClick={() => loadUserForEdit(user.id)}
-                          className="text-indigo-400 hover:text-indigo-300 text-2xl mr-6 transition"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="text-red-400 hover:text-red-300 text-2xl transition"
-                        >
-                          🗑️
-                        </button>
+
+                      {/* Блокування — чистий перемикач без тексту */}
+                      <td className="px-6 py-6 text-center">
+                        <label className="relative inline-flex items-center cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={user.isBlocked}
+                            onChange={() => handleBlock(user.id)}
+                            className="sr-only peer"
+                          />
+                          <div className={`
+                            w-14 h-7 rounded-full p-1 transition-all duration-400 ease-in-out shadow-inner
+                            ${user.isBlocked
+                              ? 'bg-gradient-to-r from-red-600 to-rose-700'
+                              : 'bg-gradient-to-r from-emerald-500 to-teal-600'}
+                            group-hover:shadow-lg group-hover:shadow-black/40
+                          `}>
+                            <div className={`
+                              w-5 h-5 bg-white rounded-full shadow-lg transform transition-all duration-400 ease-out
+                              ${user.isBlocked ? 'translate-x-7 scale-110' : 'translate-x-0'}
+                            `} />
+                          </div>
+                        </label>
+                      </td>
+
+                      {/* Дії */}
+                      <td className="px-6 py-6 text-center">
+                        <div className="flex items-center justify-center gap-4">
+                          <button
+                            onClick={() => loadUserForEdit(user.id)}
+                            className="p-3 rounded-full bg-indigo-900/40 hover:bg-indigo-700/70 text-indigo-300 hover:text-white transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-indigo-500/40"
+                            title="Редагувати"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user.id)}
+                            className="p-3 rounded-full bg-red-900/40 hover:bg-red-700/70 text-red-300 hover:text-white transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm hover:shadow-red-500/40"
+                            title="Видалити"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -357,7 +465,7 @@ const AdminUsers = () => {
           </div>
         )}
 
-        {/* Модальне вікно */}
+        {/* Модалка редагування */}
         {showModal && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md p-4">
             <div className="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -375,7 +483,7 @@ const AdminUsers = () => {
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-8">
-                  {/* ... решта форми без змін ... */}
+                  {/* ... (весь вміст форми редагування без змін) ... */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label className="block text-gray-300 font-medium mb-3">Ім'я *</label>
@@ -490,6 +598,97 @@ const AdminUsers = () => {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модалка підтвердження блокування */}
+        {showConfirmBlockModal && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md p-4">
+            <div className="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-md shadow-2xl">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-red-400 to-rose-500 bg-clip-text text-transparent">
+                    {confirmNewBlocked ? 'Заблокувати користувача' : 'Розблокувати користувача'}
+                  </h2>
+                  <button
+                    onClick={() => setShowConfirmBlockModal(false)}
+                    className="text-gray-400 hover:text-white text-3xl transition"
+                  >
+                    <X size={32} />
+                  </button>
+                </div>
+
+                <p className="text-gray-300 mb-8 text-lg">
+                  Ви впевнені, що хочете {confirmNewBlocked ? 'заблокувати' : 'розблокувати'} користувача{' '}
+                  <span className="font-semibold text-white">
+                    "{users.find(u => u.id === confirmBlockUserId)?.userName || '—'}"
+                  </span>
+                  ?
+                </p>
+
+                <div className="flex justify-end gap-6">
+                  <button
+                    onClick={() => setShowConfirmBlockModal(false)}
+                    className="px-10 py-4 border border-gray-700 rounded-2xl text-gray-300 hover:bg-gray-800 transition font-medium"
+                  >
+                    Скасувати
+                  </button>
+                  <button
+                    onClick={confirmBlockAction}
+                    className={`px-10 py-4 rounded-2xl font-bold shadow-xl transition-all hover:scale-105 ${confirmNewBlocked
+                      ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500'
+                      : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'
+                      }`}
+                  >
+                    {confirmNewBlocked ? 'Заблокувати' : 'Розблокувати'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модалка підтвердження видалення */}
+        {showConfirmDeleteModal && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md p-4">
+            <div className="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-md shadow-2xl">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-red-400 to-rose-600 bg-clip-text text-transparent">
+                    Видалити користувача
+                  </h2>
+                  <button
+                    onClick={() => setShowConfirmDeleteModal(false)}
+                    className="text-gray-400 hover:text-white text-3xl transition"
+                  >
+                    <X size={32} />
+                  </button>
+                </div>
+
+                <p className="text-gray-300 mb-8 text-lg">
+                  Ви впевнені, що хочете <span className="font-bold text-red-400">назавжди</span> видалити користувача{' '}
+                  <span className="font-semibold text-white">
+                    "{users.find(u => u.id === confirmDeleteUserId)?.userName || '—'}"
+                  </span>
+                  ? Цю дію не можна скасувати.
+                </p>
+
+                <div className="flex justify-end gap-6">
+                  <button
+                    onClick={() => setShowConfirmDeleteModal(false)}
+                    className="px-10 py-4 border border-gray-700 rounded-2xl text-gray-300 hover:bg-gray-800 transition font-medium"
+                  >
+                    Скасувати
+                  </button>
+                  <button
+                    onClick={confirmDeleteAction}
+                    className="px-10 py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-2xl text-white font-bold shadow-xl transition-all hover:scale-105"
+                  >
+                    Видалити
+                  </button>
+                </div>
               </div>
             </div>
           </div>
