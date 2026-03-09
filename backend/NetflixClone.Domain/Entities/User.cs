@@ -10,6 +10,7 @@ public class User : IdentityUser<Guid>, IAuditableEntity
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+    public bool IsBlocked { get; set; } = false;
 
     // Тут зробив List щоб зберігати дані про транзакції, щоб в користувача був список всіх покупок, а не тільки current 
     public ICollection<UserSubscription> Subscriptions { get; set; } = new List<UserSubscription>();
@@ -20,4 +21,5 @@ public class User : IdentityUser<Guid>, IAuditableEntity
         .FirstOrDefault(s => s.EndDate > DateTime.UtcNow);
     public virtual ICollection<ApplicationUserRole> UserRoles { get; set; } = new List<ApplicationUserRole>();
     public string? AvatarUrl { get; set; }
+    public virtual ICollection<UserRating> UserRatings { get; set; } = new List<UserRating>();
 }

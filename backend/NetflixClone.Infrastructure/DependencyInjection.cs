@@ -105,6 +105,7 @@ public static class DependencyInjection
         services.AddScoped<IContentRepository, ContentRepository>();
         services.AddScoped<IEpisodeRepository, EpisodeRepository>();
         services.AddScoped<IWatchlistRepository, WatchlistRepository>();
+        services.AddScoped<IUserRatingRepository, UserRatingRepository>();
 
         services.AddHangfireServer();
 

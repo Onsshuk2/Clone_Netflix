@@ -18,7 +18,6 @@ public static class DependencyInjection
             var folder = Path.GetDirectoryName(ffmpegPath);
             if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
             {
-                // Ось цей красень, якого ми шукали
                 GlobalFFOptions.Configure(options => options.BinaryFolder = folder);
 
                 Console.WriteLine($"[FFMPEG] Path successfully set to: {folder}");

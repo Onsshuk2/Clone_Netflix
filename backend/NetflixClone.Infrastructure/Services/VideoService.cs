@@ -6,7 +6,6 @@ using NetflixClone.Domain.Enums;
 using NetflixClone.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using FFMpegCore.Enums;
-using Hangfire;
 
 namespace NetflixClone.Infrastructure.Services;
 

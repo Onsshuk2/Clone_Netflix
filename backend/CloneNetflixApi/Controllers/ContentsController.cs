@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NetflixClone.Application.Common;
 using NetflixClone.Application.UseCases.Contents.Commands.CreateContent;
 using NetflixClone.Application.UseCases.Contents.Commands.DeleteContent;
+using NetflixClone.Application.UseCases.Contents.Commands.SetContentRating;
 using NetflixClone.Application.UseCases.Contents.Commands.UpdateContent;
 using NetflixClone.Application.UseCases.Contents.Queries.GetContentById;
 using NetflixClone.Application.UseCases.Contents.Queries.GetContents;
@@ -68,5 +69,19 @@ public class ContentsController : ControllerBase
         var query = new GetContentByIdQuery { Id = id };
         var result = await _mediator.Send(query);
         return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/rating")]
+    public async Task<IActionResult> SetRating(Guid id, [FromBody] int value)
+    {
+        var command = new SetContentRatingCommand
+        {
+            ContentId = id,
+            Value = value
+        };
+
+        await _mediator.Send(command);
+
+        return NoContent();
     }
 }

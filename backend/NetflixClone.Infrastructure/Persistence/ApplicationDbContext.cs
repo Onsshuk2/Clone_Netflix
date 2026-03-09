@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<
     public DbSet<Content> Contents => Set<Content>();
     public DbSet<Episode> Episodes => Set<Episode>();
     public DbSet<Watchlist> Watchlists => Set<Watchlist>();
+    public DbSet<UserRating> UserRating => Set<UserRating>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

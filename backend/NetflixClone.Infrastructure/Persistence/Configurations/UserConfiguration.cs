@@ -16,5 +16,15 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.AvatarUrl).HasMaxLength(500);
 
         builder.Property(u => u.CreatedAt).IsRequired();
+        builder.Property(u => u.UpdatedAt).IsRequired(false);
+
+        builder.Property(u => u.IsBlocked)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.HasMany(u => u.UserRatings)
+            .WithOne(r => r.User)
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
