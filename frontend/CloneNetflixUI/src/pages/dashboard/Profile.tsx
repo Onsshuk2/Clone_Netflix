@@ -1,22 +1,19 @@
 // src/pages/dashboard/Profile.tsx
 import React, { useState, useEffect, useRef } from "react";
-import { Camera, Check, X } from "lucide-react";
+import { Camera, Check, X, Mail } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { getMyProfile, updateMyProfile } from "../../api/User";
-
 import ConfirmModal from "../../components/ConfirmModal";
 import { deleteMyProfile } from "../../api/deleteUser";
 import SubscriptionManagement from "./SubscriptionManagement";
-
 import { useLoading } from "../../lib/useLoading";
 
 interface ProfileData {
   userName: string;
   email: string;
-  dateOfBirth: string; // "yyyy-MM-dd" або ISO
+  dateOfBirth: string;
   avatarUrl: string | null;
 }
 
@@ -38,45 +35,45 @@ export default function Profile() {
     dateOfBirth: "",
   });
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await deleteMyProfile();
-      toast.success(t('profile.deleted_success'));
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      navigate("/");
-    } catch (err) {
-      toast.error(t('profile.delete_failed'));
-    } finally {
-      setDeleting(false);
-      setShowDeleteModal(false);
-    }
-  };
-
-  const API_URL = import.meta.env.VITE_API_URL;
+  const [initialForm, setInitialForm] = useState({
+    username: "",
+    email: "",
+    dateOfBirth: "",
+  });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const DEFAULT_AVATAR =
-    "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  // Генерація аватарки з ініціалів
+  const getDefaultAvatar = (name: string) => {
+    const initials = name.trim()
+      ? name
+        .split(" ")
+        .map(word => word[0]?.toUpperCase())
+        .join("")
+        .slice(0, 2) || "??"
+      : "??";
+
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=6366f1&color=fff&size=256&bold=true`;
+  };
 
   const getAvatarSrc = () => {
     if (previewUrl) return previewUrl;
     if (profile.avatarUrl) {
-      if (profile.avatarUrl.startsWith("http://") || profile.avatarUrl.startsWith("https://")) {
-        return profile.avatarUrl;
-      }
+      if (profile.avatarUrl.startsWith("http")) return profile.avatarUrl;
       let cleanPath = profile.avatarUrl.replace(/^\/+/, "").replace(/^(images\/|uploads\/|avatars\/)?/, "");
       return `${API_URL}/images/${cleanPath}`;
     }
-    return DEFAULT_AVATAR;
+    return getDefaultAvatar(profile.userName || form.username || "Користувач");
   };
 
   useEffect(() => {
@@ -88,21 +85,22 @@ export default function Profile() {
         return;
       }
 
-      setLoading(true);
       try {
         const data = await getMyProfile();
 
         setProfile(data);
-        setForm({
+        const initial = {
           username: data.userName || "Користувач",
           email: data.email || "",
           dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "",
-        });
+        };
+        setForm(initial);
+        setInitialForm(initial); // Зберігаємо початковий стан для порівняння
         setPreviewUrl(null);
 
         localStorage.setItem("user", JSON.stringify(data));
-      } catch (err) {
-        console.error("Не вдалося завантажити профіль", err);
+      } catch (err: any) {
+        console.error("Не вдалося завантажити профіль:", err);
         toast.error(t('profile.read_error'));
       } finally {
         setLoading(false);
@@ -128,6 +126,17 @@ export default function Profile() {
     setPreviewUrl(url);
   };
 
+  // Перевірка, чи були зміни
+  const hasChanges = () => {
+    return (
+      form.username.trim() !== initialForm.username.trim() ||
+      form.email.trim() !== initialForm.email.trim() ||
+      form.dateOfBirth !== initialForm.dateOfBirth ||
+      !!selectedFile // якщо обрано нову аватарку
+    );
+  };
+
+  // Збереження профілю
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -136,37 +145,105 @@ export default function Profile() {
       return;
     }
 
-    await withLoading(async () => {
-      setLoading(true);
+    if (!hasChanges()) {
+      toast("Немає змін для збереження", { icon: "ℹ️" });
+      return;
+    }
 
+    await withLoading(async () => {
       try {
         const formData = new FormData();
-        formData.append("UserId", jwtDecode(localStorage.getItem("token")!).sub || "");
         formData.append("Username", form.username.trim());
         formData.append("Email", form.email.trim());
-        formData.append("DateOfBirth", form.dateOfBirth || "");
+        if (form.dateOfBirth) formData.append("DateOfBirth", form.dateOfBirth);
 
-        if (selectedFile) formData.append("avatar", selectedFile);
+        if (selectedFile) {
+          formData.append("avatar", selectedFile);
+        }
 
         const updatedData = await updateMyProfile(formData);
 
         setProfile(updatedData);
-        setForm({
+        const newInitial = {
           username: updatedData.userName || form.username,
           email: updatedData.email || form.email,
           dateOfBirth: updatedData.dateOfBirth ? updatedData.dateOfBirth.split("T")[0] : form.dateOfBirth,
-        });
+        };
+        setForm(newInitial);
+        setInitialForm(newInitial);
         setPreviewUrl(null);
         setSelectedFile(null);
 
+        localStorage.setItem("user", JSON.stringify(updatedData));
+
+
+
+
+
+
+        navigate('/dashboard');
+        setTimeout(() => {
+          window.location.href = window.location.href + '?t=' + Date.now();
+        }, 1000);
+
         toast.success(t('profile.profile_updated'));
-      } catch (err) {
-        console.error(err);
-        toast.error(t('profile.update_failed'));
-      } finally {
-        setLoading(false);
+
+
+      } catch (err: any) {
+        console.error("Помилка оновлення профілю:", err);
+        toast.error(err.response?.data?.message || t('profile.update_failed'));
       }
     });
+  };
+
+  // Відправка листа для зміни паролю — твоя оригінальна версія з fetch
+  const handleRequestPasswordReset = async () => {
+    if (!profile.email) {
+      toast.error("Email не знайдено. Спробуйте перелогінитися.");
+      return;
+    }
+
+    setResetPasswordLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/Auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: profile.email.trim() }),
+      });
+
+      if (response.ok) {
+        toast.success(
+          "Лист з посиланням для відновлення паролю надіслано на вашу пошту!"
+        );
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.message || "Помилка сервера. Спробуйте пізніше.");
+      }
+    } catch (err) {
+      toast.error(
+        "Не вдалося підключитися до сервера. Перевірте інтернет-з'єднання."
+      );
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteMyProfile();
+      toast.success(t('profile.deleted_success'));
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/");
+    } catch (err: any) {
+      toast.error(t('profile.delete_failed'));
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
   };
 
   return (
@@ -186,8 +263,7 @@ export default function Profile() {
                 className="w-40 h-40 sm:w-48 sm:h-48 rounded-full object-cover ring-8 ring-indigo-600/30 shadow-2xl transition-transform duration-300 group-hover:scale-105 cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
-                  (e.target as HTMLImageElement).onerror = null;
+                  (e.target as HTMLImageElement).src = getDefaultAvatar(profile.userName || form.username || "Користувач");
                 }}
               />
 
@@ -212,11 +288,11 @@ export default function Profile() {
               {form.username || profile.userName}
             </h2>
             <p className="mt-3 text-lg text-gray-400">
-              {form.email || profile.email || "—"}
+              {profile.email || "—"}
             </p>
           </div>
 
-          {/* Форма */}
+          {/* Форма редагування профілю */}
           <form onSubmit={handleSubmit} className="px-6 sm:px-10 py-10 space-y-8">
             <div className="grid gap-7 md:grid-cols-2">
               <div>
@@ -259,7 +335,33 @@ export default function Profile() {
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 pt-10 border-t border-gray-800">
+            {/* Кнопка "Змінити пароль" */}
+            <div className="pt-6 border-t border-gray-700">
+              <button
+                type="button"
+                onClick={handleRequestPasswordReset}
+                disabled={resetPasswordLoading || !profile.email}
+                className={`w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl font-semibold text-white shadow-lg transition disabled:opacity-60 ${resetPasswordLoading ? 'cursor-wait' : ''}`}
+              >
+                {resetPasswordLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Відправляємо...
+                  </>
+                ) : (
+                  <>
+                    <Mail size={20} />
+                    Змінити пароль
+                  </>
+                )}
+              </button>
+              <p className="text-sm text-gray-500 mt-2 text-center">
+                На вашу пошту прийде лист з посиланням для зміни паролю
+              </p>
+            </div>
+
+            {/* Кнопки збереження / видалення */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-gray-800">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
@@ -270,8 +372,8 @@ export default function Profile() {
 
               <button
                 type="submit"
-                disabled={loading || !form.username.trim()}
-                className="flex-1 py-4 px-8 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl font-semibold text-white shadow-lg shadow-indigo-900/40 transition disabled:opacity-60 flex items-center justify-center gap-2 order-1 sm:order-2"
+                disabled={loading || !hasChanges()}
+                className={`flex-1 py-4 px-8 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl font-semibold text-white shadow-lg shadow-indigo-900/40 transition disabled:opacity-60 flex items-center justify-center gap-2 order-1 sm:order-2 ${!hasChanges() ? 'cursor-not-allowed' : ''}`}
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -291,7 +393,6 @@ export default function Profile() {
             </div>
           </form>
 
-
           <div className="border-t border-gray-800 bg-gray-950/30 px-6 sm:px-10 py-12">
             <SubscriptionManagement />
           </div>
@@ -302,10 +403,10 @@ export default function Profile() {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDelete}
-        title={t('profile.delete_confirm_title_clear') !== 'profile.delete_confirm_title_clear' ? t('profile.delete_confirm_title_clear') : (language === 'uk' ? 'Видалення акаунта' : 'Delete account')}
-        description={t('profile.delete_confirm_desc_clear') !== 'profile.delete_confirm_desc_clear' ? t('profile.delete_confirm_desc_clear') : (language === 'uk' ? 'Після видалення акаунта всі ваші дані буде втрачено. Ви впевнені, що хочете продовжити?' : 'After deleting your account, all your data will be lost. Are you sure you want to continue?')}
-        confirmText={deleting ? (t('profile.deleting') !== 'profile.deleting' ? t('profile.deleting') : (language === 'uk' ? 'Видалення...' : 'Deleting...')) : (t('profile.confirm_delete_clear') !== 'profile.confirm_delete_clear' ? t('profile.confirm_delete_clear') : (language === 'uk' ? 'Видалити назавжди' : 'Delete permanently'))}
-        cancelText={t('profile.cancel') !== 'profile.cancel' ? t('profile.cancel') : (language === 'uk' ? 'Скасувати' : 'Cancel')}
+        title={t('profile.delete_confirm_title_clear') || (language === 'uk' ? 'Видалення акаунта' : 'Delete account')}
+        description={t('profile.delete_confirm_desc_clear') || (language === 'uk' ? 'Після видалення акаунта всі ваші дані буде втрачено. Ви впевнені, що хочете продовжити?' : 'After deleting your account, all your data will be lost. Are you sure you want to continue?')}
+        confirmText={deleting ? (t('profile.deleting') || (language === 'uk' ? 'Видалення...' : 'Deleting...')) : (t('profile.confirm_delete_clear') || (language === 'uk' ? 'Видалити назавжди' : 'Delete permanently'))}
+        cancelText={t('profile.cancel') || (language === 'uk' ? 'Скасувати' : 'Cancel')}
       />
     </div>
   );

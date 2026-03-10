@@ -9,10 +9,6 @@ const getJsonHeaders = () => {
   };
 };
 
-const getMultipartHeaders = () => {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
 async function multipartRequest(endpoint: string, formData: FormData, method = 'POST') {
   const url = `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
   const token = localStorage.getItem('token');
@@ -47,11 +43,12 @@ async function multipartRequest(endpoint: string, formData: FormData, method = '
   if (response.status === 204) return null;
   return response.json();
 }
-async function jsonRequest(endpoint: string, options = {}) {
+
+async function jsonRequest(endpoint: string, options: RequestInit = {}) {
   const url = `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
   const response = await fetch(url, {
     ...options,
-    headers: { ...getJsonHeaders(), ...options.headers },
+    headers: { ...getJsonHeaders(), ...(options.headers as Record<string, string>) },
   });
 
   if (!response.ok) {
@@ -67,16 +64,38 @@ async function jsonRequest(endpoint: string, options = {}) {
   return response.json();
 }
 
+interface CollectionData {
+  name: string;
+  description?: string;
+}
+
+interface FranchiseData {
+  name: string;
+  description?: string;
+}
+
+interface GenreData {
+  name: string;
+}
+
+interface EpisodeUpdateData {
+  title?: string;
+  description?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  videoUrl?: string;
+}
+
 export const ApiAdminFilms = {
   // ────────────────────────────────────────────────
   // Collections (JSON)
   // ────────────────────────────────────────────────
   collections: {
     getAll: () => jsonRequest('/collections/get-all'),
-    getById: (id) => jsonRequest(`/collections/get/${id}`),
-    create: (data) => jsonRequest('/collections/create', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id, data) => jsonRequest(`/collections/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id) => jsonRequest(`/collections/delete/${id}`, { method: 'DELETE' }),
+    getById: (id: string) => jsonRequest(`/collections/get/${id}`),
+    create: (data: CollectionData) => jsonRequest('/collections/create', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<CollectionData>) => jsonRequest(`/collections/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => jsonRequest(`/collections/delete/${id}`, { method: 'DELETE' }),
   },
 
   // ────────────────────────────────────────────────
@@ -85,9 +104,9 @@ export const ApiAdminFilms = {
   contents: {
     createMultipart: (formData: FormData) => multipartRequest('/contents/create', formData),
     updateMultipart: (id: string, formData: FormData) => multipartRequest(`/contents/update/${id}`, formData, 'PUT'),
-    delete: (id) => jsonRequest(`/contents/delete/${id}`, { method: 'DELETE' }),
+    delete: (id: string) => jsonRequest(`/contents/delete/${id}`, { method: 'DELETE' }),
     getAll: () => jsonRequest('/contents/get'),
-    getById: (id) => jsonRequest(`/contents/get-details/${id}`),
+    getById: (id: string) => jsonRequest(`/contents/get-details/${id}`),
   },
 
   // ────────────────────────────────────────────────
@@ -95,10 +114,10 @@ export const ApiAdminFilms = {
   // ────────────────────────────────────────────────
   episodes: {
     addToContentMultipart: (contentId: string, formData: FormData) => multipartRequest(`/episodes/add/${contentId}`, formData),
-    delete: (id) => jsonRequest(`/episodes/delete/${id}`, { method: 'DELETE' }),
-    update: (id, data) => jsonRequest(`/episodes/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    getByContent: (contentId) => jsonRequest(`/episodes/get-episodes/content-id/${contentId}`),
-    getById: (id) => jsonRequest(`/episodes/get/${id}`),
+    delete: (id: string) => jsonRequest(`/episodes/delete/${id}`, { method: 'DELETE' }),
+    update: (id: string, data: EpisodeUpdateData) => jsonRequest(`/episodes/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    getByContent: (contentId: string) => jsonRequest(`/episodes/get-episodes/content-id/${contentId}`),
+    getById: (id: string) => jsonRequest(`/episodes/get/${id}`),
   },
 
   // ────────────────────────────────────────────────
@@ -106,10 +125,10 @@ export const ApiAdminFilms = {
   // ────────────────────────────────────────────────
   franchises: {
     getAll: () => jsonRequest('/franchises/get-all'),
-    getById: (id) => jsonRequest(`/franchises/get/${id}`),
-    create: (data) => jsonRequest('/franchises/create', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id, data) => jsonRequest(`/franchises/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id) => jsonRequest(`/franchises/delete/${id}`, { method: 'DELETE' }),
+    getById: (id: string) => jsonRequest(`/franchises/get/${id}`),
+    create: (data: FranchiseData) => jsonRequest('/franchises/create', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<FranchiseData>) => jsonRequest(`/franchises/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => jsonRequest(`/franchises/delete/${id}`, { method: 'DELETE' }),
   },
 
   // ────────────────────────────────────────────────
@@ -117,9 +136,9 @@ export const ApiAdminFilms = {
   // ────────────────────────────────────────────────
   genres: {
     getAll: () => jsonRequest('/genres/get-all'),
-    getById: (id) => jsonRequest(`/genres/get/${id}`),
-    create: (data) => jsonRequest('/genres/create', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id, data) => jsonRequest(`/genres/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id) => jsonRequest(`/genres/delete/${id}`, { method: 'DELETE' }),
+    getById: (id: string) => jsonRequest(`/genres/get/${id}`),
+    create: (data: GenreData) => jsonRequest('/genres/create', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<GenreData>) => jsonRequest(`/genres/update/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => jsonRequest(`/genres/delete/${id}`, { method: 'DELETE' }),
   },
 };

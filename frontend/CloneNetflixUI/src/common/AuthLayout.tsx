@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
 import AnimatedOutlet from "../components/AnimatedOutlet";
+import logo from "/images/shape/logo.png";
 
 export default function AuthLayout() {
   const { t } = useLanguage();
@@ -15,9 +16,9 @@ export default function AuthLayout() {
           {/* Логотип — менший на мобілках */}
           <Link
             to="/"
-            className="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
+            className="flex items-center w-48 select-none pointer-events-none"
           >
-            Nexo Cinema
+            <img src={logo} alt="logo" />
           </Link>
 
           {/* Правий блок — кнопки + перемикач мови */}
