@@ -1,5 +1,6 @@
 // src/pages/dashboard/WatchLater.tsx
 import { useEffect, useState } from "react";
+import ConfirmModal from "../../components/ConfirmModal";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { ArrowLeft, Trash2, Clock } from "lucide-react";
@@ -117,17 +118,38 @@ const WatchLater: React.FC = () => {
   };
 
   const clearAll = () => {
-    if (window.confirm(t("watch_later.confirm_clear") || "Очистити список «На потім»?")) {
-      setStoredItems([]);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      toast.success(t("watch_later.cleared") || "Список очищено");
-    }
+    setShowClearModal(true);
+  };
+
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  const handleConfirmClear = async () => {
+    setClearing(true);
+    setStoredItems([]);
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    toast.success(t("watch_later.cleared") || "Список очищено");
+    setClearing(false);
+    setShowClearModal(false);
+  };
+
+  const handleCancelClear = () => {
+    setShowClearModal(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-10 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Заголовок + кнопка назад */}
+        {/* Confirm Clear Modal */}
+        <ConfirmModal
+          isOpen={showClearModal}
+          onClose={handleCancelClear}
+          onConfirm={handleConfirmClear}
+          title={t('watch_later.confirm_clear_title') || 'Очистити «На потім»'}
+          description={t('watch_later.confirm_clear_desc') || 'Ви впевнені, що хочете очистити весь список «На потім»?'}
+          confirmText={clearing ? (t('watch_later.clearing') || 'Очищення...') : (t('watch_later.confirm_clear_btn') || 'Очистити')}
+          cancelText={t('watch_later.cancel') || 'Скасувати'}
+        />
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
           <Link
             to="/dashboard"

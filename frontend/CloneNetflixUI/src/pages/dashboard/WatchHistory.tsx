@@ -1,5 +1,6 @@
 // src/pages/dashboard/WatchHistory.tsx
 import { useEffect, useState } from "react";
+import ConfirmModal from "../../components/ConfirmModal";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useWatchHistory } from "../../lib/useWatchHistory";
@@ -79,16 +80,39 @@ const WatchHistory: React.FC = () => {
   };
 
   const handleClearAll = () => {
-    if (window.confirm(t('watch_history.confirm_clear') || "Очистити всю історію переглядів?")) {
+    setShowClearModal(true);
+  };
+
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  const handleConfirmClear = async () => {
+    setClearing(true);
+    await withLoading(async () => {
       clearHistory();
       toast.success(t('watch_history.cleared') || "Історію очищено");
-    }
+    });
+    setClearing(false);
+    setShowClearModal(false);
+  };
+
+  const handleCancelClear = () => {
+    setShowClearModal(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 py-10 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Заголовок + кнопка назад */}
+        {/* Confirm Clear Modal */}
+        <ConfirmModal
+          isOpen={showClearModal}
+          onClose={handleCancelClear}
+          onConfirm={handleConfirmClear}
+          title={t('watch_history.confirm_clear_title') || 'Очистити історію'}
+          description={t('watch_history.confirm_clear_desc') || 'Ви впевнені, що хочете очистити всю історію переглядів?'}
+          confirmText={clearing ? (t('watch_history.clearing') || 'Очищення...') : (t('watch_history.confirm_clear_btn') || 'Очистити')}
+          cancelText={t('watch_history.cancel') || 'Скасувати'}
+        />
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
           <Link
             to="/dashboard"
