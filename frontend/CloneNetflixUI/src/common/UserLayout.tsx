@@ -21,7 +21,7 @@ import {
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
 import AnimatedOutlet from "../components/AnimatedOutlet";
-
+import logo from "/images/shape/logo.png";
 import FilterBar from "../components/FilterBar";
 
 interface UserLayoutProps {
@@ -210,9 +210,9 @@ const UserLayout: React.FC<UserLayoutProps> = ({
             <Link
               to="/dashboard"
               onClick={scrollToTop}
-              className="text-xl sm:text-2xl font-black bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent"
+              className="flex items-center w-48 select-none pointer-events-none"
             >
-              Nexo Cinema
+              <img src={logo} alt="logo" />
             </Link>
           </div>
 
