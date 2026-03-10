@@ -210,9 +210,15 @@ const UserLayout: React.FC<UserLayoutProps> = ({
             <Link
               to="/dashboard"
               onClick={scrollToTop}
-              className="flex items-center w-48 select-none pointer-events-none"
+              tabIndex={-1} // Пропускает элемент при нажатии Tab
+              className="flex items-center w-48 "
             >
-              <img src={logo} alt="logo" />
+              <img
+                src={logo}
+                alt="" // Пустой alt скрывает текст при наведении/фокусе
+                draggable={false} // Запрещает "вытягивание" картинки
+                className="select-none"
+              />
             </Link>
           </div>
 
