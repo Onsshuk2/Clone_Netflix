@@ -29,6 +29,7 @@ public class ApplicationDbContext : IdentityDbContext<
     public DbSet<Episode> Episodes => Set<Episode>();
     public DbSet<Watchlist> Watchlists => Set<Watchlist>();
     public DbSet<UserRating> UserRating => Set<UserRating>();
+    public DbSet<Favorite> Favorites => Set<Favorite>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
