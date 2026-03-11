@@ -4,6 +4,8 @@ import { toast } from 'react-hot-toast';
 import { Layout, Plus, X, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { adminUsersApi } from '../../api/AdminApiUser'; // ← твій шлях до api
+import ConfirmBlockModal from '../../components/AdminConfirmBlockUserModal';
+import ConfirmDeleteModal from '../../components/AdminConfirmDeleteUserModal';
 
 interface User {
   id: string;
@@ -639,96 +641,19 @@ const AdminUsers = () => {
           </div>
         )}
 
-        {/* Модалка підтвердження блокування */}
-        {showConfirmBlockModal && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md p-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-md shadow-2xl">
-              <div className="p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-3xl font-bold bg-gradient-to-r from-red-400 to-rose-500 bg-clip-text text-transparent">
-                    {confirmNewBlocked ? 'Заблокувати користувача' : 'Розблокувати користувача'}
-                  </h2>
-                  <button
-                    onClick={() => setShowConfirmBlockModal(false)}
-                    className="text-gray-400 hover:text-white text-3xl transition"
-                  >
-                    <X size={32} />
-                  </button>
-                </div>
-
-                <p className="text-gray-300 mb-8 text-lg">
-                  Ви впевнені, що хочете {confirmNewBlocked ? 'заблокувати' : 'розблокувати'} користувача{' '}
-                  <span className="font-semibold text-white">
-                    "{users.find((u) => u.id === confirmBlockUserId)?.userName || '—'}"
-                  </span>
-                  ?
-                </p>
-
-                <div className="flex justify-end gap-6">
-                  <button
-                    onClick={() => setShowConfirmBlockModal(false)}
-                    className="px-10 py-4 border border-gray-700 rounded-2xl text-gray-300 hover:bg-gray-800 transition font-medium"
-                  >
-                    Скасувати
-                  </button>
-                  <button
-                    onClick={confirmBlockAction}
-                    className={`px-10 py-4 rounded-2xl font-bold shadow-xl transition-all hover:scale-105 ${confirmNewBlocked
-                      ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500'
-                      : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'
-                      }`}
-                  >
-                    {confirmNewBlocked ? 'Заблокувати' : 'Розблокувати'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Модалка підтвердження видалення */}
-        {showConfirmDeleteModal && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md p-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-md shadow-2xl">
-              <div className="p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-3xl font-bold bg-gradient-to-r from-red-400 to-rose-600 bg-clip-text text-transparent">
-                    Видалити користувача
-                  </h2>
-                  <button
-                    onClick={() => setShowConfirmDeleteModal(false)}
-                    className="text-gray-400 hover:text-white text-3xl transition"
-                  >
-                    <X size={32} />
-                  </button>
-                </div>
-
-                <p className="text-gray-300 mb-8 text-lg">
-                  Ви впевнені, що хочете <span className="font-bold text-red-400">назавжди</span> видалити користувача{' '}
-                  <span className="font-semibold text-white">
-                    "{users.find((u) => u.id === confirmDeleteUserId)?.userName || '—'}"
-                  </span>
-                  ? Цю дію не можна скасувати.
-                </p>
-
-                <div className="flex justify-end gap-6">
-                  <button
-                    onClick={() => setShowConfirmDeleteModal(false)}
-                    className="px-10 py-4 border border-gray-700 rounded-2xl text-gray-300 hover:bg-gray-800 transition font-medium"
-                  >
-                    Скасувати
-                  </button>
-                  <button
-                    onClick={confirmDeleteAction}
-                    className="px-10 py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-2xl text-white font-bold shadow-xl transition-all hover:scale-105"
-                  >
-                    Видалити
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmBlockModal
+          isOpen={showConfirmBlockModal}
+          onClose={() => setShowConfirmBlockModal(false)}
+          onConfirm={confirmBlockAction}
+          userName={users.find((u) => u.id === confirmBlockUserId)?.userName || "—"}
+          isBlocking={confirmNewBlocked}
+        />
+        <ConfirmDeleteModal
+          isOpen={showConfirmDeleteModal}
+          onClose={() => setShowConfirmDeleteModal(false)}
+          onConfirm={confirmDeleteAction}
+          userName={users.find((u) => u.id === confirmDeleteUserId)?.userName || "—"}
+        />
       </div>
     </div>
   );
