@@ -1,15 +1,14 @@
 ﻿using AutoMapper;
 using CloneNetflix.API.Models;
 using MediatR;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using NetflixClone.Application.Interfaces;
 using NetflixClone.Application.UseCases.Auth.Commands.ForgotPassword;
 using NetflixClone.Application.UseCases.Auth.Commands.Login;
 using NetflixClone.Application.UseCases.Auth.Commands.Register;
 using NetflixClone.Application.UseCases.Auth.Commands.ResetPassword;
 using NetflixClone.Domain.Entities;
-using NetflixClone.Infrastructure.Services;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 
@@ -20,13 +19,18 @@ namespace CloneNetflix.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly UserManager<User> _userManager; 
+    private readonly UserManager<User> _userManager;
+    private readonly IJwtTokenGenerator _jwtTokenGenerator;
 
-    public AuthController(IMediator mediator, UserManager<User> userManager,
-        IMapper mapper)
+    public AuthController(
+        IMediator mediator,
+        UserManager<User> userManager,
+        IMapper mapper,
+        IJwtTokenGenerator jwtTokenGenerator)
     {
         _mediator = mediator;
         _userManager = userManager;
+        _jwtTokenGenerator = jwtTokenGenerator;
     }
 
     [HttpPost("register")]
@@ -79,41 +83,52 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequestModel model)
     {
         string token = model.Token;
+
         using var httpClient = new HttpClient();
 
         httpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", token);
 
-        //configuration
-        string userInfo = "https://www.googleapis.com/oauth2/v2/userinfo";
-        var response = await httpClient.GetAsync(userInfo);
+        string userInfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
+
+        var response = await httpClient.GetAsync(userInfoUrl);
 
         if (!response.IsSuccessStatusCode)
+        {
             return BadRequest(new
             {
                 Status = 400,
                 IsValid = false,
                 Errors = new { Email = "Помилка реєстрації" }
             });
+        }
 
         string json = await response.Content.ReadAsStringAsync();
 
         var googleUser = JsonConvert.DeserializeObject<GoogleAccountModel>(json);
 
+        if (googleUser == null)
+            return BadRequest();
 
-        var existingUser = await _userManager.FindByEmailAsync(googleUser!.Email);
+        var existingUser = await _userManager.FindByEmailAsync(googleUser.Email);
+
         if (existingUser != null)
         {
-            var userLoginGoogle = await _userManager.FindByLoginAsync("Google", googleUser.GogoleId);
+            var userLoginGoogle =
+                await _userManager.FindByLoginAsync("Google", googleUser.GogoleId);
 
             if (userLoginGoogle == null)
             {
-                await _userManager.AddLoginAsync(existingUser, new UserLoginInfo("Google", googleUser.GogoleId, "Google"));
+                await _userManager.AddLoginAsync(existingUser,
+                    new UserLoginInfo("Google", googleUser.GogoleId, "Google"));
             }
-            //var jwtToken = await tokenService.CreateTokenAsync(existingUser);
+
+            var roles = await _userManager.GetRolesAsync(existingUser);
+            var jwt = _jwtTokenGenerator.GenerateToken(existingUser, roles);
+
             return Ok(new
             {
-                Token = "Good"
+                Token = jwt
             });
         }
         else
@@ -121,39 +136,29 @@ public class AuthController : ControllerBase
             var user = new User
             {
                 Email = googleUser.Email,
-                UserName = googleUser.Email,
-                
-                
-            };//_mapper.Map<User>(googleUser);
-
-            if (!String.IsNullOrEmpty(googleUser.Picture))
-            {
-                //user.Image = await imageService.SaveImageFromUrlAsync(googleUser.Picture);
-            }
+                UserName = googleUser.Email
+            };
 
             var result = await _userManager.CreateAsync(user);
-            if (result.Succeeded)
-            {
 
-                result = await _userManager.AddLoginAsync(user, new UserLoginInfo(
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            await _userManager.AddLoginAsync(user,
+                new UserLoginInfo(
                     loginProvider: "Google",
                     providerKey: googleUser.GogoleId,
-                    displayName: "Google"
-                ));
+                    displayName: "Google"));
 
-                await _userManager.AddToRoleAsync(user, "User");
-                //var jwtToken = await tokenService.CreateTokenAsync(user);
-                return Ok(new
-                {
-                    Token = "token"
-                });
-            }
+            await _userManager.AddToRoleAsync(user, "User");
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var jwt = _jwtTokenGenerator.GenerateToken(user, roles);
+
+            return Ok(new
+            {
+                Token = jwt
+            });
         }
-        return BadRequest(new
-        {
-            Status = 400,
-            IsValid = false,
-            Errors = new { Email = "Помилка реєстрації" }
-        });
     }
 }
