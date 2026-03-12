@@ -1,12 +1,14 @@
 // src/pages/Register.tsx
 import { useState } from "react";
-import axios from "axios";
 import { Eye, EyeOff } from "lucide-react";
 import { $t } from "../../lib/toast";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
+import { jwtDecode } from "jwt-decode";
 
 const API_URL = import.meta.env.VITE_API_URL;
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export default function Register() {
   const navigate = useNavigate();
@@ -27,45 +29,47 @@ export default function Register() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: "" }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.email.trim()) {
-      newErrors.email = t('validation.enter_email');
+      newErrors.email = t("validation.enter_email") || "Введіть email";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      newErrors.email = t('validation.invalid_email');
+      newErrors.email = t("validation.invalid_email") || "Невірний формат email";
     }
 
     if (!formData.dateOfBirth) {
-      newErrors.dateOfBirth = t('validation.enter_dob');
+      newErrors.dateOfBirth = t("validation.enter_dob") || "Вкажіть дату народження";
     }
 
     if (!formData.password) {
-      newErrors.password = t('validation.enter_password');
+      newErrors.password = t("validation.enter_password") || "Введіть пароль";
     } else if (formData.password.length < 8) {
-      newErrors.password = t('validation.password_min');
+      newErrors.password = t("validation.password_min") || "Пароль має бути не менше 8 символів";
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = t('validation.passwords_mismatch');
+      newErrors.confirmPassword = t("validation.passwords_mismatch") || "Паролі не співпадають";
     }
 
     if (!agree) {
-      newErrors.agree = t('validation.accept_terms');
+      newErrors.agree = t("validation.accept_terms") || "Потрібна згода з умовами";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Звичайна реєстрація (email + пароль)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
+
+    setIsLoading(true);
 
     const payload = {
       Email: formData.email.trim(),
@@ -74,269 +78,313 @@ export default function Register() {
       DateOfBirth: formData.dateOfBirth,
     };
 
-    console.log("Відправляємо на бекенд:", payload);
-
-    setIsLoading(true);
-
     try {
-      await axios.post(`${API_URL}/api/Auth/register`, payload, {
+      const res = await fetch(`${API_URL}/api/Auth/register`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      $t.success(t('auth.register_success'));
+      if (!res.ok) {
+        const errData = await res.json();
+        const message =
+          errData.message ||
+          errData.errors?.Email?.[0] ||
+          errData.errors?.Password?.[0] ||
+          "Помилка реєстрації";
+        throw new Error(message);
+      }
 
-      setFormData({
-        email: "",
-        password: "",
-        confirmPassword: "",
-        dateOfBirth: "",
-      });
-      setAgree(false);
-
+      $t.success(t("auth.register_success") || "Реєстрація успішна! Увійдіть в акаунт.");
       setTimeout(() => navigate("/login"), 1800);
     } catch (err: any) {
-      console.error("Помилка реєстрації:", err.response?.status, err.response?.data);
+      const msg = err.message || t("auth.error_generic") || "Щось пішло не так...";
 
-      if (err.response?.status === 400) {
-        const serverErrors = err.response.data?.errors || {};
-
-        const formatted: Record<string, string> = {};
-        Object.entries(serverErrors).forEach(([key, msgs]: [string, any]) => {
-          formatted[key.toLowerCase()] = Array.isArray(msgs) ? msgs[0] : String(msgs);
-        });
-
-        setErrors(formatted);
-
-        const firstError = Object.values(formatted)[0];
-        $t.error(firstError || t('auth.error_generic'));
-      } else if (err.response?.status === 409 || String(err.response?.data?.message || "").includes("taken")) {
-        $t.error(t('auth.email_taken'));
-      } else {
-        $t.error(t('auth.error_generic'));
+      if (msg.toLowerCase().includes("already") || msg.includes("вже існує")) {
+        setErrors({ email: t("auth.email_taken") || "Такий email вже зареєстровано" });
       }
+
+      $t.error(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Google реєстрація
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setIsLoading(true);
+
+    try {
+      const googleToken = credentialResponse.credential;
+
+      const res = await fetch(`${API_URL}/api/Auth/GoogleRegister`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: googleToken }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Не вдалося зареєструватися через Google");
+      }
+
+      const data = await res.json();
+      const token = data.token;
+
+      // Зберігаємо токен
+      localStorage.setItem("token", token);
+
+      // Декодуємо базову інформацію
+      let decoded: any = {};
+      try {
+        decoded = jwtDecode(token);
+      } catch (e) {
+        console.warn("Не вдалося декодувати токен", e);
+      }
+
+      const userId = decoded.sub || decoded.userId || decoded.id || decoded.nameid;
+      let userData: any = { email: decoded.email || "" };
+
+      // Спроба отримати деталі користувача (опціонально)
+      if (userId && token) {
+        try {
+          const userRes = await fetch(`${API_URL}/api/users/admin/get-user/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (userRes.ok) {
+            userData = await userRes.json();
+          }
+        } catch (e) {
+          console.warn("Не вдалося завантажити дані користувача", e);
+        }
+      }
+
+      // Нормалізовані дані для localStorage
+      const normalizedUser = {
+        userName:
+          userData.userName ||
+          userData.username ||
+          userData.email?.split("@")[0] ||
+          "Користувач",
+        avatarUrl: userData.avatarUrl || userData.picture || null,
+        email: userData.email || decoded.email || "",
+      };
+
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+
+      $t.success("Успішна реєстрація через Google!");
+      navigate("/dashboard");
+    } catch (err: any) {
+      $t.error(err.message || "Помилка реєстрації через Google");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    $t.error("Не вдалося авторизуватися через Google");
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-indigo-950/40 to-black px-4 py-12">
-      <div className="w-full max-w-lg bg-gray-900/85 backdrop-blur-2xl rounded-3xl border border-gray-800/60 shadow-2xl shadow-indigo-950/50 overflow-hidden transform transition-all duration-500 hover:shadow-indigo-900/40">
-        <div className="px-10 pt-14 pb-12">
-          {/* Заголовок з градієнтом */}
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-center mb-4 bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent tracking-tight drop-shadow-lg">
-            {t("auth.create_account") || "Створити акаунт"}
-          </h2>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-indigo-950/40 to-black px-4 py-12">
+        <div className="w-full max-w-lg bg-gray-900/85 backdrop-blur-2xl rounded-3xl border border-gray-800/60 shadow-2xl shadow-indigo-950/50 overflow-hidden transform transition-all duration-500 hover:shadow-indigo-900/40">
+          <div className="px-10 pt-14 pb-12">
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-center mb-4 bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent tracking-tight drop-shadow-lg">
+              {t("auth.create_account") || "Створити акаунт"}
+            </h2>
 
-          <p className="text-center text-gray-400 mb-10 text-base font-light">
-            {t('auth.already_have_account')} {" "}
-            <a
-              href="/login"
-              className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 font-medium"
-            >
-              {t('auth.login')}
-            </a>
-          </p>
-
-          <form className="space-y-8" onSubmit={handleSubmit}>
-            {/* Email */}
-            <div>
-              <input
-                type="email"
-                name="email"
-                placeholder={t('auth.email_placeholder')}
-                value={formData.email}
-                onChange={handleChange}
-                className={`
-                  w-full px-6 py-4 
-                  bg-gray-800/70 border border-gray-700/80 rounded-2xl 
-                  text-white placeholder-gray-500 text-base
-                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20
-                  outline-none transition-all duration-300 ease-in-out
-                  shadow-inner
-                  ${errors.email ? "border-red-500/60 focus:border-red-500 focus:ring-red-500/30" : ""}
-                `}
-                required
-                autoComplete="email"
-              />
-              {errors.email && (
-                <p className="mt-2 text-sm text-red-400 font-medium">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Дата народження */}
-            <div>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                className={`
-                  w-full px-6 py-4 
-                  bg-gray-800/70 border border-gray-700/80 rounded-2xl 
-                  text-white text-base
-                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20
-                  outline-none transition-all duration-300 ease-in-out
-                  shadow-inner
-                  ${errors.dateOfBirth ? "border-red-500/60 focus:border-red-500 focus:ring-red-500/30" : ""}
-                `}
-              />
-              {errors.dateOfBirth && (
-                <p className="mt-2 text-sm text-red-400 font-medium">{errors.dateOfBirth}</p>
-              )}
-            </div>
-
-            {/* Пароль */}
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder={t('auth.password_placeholder')}
-                value={formData.password}
-                onChange={handleChange}
-                className={`
-                  w-full px-6 py-4 pr-14 
-                  bg-gray-800/70 border border-gray-700/80 rounded-2xl 
-                  text-white placeholder-gray-500 text-base
-                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20
-                  outline-none transition-all duration-300 ease-in-out
-                  shadow-inner
-                  ${errors.password ? "border-red-500/60 focus:border-red-500 focus:ring-red-500/30" : ""}
-                `}
-                required
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="
-                  absolute top-1/2 right-5 -translate-y-1/2 
-                  text-gray-400 hover:text-indigo-400 transition-colors duration-200
-                "
+            <p className="text-center text-gray-400 mb-10 text-base font-light">
+              {t("auth.already_have_account") || "Вже є акаунт?"}{" "}
+              <a
+                href="/login"
+                className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 font-medium"
               >
-                {showPassword ? (
-                  <EyeOff className="w-6 h-6" strokeWidth={2.5} />
-                ) : (
-                  <Eye className="w-6 h-6" strokeWidth={2.5} />
-                )}
-              </button>
-              {errors.password && (
-                <p className="mt-2 text-sm text-red-400 font-medium">{errors.password}</p>
-              )}
-            </div>
+                {t("auth.login") || "Увійти"}
+              </a>
+            </p>
 
-            {/* Повтор пароля */}
-            <div className="relative">
-              <input
-                type={showConfirm ? "text" : "password"}
-                name="confirmPassword"
-                placeholder={t('auth.password_placeholder')}
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`
-                  w-full px-6 py-4 pr-14 
-                  bg-gray-800/70 border border-gray-700/80 rounded-2xl 
-                  text-white placeholder-gray-500 text-base
-                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20
-                  outline-none transition-all duration-300 ease-in-out
-                  shadow-inner
-                  ${errors.confirmPassword ? "border-red-500/60 focus:border-red-500 focus:ring-red-500/30" : ""}
-                `}
-                required
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className="
-                  absolute top-1/2 right-5 -translate-y-1/2 
-                  text-gray-400 hover:text-indigo-400 transition-colors duration-200
-                "
-              >
-                {showConfirm ? (
-                  <EyeOff className="w-6 h-6" strokeWidth={2.5} />
-                ) : (
-                  <Eye className="w-6 h-6" strokeWidth={2.5} />
-                )}
-              </button>
-              {errors.confirmPassword && (
-                <p className="mt-2 text-sm text-red-400 font-medium">{errors.confirmPassword}</p>
-              )}
-            </div>
+            <form className="space-y-8" onSubmit={handleSubmit}>
+              {/* Email */}
+              <div>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder={t("auth.email_placeholder") || "Ваш email"}
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full px-6 py-4 bg-gray-800/70 border ${
+                    errors.email ? "border-red-500/60" : "border-gray-700/80"
+                  } rounded-2xl text-white placeholder-gray-500 text-base focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20 outline-none transition-all duration-300 ease-in-out shadow-inner`}
+                  autoComplete="email"
+                  required
+                />
+                {errors.email && <p className="mt-2 text-sm text-red-400">{errors.email}</p>}
+              </div>
 
-            {/* Згода */}
-            <div className="flex items-center gap-3 pt-2">
-              <input
-                id="agree"
-                type="checkbox"
-                checked={agree}
-                onChange={e => setAgree(e.target.checked)}
-                className="h-5 w-5 text-indigo-600 rounded border-gray-700/80 focus:ring-indigo-500/50 bg-gray-800/70"
-              />
-              <label htmlFor="agree" className="text-sm text-gray-300 select-none">
-                {t('auth.agree_prefix')} {" "}
-                <a
-                  href="/terms"
-                  className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 underline underline-offset-2"
-                  target="_blank"
-                  rel="noopener noreferrer"
+              {/* Дата народження */}
+              <div>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth}
+                  onChange={handleChange}
+                  className={`w-full px-6 py-4 bg-gray-800/70 border ${
+                    errors.dateOfBirth ? "border-red-500/60" : "border-gray-700/80"
+                  } rounded-2xl text-white text-base focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20 outline-none transition-all duration-300 ease-in-out shadow-inner`}
+                  required
+                />
+                {errors.dateOfBirth && (
+                  <p className="mt-2 text-sm text-red-400">{errors.dateOfBirth}</p>
+                )}
+              </div>
+
+              {/* Пароль */}
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder={t("auth.password_placeholder") || "Пароль"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full px-6 py-4 pr-14 bg-gray-800/70 border ${
+                    errors.password ? "border-red-500/60" : "border-gray-700/80"
+                  } rounded-2xl text-white placeholder-gray-500 text-base focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20 outline-none transition-all duration-300 ease-in-out shadow-inner`}
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute top-1/2 right-5 -translate-y-1/2 text-gray-400 hover:text-indigo-400 transition-colors duration-200"
                 >
-                  {t('auth.terms')}
-                </a>
-              </label>
-            </div>
-            {errors.agree && (
-              <p className="mt-2 text-sm text-red-400 font-medium">{errors.agree}</p>
-            )}
+                  {showPassword ? (
+                    <EyeOff className="w-6 h-6" strokeWidth={2.5} />
+                  ) : (
+                    <Eye className="w-6 h-6" strokeWidth={2.5} />
+                  )}
+                </button>
+                {errors.password && <p className="mt-2 text-sm text-red-400">{errors.password}</p>}
+              </div>
 
-            {/* Кнопка реєстрації */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`
-                relative w-full py-4 px-6 rounded-2xl font-semibold text-lg text-white
-                transition-all duration-300 ease-in-out transform
-                shadow-xl shadow-indigo-900/40 overflow-hidden
-                ${isLoading
-                  ? "bg-indigo-700/50 cursor-wait opacity-70"
-                  : "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 active:scale-[0.98] hover:shadow-2xl hover:shadow-purple-900/50"
-                }
-              `}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-3">
-                  <svg
-                    className="animate-spin h-6 w-6 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
+              {/* Підтвердження пароля */}
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  name="confirmPassword"
+                  placeholder={t("auth.confirm_password") || "Підтвердіть пароль"}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full px-6 py-4 pr-14 bg-gray-800/70 border ${
+                    errors.confirmPassword ? "border-red-500/60" : "border-gray-700/80"
+                  } rounded-2xl text-white placeholder-gray-500 text-base focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:shadow-lg focus:shadow-indigo-500/20 outline-none transition-all duration-300 ease-in-out shadow-inner`}
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute top-1/2 right-5 -translate-y-1/2 text-gray-400 hover:text-indigo-400 transition-colors duration-200"
+                >
+                  {showConfirm ? (
+                    <EyeOff className="w-6 h-6" strokeWidth={2.5} />
+                  ) : (
+                    <Eye className="w-6 h-6" strokeWidth={2.5} />
+                  )}
+                </button>
+                {errors.confirmPassword && (
+                  <p className="mt-2 text-sm text-red-400">{errors.confirmPassword}</p>
+                )}
+              </div>
+
+              {/* Згода з умовами */}
+              <div className="flex items-center gap-3 pt-2">
+                <input
+                  id="agree"
+                  type="checkbox"
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                  className="h-5 w-5 text-indigo-600 rounded border-gray-700/80 focus:ring-indigo-500/50 bg-gray-800/70"
+                />
+                <label htmlFor="agree" className="text-sm text-gray-300 select-none">
+                  {t("auth.agree_prefix") || "Я погоджуюсь з"}{" "}
+                  <a
+                    href="/terms"
+                    className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 underline underline-offset-2"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8z"
-                    />
-                  </svg>
-                  {t('auth.registering') || "Реєстрація..."}
-                </span>
-              ) : (
-                t('auth.register_button') || "Зареєструватися"
-              )}
+                    {t("auth.terms") || "умовами використання"}
+                  </a>
+                </label>
+              </div>
+              {errors.agree && <p className="text-sm text-red-400">{errors.agree}</p>}
 
-              {/* Легкий градієнтний ефект при наведенні */}
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-            </button>
-          </form>
+              {/* Кнопка реєстрації */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`relative w-full py-4 px-6 rounded-2xl font-semibold text-lg text-white transition-all duration-300 ease-in-out transform shadow-xl shadow-indigo-900/40 overflow-hidden ${
+                  isLoading
+                    ? "bg-indigo-700/50 cursor-wait opacity-70"
+                    : "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 active:scale-[0.98] hover:shadow-2xl hover:shadow-purple-900/50"
+                }`}
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-3">
+                    <svg
+                      className="animate-spin h-6 w-6 text-white"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
+                    </svg>
+                    {t("auth.registering") || "Реєстрація..."}
+                  </span>
+                ) : (
+                  t("auth.register_button") || "Зареєструватися"
+                )}
+              </button>
+            </form>
+
+            {/* Розділювач */}
+            <div className="relative my-8">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-700"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-gray-900/85 text-gray-400">
+                  {"або"}
+                </span>
+              </div>
+            </div>
+
+            {/* Google кнопка */}
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              useOneTap={false}
+              theme="filled_black"
+              size="large"
+              shape="rectangular"
+              logo_alignment="left"
+              text="signup_with"
+              width="100%"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </GoogleOAuthProvider>
   );
 }

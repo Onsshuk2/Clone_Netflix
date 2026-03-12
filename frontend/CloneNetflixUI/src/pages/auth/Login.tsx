@@ -235,7 +235,7 @@ export default function Login() {
                 <div className="w-full border-t border-gray-700"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-gray-900/85 text-gray-400">{t("auth.or") || "або"}</span>
+                <span className="px-4 bg-gray-900/85 text-gray-400">{"або"}</span>
               </div>
             </div>
 
