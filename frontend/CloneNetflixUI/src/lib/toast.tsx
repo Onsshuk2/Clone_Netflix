@@ -9,7 +9,11 @@ export function GlobalToaster() {
       position="top-right"
       reverseOrder={false}
       gutter={12}
+<<<<<<< HEAD
+      containerStyle={{ top: 50, right: 20 }}
+=======
       containerStyle={{ top: 20, right: 20 }}
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
       toastOptions={{
         duration: 4500,
 
