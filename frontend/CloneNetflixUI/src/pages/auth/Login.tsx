@@ -1,6 +1,10 @@
 // src/pages/Login.tsx
 import { useState } from "react";
+<<<<<<< HEAD
 import { Eye, EyeOff } from "lucide-react"; // додай Chrome іконку або будь-яку іншу
+=======
+import { Eye, EyeOff, Chrome } from "lucide-react"; // додай Chrome іконку або будь-яку іншу
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
 import { $t } from "../../lib/toast";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { jwtDecode } from "jwt-decode";
@@ -61,9 +65,13 @@ export default function Login() {
 
   // ── Загальна логіка після отримання JWT (використовується і для email, і для Google) ──
   const handleSuccessfulLogin = async (token: string) => {
+<<<<<<< HEAD
     if (!token) {
       throw new Error("Токен не отримано");
     }
+=======
+    if (!token) throw new Error("Токен не отримано");
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
 
     localStorage.setItem("token", token);
 
@@ -93,11 +101,15 @@ export default function Login() {
       }
     }
 
+<<<<<<< HEAD
     // Якщо нічого не прийшло — fallback на email з форми
+=======
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
     if (!userData || Object.keys(userData).length === 0) {
       userData = { email };
     }
 
+<<<<<<< HEAD
     const userEmail = userData.email || email || "";
 
     // Частина до @ для fallback або коли потрібно
@@ -127,13 +139,30 @@ export default function Login() {
 
     const normalizedUser = {
       userName: finalUserName,
+=======
+    const normalizedUser = {
+      userName:
+        userData.userName ||
+        userData.username ||
+        userData.name ||
+        userData.fullName ||
+        userData.displayName ||
+        (userData.email || email)?.split("@")[0] ||
+        "Користувач",
+
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
       avatarUrl:
         userData.avatarUrl ||
         userData.avatar ||
         userData.photo ||
         userData.profilePicture ||
         null,
+<<<<<<< HEAD
       email: userEmail,
+=======
+
+      email: userData.email || email,
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
     };
 
     localStorage.setItem("user", JSON.stringify(normalizedUser));
@@ -141,6 +170,10 @@ export default function Login() {
     $t.success(t("auth.login_success") || "Вхід успішний!");
     navigate("/dashboard");
   };
+<<<<<<< HEAD
+=======
+
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
   // ── Google Login ──
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
@@ -193,7 +226,10 @@ export default function Login() {
               <div>
                 <input
                   type="email"
+<<<<<<< HEAD
                   name="email"
+=======
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -256,11 +292,16 @@ export default function Login() {
                 <div className="w-full border-t border-gray-700"></div>
               </div>
               <div className="relative flex justify-center text-sm">
+<<<<<<< HEAD
                 <span className="px-4 bg-gray-900/85 text-gray-400">{"або"}</span>
+=======
+                <span className="px-4 bg-gray-900/85 text-gray-400">{t("auth.or") || "або"}</span>
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
               </div>
             </div>
 
             {/* Google кнопка */}
+<<<<<<< HEAD
             <div className="mt-6 w-full flex justify-center text-center">
               <div className="w-full max-w-sm rounded-xl overflow-hidden shadow-md hover:shadow-lg flex justify-center transition">
                 <GoogleLogin
@@ -278,6 +319,32 @@ export default function Login() {
               </div>
             </div>
 
+=======
+            <div className="mt-6">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false} // можна увімкнути auto one-tap якщо хочеш
+                theme="filled_black"
+                size="large"
+                shape="rectangular"
+                logo_alignment="left"
+                text="signin_with"
+                width="100%"
+              />
+            </div>
+
+            {/* Альтернативний варіант — кастомна кнопка */}
+            {/* <button
+              type="button"
+              disabled={loading}
+              className="mt-4 w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-medium text-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white transition-all"
+              onClick={() => document.querySelector<HTMLDivElement>(".g_id_signin")?.click()}
+            >
+              <Chrome className="w-6 h-6" />
+              Увійти через Google
+            </button> */}
+>>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
           </div>
         </div>
       </div>
