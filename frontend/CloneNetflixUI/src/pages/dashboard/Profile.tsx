@@ -78,15 +78,42 @@ export default function Profile() {
   };
 
   const getAvatarSrc = () => {
+    // Якщо є прев'ю завантаженого файлу — показуємо його
     if (previewUrl) return previewUrl;
-    if (profile.avatarUrl) {
-      if (profile.avatarUrl.startsWith("http")) return profile.avatarUrl;
-      let cleanPath = profile.avatarUrl.replace(/^\/+/, "").replace(/^(images\/|uploads\/|avatars\/)?/, "");
-      return `${API_URL}/images/${cleanPath}`;
-    }
-    // Використовуємо очищене ім'я для дефолтної аватарки
 
-    return getDefaultAvatar(profile.userName || form.username || "Користувач");
+    if (!profile.avatarUrl || profile.avatarUrl.trim() === "") {
+      return getDefaultAvatar(profile.userName || form.username || "Користувач");
+    }
+
+    let url = profile.avatarUrl.trim();
+
+    // Google аватарки — нормалізуємо розмір
+    if (url.includes("googleusercontent.com") || url.includes("lh3.googleusercontent.com")) {
+      url = url.replace(/=s\d+-c?/, '').replace(/-s\d+-c$/, '');
+      const separator = url.includes('?') ? '&' : '?';
+      url += separator + 's512';
+      return url;
+    }
+
+    // Повні зовнішні посилання
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+
+    // Локальні аватари — завжди images/avatars/
+    let cleanPath = url.replace(/^\/+/, '');
+
+    if (!cleanPath.startsWith('images/')) {
+      if (cleanPath.startsWith('avatars/')) {
+        cleanPath = 'images/' + cleanPath;
+      } else {
+        cleanPath = 'images/avatars/' + cleanPath;
+      }
+    }
+
+    const fullUrl = `${API_URL}/${cleanPath}`.replace(/([^:]\/)\/+/g, '$1');
+
+    return fullUrl;
   };
 
   useEffect(() => {
