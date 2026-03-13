@@ -59,17 +59,27 @@ const UserLayout: React.FC<UserLayoutProps> = ({
   const [userPlan, setUserPlan] = useState<"basic" | "standard" | "premium" | null>(null);
 
   // Функція для генерації дефолтної аватарки з ініціалами
+  // Функція для генерації дефолтної аватарки з ініціалами
   const getDefaultAvatar = (name: string) => {
-    // Беремо перші дві літери імені або "??"
+    // Беремо перші дві літери або "??"
     const initials = name.trim()
       ? name
         .split(" ")
-        .map(word => word[0]?.toUpperCase())
+        .map((word) => word[0]?.toUpperCase())
         .join("")
         .slice(0, 2)
       : "??";
 
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=6366f1&color=fff&size=128&bold=true`;
+    // DiceBear — найнадійніший варіант на 2025–2026
+    // Стиль: initials (дуже простий і чистий), або avatars/notionists, micah тощо
+    return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(
+      initials
+    )}&backgroundColor=6366f1&textColor=ffffff&fontWeight=600&radius=50`;
+
+    // Альтернативні стилі, які теж рекомендую (просто закоментуй/розкоментуй):
+    // return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(initials)}&backgroundColor=6366f1`;
+    // return `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(initials)}&backgroundColor=6366f1`;
+    // return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(initials)}&backgroundColor=6366f1`;
   };
 
   // Функція визначення ролі з JWT
@@ -314,6 +324,8 @@ const UserLayout: React.FC<UserLayoutProps> = ({
                   src={getAvatarSrc()}
                   alt="Avatar"
                   className="w-9 h-9 lg:w-10 lg:h-10 rounded-full object-cover ring-2 ring-indigo-500/50 shadow-md transition-transform duration-200"
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     const originalSrc = target.src;
