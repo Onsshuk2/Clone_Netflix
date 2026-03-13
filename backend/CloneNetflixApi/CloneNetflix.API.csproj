@@ -10,20 +10,13 @@
 		<PackageReference Include="FFMpegCore" Version="5.4.0" />
 		<PackageReference Include="FluentValidation" Version="12.1.1" />
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-<<<<<<< HEAD
 		<PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
-=======
->>>>>>> b629eb947d56b1837a8fae1f71e47b3ebc8be3a3
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.12" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
-
 		<PackageReference Include="Microsoft.OpenApi" Version="1.6.22" />
-		
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
 
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
 			<PrivateAssets>all</PrivateAssets>
@@ -37,11 +30,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="media\images\avatars\" />
-	  <Folder Include="media\images\backdrops\" />
-	  <Folder Include="media\images\posters\" />
-	  <Folder Include="media\videos\movies\" />
-	  <Folder Include="media\videos\episodes\" />
+		<Folder Include="media\images\avatars\" />
+		<Folder Include="media\images\backdrops\" />
+		<Folder Include="media\images\posters\" />
+		<Folder Include="media\videos\movies\" />
+		<Folder Include="media\videos\episodes\" />
 	</ItemGroup>
 
 </Project>
