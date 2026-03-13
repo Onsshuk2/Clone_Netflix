@@ -143,16 +143,48 @@ const UserLayout: React.FC<UserLayoutProps> = ({
   }, [isAuthenticated]);
 
   const getAvatarSrc = () => {
-    if (!user?.avatarUrl) {
-      // Якщо аватарки немає — генеруємо з ініціалів
-      return getDefaultAvatar(user?.name || "Користувач");
+    if (!user?.avatarUrl || user.avatarUrl.trim() === "") {
+      return getDefaultAvatar(user?.name || "Гість");
     }
-    if (user.avatarUrl.startsWith("http")) return user.avatarUrl;
 
-    let clean = user.avatarUrl.replace(/^\/+/, "").replace(/^(images\/|uploads\/|avatars\/)?/, "");
-    return `${API_URL}/images/${clean}`;
+    let url = user.avatarUrl.trim();
+
+    // Google аватарки — робимо великий розмір
+    if (url.includes("googleusercontent.com") || url.includes("lh3.googleusercontent.com")) {
+      // Прибираємо старий розмір, якщо є
+      url = url.replace(/=s\d+-c?/, '').replace(/-s\d+-c$/, '');
+
+      // Додаємо стабільний розмір
+      const separator = url.includes('?') ? '&' : '?';
+      url += separator + 's512';
+
+      return url;
+    }
+
+    // Повні зовнішні посилання — не чіпаємо
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+
+    // Локальні аватари — завжди додаємо images/avatars/
+    let cleanPath = url.replace(/^\/+/, ''); // прибираємо слеші на початку
+
+    // Якщо вже починається з images/ — ок
+    // Якщо avatars/ — додаємо images/ попереду
+    // Якщо просто ім'я файлу — додаємо images/avatars/
+    if (!cleanPath.startsWith('images/')) {
+      if (cleanPath.startsWith('avatars/')) {
+        cleanPath = 'images/' + cleanPath;
+      } else {
+        cleanPath = 'images/avatars/' + cleanPath;
+      }
+    }
+
+    // Збираємо повний шлях
+    const fullUrl = `${API_URL}/${cleanPath}`.replace(/([^:]\/)\/+/g, '$1');
+
+    return fullUrl;
   };
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -281,9 +313,26 @@ const UserLayout: React.FC<UserLayoutProps> = ({
                 <img
                   src={getAvatarSrc()}
                   alt="Avatar"
-                  className="w-9 h-9 lg:w-10 lg:h-10 rounded-full object-cover ring-2 ring-indigo-500/50 shadow-md transition-transform duration-200 group-hover:scale-105"
+                  className="w-9 h-9 lg:w-10 lg:h-10 rounded-full object-cover ring-2 ring-indigo-500/50 shadow-md transition-transform duration-200"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = getDefaultAvatar(user?.name || "Гість");
+                    const target = e.target as HTMLImageElement;
+                    const originalSrc = target.src;
+
+                    // Спроба 1: великий розмір без -c
+                    if (originalSrc.includes("googleusercontent") && !originalSrc.includes("s512")) {
+                      target.src = originalSrc.replace(/=s\d+-?c?/, "") + "=s512";
+                      return;
+                    }
+
+                    // Спроба 2: ще більший розмір
+                    if (!originalSrc.includes("s800")) {
+                      target.src = originalSrc.replace(/=s\d+/, "=s800");
+                      return;
+                    }
+
+                    // Спроба 3: дефолтна аватарка
+                    target.src = getDefaultAvatar(user?.name || "Гість");
+                    target.onerror = null; // більше не зациклюємо
                   }}
                 />
                 <span className="hidden md:block font-medium text-gray-200 truncate max-w-[140px] lg:max-w-[180px]">
