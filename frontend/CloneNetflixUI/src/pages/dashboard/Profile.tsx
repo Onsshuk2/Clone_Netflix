@@ -64,17 +64,27 @@ export default function Profile() {
     return trimmed || "Користувач";
   };
 
-  // Генерація аватарки з ініціалів (використовуємо очищене ім'я)
+  // Функція для генерації дефолтної аватарки з ініціалами
   const getDefaultAvatar = (name: string) => {
-    const cleanedName = cleanUsername(name);
-    const initials = cleanedName
-      .split(" ")
-      .map(word => word[0]?.toUpperCase())
-      .join("")
-      .slice(0, 2) || "??";
+    // Беремо перші дві літери або "??"
+    const initials = name.trim()
+      ? name
+        .split(" ")
+        .map((word) => word[0]?.toUpperCase())
+        .join("")
+        .slice(0, 2)
+      : "??";
 
+    // DiceBear — найнадійніший варіант на 2025–2026
+    // Стиль: initials (дуже простий і чистий), або avatars/notionists, micah тощо
+    return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(
+      initials
+    )}&backgroundColor=6366f1&textColor=ffffff&fontWeight=600&radius=50`;
 
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=6366f1&color=fff&size=256&bold=true`;
+    // Альтернативні стилі, які теж рекомендую (просто закоментуй/розкоментуй):
+    // return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(initials)}&backgroundColor=6366f1`;
+    // return `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(initials)}&backgroundColor=6366f1`;
+    // return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(initials)}&backgroundColor=6366f1`;
   };
 
   const getAvatarSrc = () => {
